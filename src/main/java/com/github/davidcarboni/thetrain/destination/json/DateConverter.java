@@ -11,7 +11,7 @@ import java.util.Date;
  */
 public class DateConverter {
 
-    static final String pattern = "yyyy-MM-dd'T'HH:mm:ssX";
+    static final String pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
 
     /**
      * @param date A {@link Date} to be converted to a {@link String}. Can be null.
