@@ -7,7 +7,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
- * Created by david on 31/07/2015.
+ * Converts between Java {@link Date} and Strings suitable for use in Json which can be interpreted by Date.parse() in Javascript.
  */
 public class DateConverter {
 
