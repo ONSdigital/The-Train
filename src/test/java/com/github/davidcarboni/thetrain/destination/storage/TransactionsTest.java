@@ -2,8 +2,6 @@ package com.github.davidcarboni.thetrain.destination.storage;
 
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -16,16 +14,6 @@ import static org.junit.Assert.*;
  * Created by david on 03/08/2015.
  */
 public class TransactionsTest {
-
-    @Before
-    public void setUp() {
-
-    }
-
-    @After
-    public void tearDown() {
-
-    }
 
     /**
      * Tests that a collection is created with an ID and start date and can be read using the ID.

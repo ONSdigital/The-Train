@@ -61,20 +61,20 @@ public class Transactions {
         // Generate the file structure
         Path transactionPath = path(id);
         if (transactionPath != null && Files.exists(transactionPath)) {
-            try {
+            //try {
                 final Path json = transactionPath.resolve(JSON);
-                Future<Transaction> future = transactionUpdates.submit(new Callable<Transaction>() {
-                    @Override
-                    public Transaction call() throws IOException {
+                //Future<Transaction> future = transactionUpdates.submit(new Callable<Transaction>() {
+                //    @Override
+                //    public Transaction call() throws IOException {
                         try (InputStream input = Files.newInputStream(json)) {
                             return Serialiser.deserialise(input, Transaction.class);
                         }
-                    }
-                });
-                result = future.get();
-            } catch (InterruptedException | ExecutionException e) {
-                throw new IOException("Error reading transaction Json", e);
-            }
+                //    }
+                //});
+                //result = future.get();
+            //} catch (InterruptedException | ExecutionException e) {
+            //    throw new IOException("Error reading transaction Json", e);
+            //}
         }
 
         return result;
