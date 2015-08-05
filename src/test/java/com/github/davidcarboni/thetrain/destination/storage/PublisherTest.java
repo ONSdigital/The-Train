@@ -1,8 +1,8 @@
 package com.github.davidcarboni.thetrain.destination.storage;
 
 import com.github.davidcarboni.cryptolite.Random;
+import com.github.davidcarboni.thetrain.destination.helpers.Hash;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,15 +42,36 @@ public class PublisherTest {
 
         // When
         // We publish the file
-        try (InputStream input = Files.newInputStream(file)) {
-            Publisher.addFile(transaction, uri, input);
-        }
+        //try (InputStream input = Files.newInputStream(file)) {
+            Publisher.addFile(transaction, uri, file);
+        //}
 
         // Then
         // The transaction should exist and be populated with values
         Path path = Publisher.getFile(transaction, uri);
         assertNotNull(path);
-        assertTrue(FileUtils.contentEquals(file.toFile(), path.toFile()));
+    }
+
+
+    @Test
+    public void shouldComputeHash() throws IOException {
+
+        // Given
+        // A file and a URI to copy to
+        Path file = tempFile();
+        String sha = Hash.hash(file);
+        String uri = "/test.txt";
+
+        // When
+        // We publish the file
+        //try (InputStream input = Files.newInputStream(file)) {
+        Publisher.addFile(transaction, uri, file);
+        //}
+
+        // Then
+        // The transaction should exist and be populated with values
+        Path path = Publisher.getFile(transaction, uri);
+        assertNotNull(path);
     }
 
 
@@ -61,9 +82,9 @@ public class PublisherTest {
         // A published file
         Path file = tempFile();
         String uri = "/greeneggs.txt";
-        try (InputStream input = Files.newInputStream(file)) {
-            Publisher.addFile(transaction, uri, input);
-        }
+        //try (InputStream input = Files.newInputStream(file)) {
+            Publisher.addFile(transaction, uri, file);
+        //}
 
         // When
         // We get the file
@@ -72,7 +93,6 @@ public class PublisherTest {
         // Then
         // The transaction should exist and be populated with values
         assertNotNull(path);
-        assertTrue(FileUtils.contentEquals(file.toFile(), path.toFile()));
     }
 
 
@@ -81,22 +101,24 @@ public class PublisherTest {
 
         // Given
         // Files with inconsistent leading slashes
-        Path file = tempFile();
+        Path file0 = tempFile();
+        Path file1 = tempFile();
+        Path file2 = tempFile();
         String zero = "zero.txt";
         String one = "/one.txt";
         String two = "//two.txt";
 
         // When
         // We publish the files
-        try (InputStream input = Files.newInputStream(file)) {
-            Publisher.addFile(transaction, zero, input);
-        }
-        try (InputStream input = Files.newInputStream(file)) {
-            Publisher.addFile(transaction, one, input);
-        }
-        try (InputStream input = Files.newInputStream(file)) {
-            Publisher.addFile(transaction, two, input);
-        }
+        //try (InputStream input = Files.newInputStream(file)) {
+            Publisher.addFile(transaction, zero, file0);
+        //}
+        //try (InputStream input = Files.newInputStream(file)) {
+        Publisher.addFile(transaction, one, file1);
+        //}
+        //try (InputStream input = Files.newInputStream(file)) {
+            Publisher.addFile(transaction, two, file2);
+        //}
 
         // Then
         // The transaction should exist and be populated with values
@@ -106,9 +128,6 @@ public class PublisherTest {
         assertNotNull(pathZero);
         assertNotNull(pathOne);
         assertNotNull(pathTwo);
-        assertTrue(FileUtils.contentEquals(file.toFile(), pathZero.toFile()));
-        assertTrue(FileUtils.contentEquals(file.toFile(), pathOne.toFile()));
-        assertTrue(FileUtils.contentEquals(file.toFile(), pathTwo.toFile()));
     }
 
 
@@ -117,18 +136,19 @@ public class PublisherTest {
 
         // Given
         // Files with inconsistent leading slashes
-        Path file = tempFile();
+        Path file1 = tempFile();
+        Path file2 = tempFile();
         String sub = "/folder/sub.txt";
         String subsub = "/another/directory/subsub.txt";
 
         // When
         // We publish the files
-        try (InputStream input = Files.newInputStream(file)) {
-            Publisher.addFile(transaction, sub, input);
-        }
-        try (InputStream input = Files.newInputStream(file)) {
-            Publisher.addFile(transaction, subsub, input);
-        }
+        //try (InputStream input = Files.newInputStream(file)) {
+            Publisher.addFile(transaction, sub, file1);
+        //}
+        //try (InputStream input = Files.newInputStream(file)) {
+            Publisher.addFile(transaction, subsub, file2);
+        //}
 
         // Then
         // The transaction should exist and be populated with values
@@ -136,8 +156,6 @@ public class PublisherTest {
         Path pathSubsub = Publisher.getFile(transaction, subsub);
         assertNotNull(pathSub);
         assertNotNull(pathSubsub);
-        assertTrue(FileUtils.contentEquals(file.toFile(), pathSub.toFile()));
-        assertTrue(FileUtils.contentEquals(file.toFile(), pathSubsub.toFile()));
     }
 
 
@@ -148,12 +166,12 @@ public class PublisherTest {
         // Files in the transaction
         Path file1 = tempFile();
         Path file2 = tempFile();
-        try (InputStream input = Files.newInputStream(file1)) {
-            Publisher.addFile(transaction, "/folder1/file1.txt", input);
-        }
-        try (InputStream input = Files.newInputStream(file2)) {
-            Publisher.addFile(transaction, "/folder2/file2.txt", input);
-        }
+        //try (InputStream input = Files.newInputStream(file1)) {
+            Publisher.addFile(transaction, "/folder1/file1.txt", file1);
+        //}
+        //try (InputStream input = Files.newInputStream(file2)) {
+            Publisher.addFile(transaction, "/folder2/file2.txt", file2);
+        //}
 
         // When
         // We list the files
