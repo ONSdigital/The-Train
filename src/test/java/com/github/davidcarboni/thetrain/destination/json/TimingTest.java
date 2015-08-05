@@ -4,7 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * Created by david on 04/08/2015.
+ * Test for {@link Timing}.
  */
 public class TimingTest {
 
