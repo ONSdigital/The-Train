@@ -9,7 +9,7 @@ import org.junit.Test;
 public class TimingTest {
 
     @Test
-    public void shouldSetStartDateAnUriOnInstantiation() throws InterruptedException {
+    public void shouldSetStartDateUriAndStatusOnInstantiation() throws InterruptedException {
 
         // Given
         String uri = "/uri";
@@ -22,21 +22,41 @@ public class TimingTest {
         Assert.assertEquals(timing.startDate, DateConverter.toDate(timing.start));
         Assert.assertNull(timing.endDate);
         Assert.assertEquals(timing.duration, 0);
+        Assert.assertEquals("started", timing.status);
     }
 
     @Test
-    public void shouldSetEndDateAndDurationOnStop() throws InterruptedException {
+    public void shouldSetEndDateDurationShaAndStatusOnStop() throws InterruptedException {
 
         // Given
+        String sha = "123abc";
         Timing timing = new Timing("test");
         Thread.sleep(2);
 
         // When
-        timing.stop();
+        timing.stop(sha);
 
         // Then
         Assert.assertNotNull(timing.endDate);
         Assert.assertEquals(timing.endDate, DateConverter.toDate(timing.end));
         Assert.assertTrue(timing.duration > 0);
+        Assert.assertEquals(sha, timing.sha);
+        Assert.assertEquals("uploaded", timing.status);
+    }
+
+    @Test
+    public void shouldNotUpdateStatusForBlankSha() throws InterruptedException {
+
+        // Given
+        Timing blank = new Timing("blank");
+        Timing nul = new Timing("null");
+
+        // When
+        blank.stop("");
+        nul.stop(null);
+
+        // Then
+        Assert.assertEquals("upload failed", blank.status);
+        Assert.assertEquals("upload failed", nul.status);
     }
 }

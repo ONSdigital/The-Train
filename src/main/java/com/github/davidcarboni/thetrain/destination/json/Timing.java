@@ -1,9 +1,11 @@
 package com.github.davidcarboni.thetrain.destination.json;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.Date;
 
 /**
- * Created by david on 04/08/2015.
+ * Information about the transfer of a single file.
  */
 public class Timing {
 
@@ -12,6 +14,8 @@ public class Timing {
     String end;
     String sha;
     long duration;
+    /** This is a String rather than an enum to make deserialisation easy. This should be <code>started</code>, <code>uploaded</code> or <code>committed</code>. */
+    String status;
 
     transient Date startDate;
     transient Date endDate;
@@ -20,6 +24,7 @@ public class Timing {
         this.uri = uri;
         startDate = new Date();
         start = DateConverter.toString(startDate);
+        status = "started";
     }
 
     /**
@@ -31,6 +36,11 @@ public class Timing {
         end = DateConverter.toString(endDate);
         duration = endDate.getTime() - startDate.getTime();
         this.sha = sha;
+        if (StringUtils.isNotBlank(sha)) {
+            status = "uploaded";
+        } else {
+            status = "upload failed";
+        }
         return this;
     }
 }
