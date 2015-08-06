@@ -1,14 +1,17 @@
 package com.github.davidcarboni.thetrain.destination.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
+import com.github.davidcarboni.thetrain.destination.json.Result;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import com.github.davidcarboni.thetrain.destination.storage.Publisher;
 import com.github.davidcarboni.thetrain.destination.storage.Transactions;
+import org.apache.commons.fileupload.DefaultFileItemFactory;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.jetty.http.HttpStatus;
 
 import javax.servlet.http.HttpServletRequest;
@@ -25,34 +28,54 @@ import java.nio.file.Path;
 public class Publish {
 
     @POST
-    public String addFile(HttpServletRequest request,
+    public Result addFile(HttpServletRequest request,
                           HttpServletResponse response) throws IOException, FileUploadException {
 
-        // Get the file first because request.getParameter will consume the body of the request:
-        Path file = getFile(request);
+        Transaction transaction = null;
+        String message = null;
+        boolean error = false;
 
-        // Now get the parameters:
-        String transactionId = request.getParameter("transactionId");
-        String uri = request.getParameter("uri");
+        try {
 
-        // Validate
-        if (StringUtils.isBlank(transactionId) || StringUtils.isBlank(uri)) {
-            response.setStatus(HttpStatus.BAD_REQUEST_400);
-            return "Please provide transactionId and uri parameters.";
-        }
-        Transaction transaction = Transactions.get(transactionId);
-        if (transaction == null) {
-            response.setStatus(HttpStatus.BAD_REQUEST_400);
-            return "Unknown transaction " + transactionId;
-        }
+            // Get the file first because request.getParameter will consume the body of the request:
+            Path file = getFile(request);
 
-        // Publish
-        String sha = Publisher.addFile(transaction, uri, file);
-        if (StringUtils.isBlank(sha)) {
+            // Now get the parameters:
+            String transactionId = request.getParameter("transactionId");
+            String uri = request.getParameter("uri");
+
+            // Validate
+            if (StringUtils.isBlank(transactionId) || StringUtils.isBlank(uri)) {
+                response.setStatus(HttpStatus.BAD_REQUEST_400);
+                error = true;
+                message = "Please provide transactionId and uri parameters.";
+            }
+            transaction = Transactions.get(transactionId);
+            if (transaction == null) {
+                response.setStatus(HttpStatus.BAD_REQUEST_400);
+                error = true;
+                message = "Unknown transaction " + transactionId;
+            }
+
+            if (!error) {
+                // Publish
+                String sha = Publisher.addFile(transaction, uri, file);
+                if (StringUtils.isNotBlank(sha)) {
+                    message = sha;
+                } else {
+                    response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+                    error = true;
+                    message = "Sadly '" + uri + "' was not published.";
+                }
+            }
+
+        } catch (Exception e) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-            sha = "Sadly '"+uri+"' was not published.";
+            error = true;
+            message = ExceptionUtils.getStackTrace(e);
         }
-        return sha;
+
+        return new Result(message, error, transaction);
     }
 
 
@@ -68,7 +91,7 @@ public class Publish {
         Path result = null;
 
         // Set up the objects that do all the heavy lifting
-        DiskFileItemFactory factory = new DiskFileItemFactory();
+        DiskFileItemFactory factory = new DefaultFileItemFactory();
         ServletFileUpload upload = new ServletFileUpload(factory);
 
         try {
