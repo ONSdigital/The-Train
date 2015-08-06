@@ -17,7 +17,7 @@ import java.io.IOException;
  * Created by david on 30/07/2015.
  */
 @Api
-public class begin {
+public class Begin {
 
     @POST
     public Result beginTransaction(HttpServletRequest request,
