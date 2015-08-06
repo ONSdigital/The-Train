@@ -59,7 +59,7 @@ public class PublisherTest {
         // Given
         // A file and a URI to copy to
         Path file = tempFile();
-        String sha = Hash.hash(file);
+        String sha = Hash.sha(file);
         String uri = "/test.txt";
 
         // When

@@ -12,9 +12,9 @@ import java.nio.file.Path;
  */
 public class Hash {
 
-    public static String hash(Path path) throws IOException {
+    public static String sha(Path path) throws IOException {
         try (InputStream input = Files.newInputStream(path)) {
-            return DigestUtils.sha512Hex(input);
+            return DigestUtils.sha1Hex(input);
         }
     }
 }
