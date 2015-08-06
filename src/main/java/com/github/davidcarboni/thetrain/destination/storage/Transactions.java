@@ -3,7 +3,6 @@ package com.github.davidcarboni.thetrain.destination.storage;
 import com.github.davidcarboni.cryptolite.Random;
 import com.github.davidcarboni.restolino.json.Serialiser;
 import com.github.davidcarboni.thetrain.destination.json.DateConverter;
-import com.github.davidcarboni.thetrain.destination.json.Timing;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import org.apache.commons.lang3.StringUtils;
 
@@ -13,7 +12,10 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Date;
-import java.util.concurrent.*;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by david on 03/08/2015.
@@ -22,10 +24,11 @@ public class Transactions {
 
     static final String JSON = "transaction.json";
     static final String CONTENT = "content";
+    static final String BACKUP = "backup";
 
+    static Map<String, Transaction> transactionMap = new ConcurrentHashMap<>();
     static ExecutorService transactionUpdates = Executors.newSingleThreadExecutor();
     static Path transactionStore;
-    static Path contentStore;
 
     public static Transaction create() throws IOException {
 
@@ -41,11 +44,13 @@ public class Transactions {
         Path json = path.resolve(JSON);
         try (OutputStream output = Files.newOutputStream(json)) {
             Serialiser.serialise(output, transaction);
-        }
-        Files.createDirectory(content(transaction));
+            Files.createDirectory(content(transaction));
+            Files.createDirectory(backup(transaction));
 
-        // Return the new transaction:
-        return transaction;
+            // Return the new transaction:
+            transactionMap.put(transaction.id, transaction);
+            return transaction;
+        }
     }
 
     /**
@@ -55,29 +60,52 @@ public class Transactions {
      * @return The {@link Transaction} if it exists, otherwise null.
      * @throws IOException If an error occurs in reading the transaction Json.
      */
+
     public static Transaction get(String id) throws IOException {
         Transaction result = null;
 
-        // Generate the file structure
-        Path transactionPath = path(id);
-        if (transactionPath != null && Files.exists(transactionPath)) {
-            //try {
-                final Path json = transactionPath.resolve(JSON);
-                //Future<Transaction> future = transactionUpdates.submit(new Callable<Transaction>() {
-                //    @Override
-                //    public Transaction call() throws IOException {
-                        try (InputStream input = Files.newInputStream(json)) {
-                            return Serialiser.deserialise(input, Transaction.class);
-                        }
-                //    }
-                //});
-                //result = future.get();
-            //} catch (InterruptedException | ExecutionException e) {
-            //    throw new IOException("Error reading transaction Json", e);
-            //}
+        synchronized (transactionMap) {
+            if (!transactionMap.containsKey(id)) {
+                // Generate the file structure
+                Path transactionPath = path(id);
+                if (transactionPath != null && Files.exists(transactionPath)) {
+                    final Path json = transactionPath.resolve(JSON);
+                    try (InputStream input = Files.newInputStream(json)) {
+                        Transaction transaction = Serialiser.deserialise(input, Transaction.class);
+                        transactionMap.put(id, transaction);
+                    }
+                }
+            }
         }
 
-        return result;
+        return transactionMap.get(id);
+    }
+
+    /**
+     * Reads the transaction Json specified by the given id.
+     *
+     * @param transaction The {@link Transaction}.
+     * @return The {@link Transaction} if it exists, otherwise null.
+     * @throws IOException If an error occurs in reading the transaction Json.
+     */
+    public static void update(Transaction transaction) throws IOException {
+
+        if (transaction != null && transactionMap.containsKey(transaction.id)) {
+            // The transaction passed in should always be an instance from the map
+            // otherwise there's potential to lose updates:
+            Transaction read = transactionMap.get(transaction.id);
+            synchronized (read) {
+                // Save using a clone to avoid in-flight changes
+                Transaction write = read.clone();
+                Path transactionPath = path(transaction.id);
+                if (transactionPath != null && Files.exists(transactionPath)) {
+                    final Path json = transactionPath.resolve(JSON);
+                    try (OutputStream output = Files.newOutputStream(json)) {
+                        Serialiser.serialise(output, write);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -96,25 +124,20 @@ public class Transactions {
         return result;
     }
 
-    public static void addFile(final Transaction transaction, final Timing timing) {
-        // We use a single-threaded pool to read the transaction Json and write
-        // updates asynchronously in series so we can manage concurrent updates.
-        transactionUpdates.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Transaction read = Transactions.get(transaction.id);
-                    read.uris.add(timing);
-                    Path path = path(transaction);
-                    try (OutputStream output = Files.newOutputStream(path)) {
-                        Serialiser.serialise(output, read);
-                    }
-                } catch (IOException e) {
-                    // If we fail now, we probably have bigger issues:
-                    e.printStackTrace();
-                }
-            }
-        });
+    /**
+     * Resolved the path under which content being published will be stored prior to being committed to the website content store.
+     *
+     * @param transaction The {@link Transaction} within which to determine the {@value #CONTENT} directory.
+     * @return The {@link Path} of the {@value #CONTENT} directory for the specified transaction.
+     * @throws IOException If an error occurs in determining the path.
+     */
+    public static Path backup(Transaction transaction) throws IOException {
+        Path result = null;
+        Path path = path(transaction);
+        if (path != null) {
+            result = path.resolve(BACKUP);
+        }
+        return result;
     }
 
     /**
