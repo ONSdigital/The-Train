@@ -34,7 +34,7 @@ public class TimingTest {
         Thread.sleep(2);
 
         // When
-        timing.stop(sha);
+        timing = timing.stop(sha);
 
         // Then
         Assert.assertNotNull(timing.endDate);
@@ -52,8 +52,8 @@ public class TimingTest {
         Timing nul = new Timing("null");
 
         // When
-        blank.stop("");
-        nul.stop(null);
+        blank = blank.stop("");
+        nul = nul.stop(null);
 
         // Then
         Assert.assertEquals("upload failed", blank.status);

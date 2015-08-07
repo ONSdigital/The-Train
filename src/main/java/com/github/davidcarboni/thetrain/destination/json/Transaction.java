@@ -2,7 +2,9 @@ package com.github.davidcarboni.thetrain.destination.json;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -11,7 +13,8 @@ import java.util.Set;
 public class Transaction implements Cloneable {
     public String id;
     public String startDate;
-    public Set<Timing> uris;
+    public Set<Timing> uris = new HashSet<>();
+    public List<String> errors = new ArrayList<>();
 
 
     /**

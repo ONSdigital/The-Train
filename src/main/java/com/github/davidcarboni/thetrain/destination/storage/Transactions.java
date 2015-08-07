@@ -64,21 +64,25 @@ public class Transactions {
     public static Transaction get(String id) throws IOException {
         Transaction result = null;
 
-        synchronized (transactionMap) {
-            if (!transactionMap.containsKey(id)) {
-                // Generate the file structure
-                Path transactionPath = path(id);
-                if (transactionPath != null && Files.exists(transactionPath)) {
-                    final Path json = transactionPath.resolve(JSON);
-                    try (InputStream input = Files.newInputStream(json)) {
-                        Transaction transaction = Serialiser.deserialise(input, Transaction.class);
-                        transactionMap.put(id, transaction);
+        if (StringUtils.isNotBlank(id)) {
+            synchronized (transactionMap) {
+                if (!transactionMap.containsKey(id)) {
+                    // Generate the file structure
+                    Path transactionPath = path(id);
+                    if (transactionPath != null && Files.exists(transactionPath)) {
+                        final Path json = transactionPath.resolve(JSON);
+                        try (InputStream input = Files.newInputStream(json)) {
+                            Transaction transaction = Serialiser.deserialise(input, Transaction.class);
+                            transactionMap.put(id, transaction);
+                        }
                     }
                 }
             }
+
+            result = transactionMap.get(id);
         }
 
-        return transactionMap.get(id);
+        return result;
     }
 
     /**

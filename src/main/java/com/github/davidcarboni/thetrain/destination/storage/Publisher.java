@@ -3,7 +3,10 @@ package com.github.davidcarboni.thetrain.destination.storage;
 import com.github.davidcarboni.thetrain.destination.helpers.Hash;
 import com.github.davidcarboni.thetrain.destination.json.Timing;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
+import com.github.davidcarboni.thetrain.destination.testing.Generator;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -26,11 +29,12 @@ public class Publisher {
         if (file != null) {
             Files.createDirectories(file.getParent());
             Files.move(data, file, StandardCopyOption.REPLACE_EXISTING);
-            sha = Hash.hash(file);
+            sha = Hash.sha(file);
             System.out.println("Published " + sha + " " + uri);
         }
 
-        Transactions.addFile(transaction, timing.stop(sha));
+        transaction.uris.add(timing.stop(sha));
+        Transactions.update(transaction);
         return sha;
     }
 
@@ -70,6 +74,56 @@ public class Publisher {
         });
 
         return result;
+    }
+
+    public static void commit(Transaction transaction, Path website) throws IOException {
+        Transaction result = null;
+
+        // We use a very broad exception catch clause to
+        // ensure any and all commit errors are trapped
+        Path target = null;
+        Path content = Transactions.content(transaction);
+        Path backup = Transactions.backup(transaction);
+        Path relative = null;
+        try {
+
+            List<Path> files = listFiles(content);
+            for (Path path : files) {
+                 relative = content.relativize(path);
+                target = website.resolve(relative);
+                Path saved = backup.resolve(relative);
+                if (Files.exists(target)) {
+                    Files.createDirectories(saved.getParent());
+                    Files.move(target, saved);
+                }
+                Files.createDirectories(target.getParent());
+                Files.move(path, target);
+                Timing timing = commit(relative, transaction);
+                transaction.uris.add(timing);
+                Transactions.update(transaction);
+            }
+
+        } catch (Throwable t) {
+            transaction.errors.add("Error committing '" + target + "'.\n" +
+                    "Backed up files are in '" + backup + "'.\n" +
+                    ExceptionUtils.getStackTrace(t));
+        }
+    }
+
+    static Timing commit(Path relative, Transaction transaction) {
+
+        String uri = relative.toString();
+        if (!StringUtils.startsWith(uri, "/")) {
+            uri = "/" + uri;
+        }
+
+        for (Timing timing : transaction.uris) {
+            if (StringUtils.equals(timing.uri, uri)) {
+                return timing.commit();
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -113,5 +167,36 @@ public class Publisher {
             return true;
 
         return isContained(parent, path.normalize().getParent());
+    }
+
+    /**
+     * Manual test of the commit functionality.
+     *
+     * @param args Not used.
+     * @throws IOException If an error occurs.
+     */
+    public static void main(String[] args) throws IOException {
+
+        // Generate a Transaction containing some content
+        Transaction transaction = Transactions.create();
+        System.out.println("Transaction: " + Transactions.path(transaction));
+        Path generated = Generator.generate();
+        System.out.println("Generated: " + generated);
+        Files.move(generated, Transactions.content(transaction), StandardCopyOption.REPLACE_EXISTING);
+        System.out.println("Moved to: " + Transactions.content(transaction));
+
+        // Simulate the content already being on the website
+        //Files.delete(Website.path());
+        FileUtils.copyDirectory(Transactions.content(transaction).toFile(), Website.path().toFile());
+
+        // Attempt to commit
+        commit(transaction, Website.path());
+        System.out.println("Committed to " + Website.path());
+
+        // Print out
+        System.out.println();
+        System.out.println("Content : " + Transactions.content(transaction));
+        System.out.println("Website : " + Website.path());
+        System.out.println("Backup  : " + Transactions.backup(transaction));
     }
 }
