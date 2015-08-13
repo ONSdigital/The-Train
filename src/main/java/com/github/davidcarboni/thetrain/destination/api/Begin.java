@@ -26,7 +26,7 @@ public class Begin {
         Transaction transaction = null;
         String message;
         boolean error = false;
-
+        System.out.println("Beginning");
         try {
              transaction = Transactions.create();
             message = "New transaction created: " + transaction.id;

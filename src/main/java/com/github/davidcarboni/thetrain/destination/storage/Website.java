@@ -13,7 +13,7 @@ import java.nio.file.Paths;
  */
 public class Website {
 
-    static final String WEBSITE = "thetrain.website";
+    static final String WEBSITE = "content_url";
     static Path path;
 
     public static Path path() throws IOException {

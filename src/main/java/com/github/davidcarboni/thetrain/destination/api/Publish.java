@@ -75,7 +75,10 @@ public class Publish {
             message = ExceptionUtils.getStackTrace(e);
         }
 
-        return new Result(message, error, transaction);
+        // FIXME This is causing the error
+        Result returnResult = new Result(message, error, transaction);
+
+        return returnResult;
     }
 
 
@@ -98,8 +101,14 @@ public class Publish {
             // Read the items - this will save the values to temp files
             for (FileItem item : upload.parseRequest(request)) {
                 if (!item.isFormField()) {
+                    // Write file to local temp file
                     result = Files.createTempFile("upload", ".file");
                     item.write(result.toFile());
+
+                    // Move file to Transaction folder
+
+
+                    System.out.println("writing " + result.toString());
                 }
             }
         } catch (Exception e) {
