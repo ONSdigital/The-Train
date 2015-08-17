@@ -91,13 +91,11 @@ public class Transactions {
             // otherwise there's potential to lose updates:
             Transaction read = transactionMap.get(transaction.id());
             synchronized (read) {
-                // Save using a clone to avoid in-flight changes
-                Transaction write = read.clone();
                 Path transactionPath = path(transaction.id());
                 if (transactionPath != null && Files.exists(transactionPath)) {
                     final Path json = transactionPath.resolve(JSON);
                     try (OutputStream output = Files.newOutputStream(json)) {
-                        Serialiser.serialise(output, write);
+                        Serialiser.serialise(output, read);
                     }
                 }
             }

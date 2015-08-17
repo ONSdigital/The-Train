@@ -1,8 +1,8 @@
 package com.github.davidcarboni.thetrain.destination.storage;
 
 import com.github.davidcarboni.thetrain.destination.helpers.Hash;
-import com.github.davidcarboni.thetrain.destination.json.Uri;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
+import com.github.davidcarboni.thetrain.destination.json.Uri;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -49,6 +49,24 @@ public class Publisher {
     }
 
     /**
+     * Lists all URIs in this {@link Transaction}.
+     *
+     * @param transaction The {@link Transaction}
+     * @return The list of files (directories are not included).
+     * @throws IOException If an error occurs.
+     */
+    public static List<String> listUris(Transaction transaction) throws IOException {
+        Path content = Transactions.content(transaction);
+        List<Path> paths = listFiles(content);
+        List<String> result = new ArrayList<>();
+        for (Path path : paths) {
+            Path relative = content.relativize(path);
+            result.add("/"+relative);
+        }
+        return result;
+    }
+
+    /**
      * Lists all files in this {@link Transaction}.
      *
      * @param transaction The {@link Transaction}
@@ -83,41 +101,46 @@ public class Publisher {
         Path content = Transactions.content(transaction);
         Path backup = Transactions.backup(transaction);
         Path relative = null;
-        try {
 
-            List<Path> files = listFiles(content);
-            for (Path path : files) {
+        List<Path> files = listFiles(content);
+        for (Path path : files) {
+            Uri uri = null;
+            try {
                 relative = content.relativize(path);
                 target = website.resolve(relative);
                 Path saved = backup.resolve(relative);
+                uri = findUri(relative, transaction);
                 if (Files.exists(target)) {
                     Files.createDirectories(saved.getParent());
                     Files.move(target, saved);
                 }
                 Files.createDirectories(target.getParent());
                 Files.move(path, target);
-                Uri uri = commit(relative, transaction);
-                transaction.addUri(uri);
+                uri.commit();
                 Transactions.update(transaction);
-            }
 
-        } catch (Throwable t) {
-            transaction.addError("Error committing '" + target + "'.\n" +
-                    "Backed up files are in '" + backup + "'.\n" +
-                    ExceptionUtils.getStackTrace(t));
+            } catch (Throwable t) {
+                String error = "Error committing '" + target + "'.\n" +
+                        "Backed up files are in '" + backup + "'.\n" +
+                        ExceptionUtils.getStackTrace(t);
+                transaction.addError(error);
+                if (uri !=null) {
+                    uri.error(error);
+                }
+            }
         }
     }
 
-    static Uri commit(Path relative, Transaction transaction) {
+    static Uri findUri(Path relative, Transaction transaction) {
 
-        String uri = relative.toString();
-        if (!StringUtils.startsWith(uri, "/")) {
-            uri = "/" + uri;
+        String uriString = relative.toString();
+        if (!StringUtils.startsWith(uriString, "/")) {
+            uriString = "/" + uriString;
         }
 
-        for (Uri timing : transaction.uris()) {
-            if (StringUtils.equals(timing.uri, uri)) {
-                return timing.commit();
+        for (Uri uri : transaction.uris()) {
+            if (StringUtils.equals(uri.uri(), uriString)) {
+                return uri;
             }
         }
 

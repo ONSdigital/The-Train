@@ -1,15 +1,16 @@
 package com.github.davidcarboni.thetrain.destination.json;
 
 import com.github.davidcarboni.cryptolite.Random;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
 
 
 /**
  * Details of a single transaction, including any files transferred and any errors encountered.
+ *
+ * NB a {@link Transaction} is the unit of synchronization, so methods that manipulate the collections in this class synchronize on <code>this</code>.
  */
-public class Transaction implements Cloneable {
+public class Transaction {
 
     String id = Random.id();
     String startDate = DateConverter.toString(new Date());
@@ -42,7 +43,7 @@ public class Transaction implements Cloneable {
      * @param uri The URI to add to the set of URIs.
      */
     public void addUri(Uri uri) {
-        synchronized (uris) {
+        synchronized (this) {
             uris.add(uri);
         }
     }
@@ -51,47 +52,13 @@ public class Transaction implements Cloneable {
      * @param error An error message to be added to this transaction.
      */
     public void addError(String error) {
-        synchronized (errors) {
+        synchronized (this) {
             errors.add(error);
         }
     }
 
-    /**
-     * @return A clone of this instance.
-     */
-    public Transaction clone() {
-        try {
-            Transaction transaction = (Transaction) super.clone();
-            transaction.uris = new HashSet<>();
-            for (Uri uri : uris) {
-                transaction.uris.add(uri.clone());
-            }
-            return transaction;
-        } catch (CloneNotSupportedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    //// Object overrides ////
-
     @Override
     public String toString() {
         return id + " (" + uris.size() + " URIs)";
-    }
-
-    @Override
-    public int hashCode() {
-        int result = 0;
-        if (id != null) {
-            result = id.hashCode();
-        }
-        return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return obj != null &&
-                obj.getClass().equals(this.getClass()) &&
-                StringUtils.equals(id, ((Uri) obj).uri);
     }
 }

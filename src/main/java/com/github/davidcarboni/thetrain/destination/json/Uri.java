@@ -7,18 +7,19 @@ import java.util.Date;
 /**
  * Information about the transfer of a single file.
  */
-public class Uri implements Cloneable {
+public class Uri {
 
     public static final String STARTED = "started";
     public static final String UPLOADED = "uploaded";
     public static final String UPLOAD_FAILED = "upload failed";
     public static final String COMMITTED = "committed";
 
-    public String uri;
+    String uri;
     String start;
     String end;
-    String sha;
     long duration;
+    String sha;
+    String error;
     /**
      * This is a String rather than an enum to make deserialisation easy. This should be {@value #STARTED}, {@value #UPLOADED}, {@value #UPLOAD_FAILED} or {@value #COMMITTED}.
      */
@@ -38,22 +39,17 @@ public class Uri implements Cloneable {
         status = STARTED;
     }
 
-    /**
-     * Clones this instance and stops the timing on the clone.
-     *
-     * @return Returns the cloned instance.
-     */
-    public Uri stop(String sha) {
-        Uri result = clone();
-        result.sha = sha;
-        result.stop();
-        return result;
+    public  String uri() {
+        return uri;
     }
 
     /**
      * Stops this timing (only upload is timed) and updates the relevant fields.
+     *
+     * @return <code>this</code>.
      */
-    private void stop() {
+    public Uri stop(String sha) {
+        this.sha = sha;
         endDate = new Date();
         end = DateConverter.toString(endDate);
         duration = endDate.getTime() - startDate.getTime();
@@ -62,29 +58,24 @@ public class Uri implements Cloneable {
         } else {
             status = UPLOAD_FAILED;
         }
+        return this;
     }
 
     /**
-     * Clones this instance and sets the status of the clone to <code>committed</code>.
-     *
-     * @return Returns the cloned instance.
+     * @param error An error message to set for this Uri.
      */
-    public Uri commit() {
-        Uri result = clone();
-        result.status = COMMITTED;
-        return result;
+    public void error(String error) {
+        this.error = error;
     }
 
     /**
-     * @return A clone of this instance.
+     * Sets the status of this instance to {@value #COMMITTED}.
      */
-    protected Uri clone() {
-        try {
-            return (Uri) super.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new RuntimeException(e);
-        }
+    public void commit() {
+        status = COMMITTED;
     }
+
+    // The hashCode and equals methods are used to identify this instance in the Set<Uri> in Transaction.
 
     @Override
     public int hashCode() {

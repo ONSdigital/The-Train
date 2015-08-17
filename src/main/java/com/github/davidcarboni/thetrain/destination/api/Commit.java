@@ -33,13 +33,15 @@ public class Commit {
 
         try {
 
-            // Get the transaction
+            // Transaction ID
             String transactionId = request.getParameter("transactionId");
             if (StringUtils.isBlank(transactionId)) {
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 error = true;
                 message = "Please provide a transactionId parameter.";
             }
+
+            // Transaction object
             transaction = Transactions.get(transactionId);
             if (transaction == null) {
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
@@ -47,7 +49,7 @@ public class Commit {
                 message = "Unknown transaction " + transactionId;
             }
 
-            // Get the Path to the website folder we're going to publish to
+            // Website Path to publish to
             Path website = Website.path();
             if (website == null) {
                 response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
