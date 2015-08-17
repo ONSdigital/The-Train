@@ -26,10 +26,9 @@ public class Begin {
         Transaction transaction = null;
         String message;
         boolean error = false;
-        System.out.println("Beginning");
         try {
             transaction = Transactions.create();
-            message = "New transaction created: " + transaction.id();
+            message = "New transaction created: " + transaction;
         } catch (Exception e) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             error = true;
