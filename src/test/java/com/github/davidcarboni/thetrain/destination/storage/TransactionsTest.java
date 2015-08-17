@@ -31,9 +31,9 @@ public class TransactionsTest {
         // Then
         // The transaction should exist and be populated with values
         assertNotNull(transaction);
-        assertTrue(StringUtils.isNotBlank(transaction.id));
-        assertTrue(StringUtils.isNotBlank(transaction.startDate));
-        assertNotNull(Transactions.get(transaction.id));
+        assertTrue(StringUtils.isNotBlank(transaction.id()));
+        assertTrue(StringUtils.isNotBlank(transaction.startDate()));
+        assertNotNull(Transactions.get(transaction.id()));
     }
 
     /**
@@ -48,13 +48,13 @@ public class TransactionsTest {
 
         // When
         // We get the transaction
-        Transaction got = Transactions.get(transaction.id);
+        Transaction got = Transactions.get(transaction.id());
 
         // Then
         // The read transaction should contain the expected values:
         assertNotNull(got);
-        assertEquals(transaction.id, got.id);
-        assertEquals(transaction.startDate, got.startDate);
+        assertEquals(transaction.id(), got.id());
+        assertEquals(transaction.startDate(), got.startDate());
     }
 
     /**
@@ -117,10 +117,8 @@ public class TransactionsTest {
     public void shouldNotGetNonexistentFilesPath() throws IOException {
 
         // Given
-        // A nonexistent transaction ID
-        String id = "Still not here, mate";
+        // A nonexistent transaction ID (ie not created on disk)
         Transaction transaction = new Transaction();
-        transaction.id = id;
 
         // When
         // We get the files path

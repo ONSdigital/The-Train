@@ -33,7 +33,7 @@ public class Publisher {
             System.out.println("Published " + sha + " " + uri);
         }
 
-        transaction.uris.add(timing.stop(sha));
+        transaction.addUri(timing.stop(sha));
         Transactions.update(transaction);
         return sha;
     }
@@ -99,12 +99,12 @@ public class Publisher {
                 Files.createDirectories(target.getParent());
                 Files.move(path, target);
                 Timing timing = commit(relative, transaction);
-                transaction.uris.add(timing);
+                transaction.addUri(timing);
                 Transactions.update(transaction);
             }
 
         } catch (Throwable t) {
-            transaction.errors.add("Error committing '" + target + "'.\n" +
+            transaction.addError("Error committing '" + target + "'.\n" +
                     "Backed up files are in '" + backup + "'.\n" +
                     ExceptionUtils.getStackTrace(t));
         }
@@ -117,7 +117,7 @@ public class Publisher {
             uri = "/" + uri;
         }
 
-        for (Timing timing : transaction.uris) {
+        for (Timing timing : transaction.uris()) {
             if (StringUtils.equals(timing.uri, uri)) {
                 return timing.commit();
             }

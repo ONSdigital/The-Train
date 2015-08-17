@@ -1,8 +1,6 @@
 package com.github.davidcarboni.thetrain.destination.storage;
 
-import com.github.davidcarboni.cryptolite.Random;
 import com.github.davidcarboni.restolino.json.Serialiser;
-import com.github.davidcarboni.thetrain.destination.json.DateConverter;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import org.apache.commons.lang3.StringUtils;
 
@@ -11,7 +9,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -35,11 +32,9 @@ public class Transactions {
         // Whilst an ID collision is technicall possible it's a
         // theoretical rather than a practical consideration.
         Transaction transaction = new Transaction();
-        transaction.id = Random.id();
-        transaction.startDate = DateConverter.toString(new Date());
 
         // Generate the file structure
-        Path path = path(transaction.id);
+        Path path = path(transaction.id());
         Files.createDirectory(path);
         Path json = path.resolve(JSON);
         try (OutputStream output = Files.newOutputStream(json)) {
@@ -48,7 +43,7 @@ public class Transactions {
             Files.createDirectory(backup(transaction));
 
             // Return the new transaction:
-            transactionMap.put(transaction.id, transaction);
+            transactionMap.put(transaction.id(), transaction);
             return transaction;
         }
     }
@@ -94,14 +89,14 @@ public class Transactions {
      */
     public static void update(Transaction transaction) throws IOException {
 
-        if (transaction != null && transactionMap.containsKey(transaction.id)) {
+        if (transaction != null && transactionMap.containsKey(transaction.id())) {
             // The transaction passed in should always be an instance from the map
             // otherwise there's potential to lose updates:
-            Transaction read = transactionMap.get(transaction.id);
+            Transaction read = transactionMap.get(transaction.id());
             synchronized (read) {
                 // Save using a clone to avoid in-flight changes
                 Transaction write = read.clone();
-                Path transactionPath = path(transaction.id);
+                Path transactionPath = path(transaction.id());
                 if (transactionPath != null && Files.exists(transactionPath)) {
                     final Path json = transactionPath.resolve(JSON);
                     try (OutputStream output = Files.newOutputStream(json)) {
@@ -156,7 +151,7 @@ public class Transactions {
             throw new IllegalArgumentException("Please provide a valid transaction.");
         }
         Path result = null;
-        Path path = path(transaction.id);
+        Path path = path(transaction.id());
         if (Files.exists(path)) {
             result = path;
         }

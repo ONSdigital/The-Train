@@ -21,15 +21,15 @@ public class Begin {
 
     @POST
     public Result beginTransaction(HttpServletRequest request,
-                               HttpServletResponse response) throws IOException, FileUploadException {
+                                   HttpServletResponse response) throws IOException, FileUploadException {
 
         Transaction transaction = null;
         String message;
         boolean error = false;
         System.out.println("Beginning");
         try {
-             transaction = Transactions.create();
-            message = "New transaction created: " + transaction.id;
+            transaction = Transactions.create();
+            message = "New transaction created: " + transaction.id();
         } catch (Exception e) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             error = true;
