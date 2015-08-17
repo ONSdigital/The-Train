@@ -7,7 +7,7 @@ import java.util.*;
 
 
 /**
- * Created by david on 31/07/2015.
+ * Details of a single transaction, including any files transferred and any errors encountered.
  */
 public class Transaction implements Cloneable {
 
@@ -72,6 +72,13 @@ public class Transaction implements Cloneable {
         }
     }
 
+    //// Object overrides ////
+
+    @Override
+    public String toString() {
+        return id + " (" + uris.size() + " URIs)";
+    }
+
     @Override
     public int hashCode() {
         int result = 0;
@@ -87,5 +94,4 @@ public class Transaction implements Cloneable {
                 obj.getClass().equals(this.getClass()) &&
                 StringUtils.equals(id, ((Uri) obj).uri);
     }
-
 }
