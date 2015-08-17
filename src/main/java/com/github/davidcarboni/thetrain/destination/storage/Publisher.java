@@ -3,8 +3,6 @@ package com.github.davidcarboni.thetrain.destination.storage;
 import com.github.davidcarboni.thetrain.destination.helpers.Hash;
 import com.github.davidcarboni.thetrain.destination.json.Timing;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
-import com.github.davidcarboni.thetrain.destination.testing.Generator;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -167,36 +165,5 @@ public class Publisher {
             return true;
 
         return isContained(parent, path.normalize().getParent());
-    }
-
-    /**
-     * Manual test of the commit functionality.
-     *
-     * @param args Not used.
-     * @throws IOException If an error occurs.
-     */
-    public static void main(String[] args) throws IOException {
-
-        // Generate a Transaction containing some content
-        Transaction transaction = Transactions.create();
-        System.out.println("Transaction: " + Transactions.path(transaction));
-        Path generated = Generator.generate();
-        System.out.println("Generated: " + generated);
-        Files.move(generated, Transactions.content(transaction), StandardCopyOption.REPLACE_EXISTING);
-        System.out.println("Moved to: " + Transactions.content(transaction));
-
-        // Simulate the content already being on the website
-        //Files.delete(Website.path());
-        FileUtils.copyDirectory(Transactions.content(transaction).toFile(), Website.path().toFile());
-
-        // Attempt to commit
-        commit(transaction, Website.path());
-        System.out.println("Committed to " + Website.path());
-
-        // Print out
-        System.out.println();
-        System.out.println("Content : " + Transactions.content(transaction));
-        System.out.println("Website : " + Website.path());
-        System.out.println("Backup  : " + Transactions.backup(transaction));
     }
 }
