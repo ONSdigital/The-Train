@@ -60,7 +60,7 @@ public class Generator {
     }
 
     static String content() {
-        return com.github.davidcarboni.cryptolite.Random.password(random() * 1000)+"\n";
+        return com.github.davidcarboni.cryptolite.Random.password(random() * 1000) + "\n";
     }
 
     //public static void main(String[] args) {

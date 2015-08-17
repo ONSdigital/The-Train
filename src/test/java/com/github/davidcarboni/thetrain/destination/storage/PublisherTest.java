@@ -43,7 +43,7 @@ public class PublisherTest {
         // When
         // We publish the file
         //try (InputStream input = Files.newInputStream(file)) {
-            Publisher.addFile(transaction, uri, file);
+        Publisher.addFile(transaction, uri, file);
         //}
 
         // Then
@@ -83,7 +83,7 @@ public class PublisherTest {
         Path file = tempFile();
         String uri = "/greeneggs.txt";
         //try (InputStream input = Files.newInputStream(file)) {
-            Publisher.addFile(transaction, uri, file);
+        Publisher.addFile(transaction, uri, file);
         //}
 
         // When
@@ -111,13 +111,13 @@ public class PublisherTest {
         // When
         // We publish the files
         //try (InputStream input = Files.newInputStream(file)) {
-            Publisher.addFile(transaction, zero, file0);
+        Publisher.addFile(transaction, zero, file0);
         //}
         //try (InputStream input = Files.newInputStream(file)) {
         Publisher.addFile(transaction, one, file1);
         //}
         //try (InputStream input = Files.newInputStream(file)) {
-            Publisher.addFile(transaction, two, file2);
+        Publisher.addFile(transaction, two, file2);
         //}
 
         // Then
@@ -144,10 +144,10 @@ public class PublisherTest {
         // When
         // We publish the files
         //try (InputStream input = Files.newInputStream(file)) {
-            Publisher.addFile(transaction, sub, file1);
+        Publisher.addFile(transaction, sub, file1);
         //}
         //try (InputStream input = Files.newInputStream(file)) {
-            Publisher.addFile(transaction, subsub, file2);
+        Publisher.addFile(transaction, subsub, file2);
         //}
 
         // Then
@@ -167,10 +167,10 @@ public class PublisherTest {
         Path file1 = tempFile();
         Path file2 = tempFile();
         //try (InputStream input = Files.newInputStream(file1)) {
-            Publisher.addFile(transaction, "/folder1/file1.txt", file1);
+        Publisher.addFile(transaction, "/folder1/file1.txt", file1);
         //}
         //try (InputStream input = Files.newInputStream(file2)) {
-            Publisher.addFile(transaction, "/folder2/file2.txt", file2);
+        Publisher.addFile(transaction, "/folder2/file2.txt", file2);
         //}
 
         // When

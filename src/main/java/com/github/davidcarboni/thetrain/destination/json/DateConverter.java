@@ -29,7 +29,7 @@ public class DateConverter {
      * @param date A {@link String} to be converted to a {@link Date}. Can be null.
      * @return A Date parsed using the format pattern {@value #pattern}, or null if the input was null.
      */
-     public static Date toDate(String date) {
+    public static Date toDate(String date) {
         Date result = null;
         if (StringUtils.isNotBlank(date)) {
             try {

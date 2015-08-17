@@ -89,7 +89,7 @@ public class Publisher {
 
             List<Path> files = listFiles(content);
             for (Path path : files) {
-                 relative = content.relativize(path);
+                relative = content.relativize(path);
                 target = website.resolve(relative);
                 Path saved = backup.resolve(relative);
                 if (Files.exists(target)) {

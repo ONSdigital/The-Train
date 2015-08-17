@@ -40,7 +40,7 @@ public class Commit {
                 error = true;
                 message = "Please provide a transactionId parameter.";
             }
-             transaction = Transactions.get(transactionId);
+            transaction = Transactions.get(transactionId);
             if (transaction == null) {
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 error = true;
@@ -52,7 +52,7 @@ public class Commit {
             if (website == null) {
                 response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                 error = true;
-                message =  "Website folder could not be used: " + website;
+                message = "Website folder could not be used: " + website;
             }
 
             // Commit

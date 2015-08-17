@@ -14,8 +14,8 @@ public class Transaction implements Cloneable {
     String id = Random.id();
     String startDate = DateConverter.toString(new Date());
 
-     Set<Timing> uris = new HashSet<>();
-     List<String> errors = new ArrayList<>();
+    Set<Timing> uris = new HashSet<>();
+    List<String> errors = new ArrayList<>();
 
     /**
      * @return The transaction {@link #id}.

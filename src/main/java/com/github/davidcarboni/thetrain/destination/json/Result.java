@@ -10,8 +10,9 @@ public class Result {
 
     /**
      * The response message returned from the endpoints in this class.
-     * @param message An informational message.
-     * @param error If
+     *
+     * @param message     An informational message.
+     * @param error       If
      * @param transaction
      */
     public Result(String message, boolean error, Transaction transaction) {
