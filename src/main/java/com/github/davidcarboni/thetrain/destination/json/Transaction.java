@@ -14,7 +14,7 @@ public class Transaction implements Cloneable {
     String id = Random.id();
     String startDate = DateConverter.toString(new Date());
 
-    Set<Timing> uris = new HashSet<>();
+    Set<Uri> uris = new HashSet<>();
     List<String> errors = new ArrayList<>();
 
     /**
@@ -34,16 +34,16 @@ public class Transaction implements Cloneable {
     /**
      * @return An unmodifiable set of the URIs in this transaction.
      */
-    public Set<Timing> uris() {
+    public Set<Uri> uris() {
         return Collections.unmodifiableSet(uris);
     }
 
     /**
-     * @param timing The URI to add to the set of URIs.
+     * @param uri The URI to add to the set of URIs.
      */
-    public void addUri(Timing timing) {
+    public void addUri(Uri uri) {
         synchronized (uris) {
-            uris.add(timing);
+            uris.add(uri);
         }
     }
 
@@ -63,8 +63,8 @@ public class Transaction implements Cloneable {
         try {
             Transaction transaction = (Transaction) super.clone();
             transaction.uris = new HashSet<>();
-            for (Timing timing : uris) {
-                transaction.uris.add(timing.clone());
+            for (Uri uri : uris) {
+                transaction.uris.add(uri.clone());
             }
             return transaction;
         } catch (CloneNotSupportedException e) {
@@ -85,7 +85,7 @@ public class Transaction implements Cloneable {
     public boolean equals(Object obj) {
         return obj != null &&
                 obj.getClass().equals(this.getClass()) &&
-                StringUtils.equals(id, ((Timing) obj).uri);
+                StringUtils.equals(id, ((Uri) obj).uri);
     }
 
 }

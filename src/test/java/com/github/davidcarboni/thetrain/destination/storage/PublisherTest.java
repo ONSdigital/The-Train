@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -42,9 +43,7 @@ public class PublisherTest {
 
         // When
         // We publish the file
-        //try (InputStream input = Files.newInputStream(file)) {
-        Publisher.addFile(transaction, uri, file);
-        //}
+        Publisher.addFile(transaction, uri, file, new Date());
 
         // Then
         // The transaction should exist and be populated with values
@@ -64,9 +63,7 @@ public class PublisherTest {
 
         // When
         // We publish the file
-        //try (InputStream input = Files.newInputStream(file)) {
-        Publisher.addFile(transaction, uri, file);
-        //}
+        Publisher.addFile(transaction, uri, file, new Date());
 
         // Then
         // The transaction should exist and be populated with values
@@ -82,9 +79,7 @@ public class PublisherTest {
         // A published file
         Path file = tempFile();
         String uri = "/greeneggs.txt";
-        //try (InputStream input = Files.newInputStream(file)) {
-        Publisher.addFile(transaction, uri, file);
-        //}
+        Publisher.addFile(transaction, uri, file, new Date());
 
         // When
         // We get the file
@@ -110,15 +105,9 @@ public class PublisherTest {
 
         // When
         // We publish the files
-        //try (InputStream input = Files.newInputStream(file)) {
-        Publisher.addFile(transaction, zero, file0);
-        //}
-        //try (InputStream input = Files.newInputStream(file)) {
-        Publisher.addFile(transaction, one, file1);
-        //}
-        //try (InputStream input = Files.newInputStream(file)) {
-        Publisher.addFile(transaction, two, file2);
-        //}
+        Publisher.addFile(transaction, zero, file0, new Date());
+        Publisher.addFile(transaction, one, file1, new Date());
+        Publisher.addFile(transaction, two, file2, new Date());
 
         // Then
         // The transaction should exist and be populated with values
@@ -143,12 +132,8 @@ public class PublisherTest {
 
         // When
         // We publish the files
-        //try (InputStream input = Files.newInputStream(file)) {
-        Publisher.addFile(transaction, sub, file1);
-        //}
-        //try (InputStream input = Files.newInputStream(file)) {
-        Publisher.addFile(transaction, subsub, file2);
-        //}
+        Publisher.addFile(transaction, sub, file1, new Date());
+        Publisher.addFile(transaction, subsub, file2, new Date());
 
         // Then
         // The transaction should exist and be populated with values
@@ -166,12 +151,8 @@ public class PublisherTest {
         // Files in the transaction
         Path file1 = tempFile();
         Path file2 = tempFile();
-        //try (InputStream input = Files.newInputStream(file1)) {
-        Publisher.addFile(transaction, "/folder1/file1.txt", file1);
-        //}
-        //try (InputStream input = Files.newInputStream(file2)) {
-        Publisher.addFile(transaction, "/folder2/file2.txt", file2);
-        //}
+        Publisher.addFile(transaction, "/folder1/file1.txt", file1, new Date());
+        Publisher.addFile(transaction, "/folder2/file2.txt", file2, new Date());
 
         // When
         // We list the files
@@ -193,7 +174,6 @@ public class PublisherTest {
         // A temp file
         Path file = Files.createTempFile(this.getClass().getSimpleName(), ".txt");
 
-        //
         try (OutputStream output = Files.newOutputStream(file); InputStream input = new ByteArrayInputStream(Random.password(5000).getBytes())) {
             IOUtils.copy(input, output);
         }

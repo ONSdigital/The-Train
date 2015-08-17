@@ -7,7 +7,12 @@ import java.util.Date;
 /**
  * Information about the transfer of a single file.
  */
-public class Timing implements Cloneable {
+public class Uri implements Cloneable {
+
+    public static final String STARTED = "started";
+    public static final String UPLOADED = "uploaded";
+    public static final String UPLOAD_FAILED = "upload failed";
+    public static final String COMMITTED = "committed";
 
     public String uri;
     String start;
@@ -15,22 +20,22 @@ public class Timing implements Cloneable {
     String sha;
     long duration;
     /**
-     * This is a String rather than an enum to make deserialisation easy. This should be <code>started</code>, <code>uploaded</code> or <code>committed</code>.
+     * This is a String rather than an enum to make deserialisation easy. This should be {@value #STARTED}, {@value #UPLOADED}, {@value #UPLOAD_FAILED} or {@value #COMMITTED}.
      */
     String status;
 
     transient Date startDate;
     transient Date endDate;
 
-    public Timing() {
+    public Uri() {
         // Constructor for serialisation
     }
 
-    public Timing(String uri) {
+    public Uri(String uri, Date startDate) {
         this.uri = uri;
-        startDate = new Date();
+        this.startDate = startDate;
         start = DateConverter.toString(startDate);
-        status = "started";
+        status = STARTED;
     }
 
     /**
@@ -38,8 +43,8 @@ public class Timing implements Cloneable {
      *
      * @return Returns the cloned instance.
      */
-    public Timing stop(String sha) {
-        Timing result = clone();
+    public Uri stop(String sha) {
+        Uri result = clone();
         result.sha = sha;
         result.stop();
         return result;
@@ -53,9 +58,9 @@ public class Timing implements Cloneable {
         end = DateConverter.toString(endDate);
         duration = endDate.getTime() - startDate.getTime();
         if (StringUtils.isNotBlank(sha)) {
-            status = "uploaded";
+            status = UPLOADED;
         } else {
-            status = "upload failed";
+            status = UPLOAD_FAILED;
         }
     }
 
@@ -64,18 +69,18 @@ public class Timing implements Cloneable {
      *
      * @return Returns the cloned instance.
      */
-    public Timing commit() {
-        Timing result = clone();
-        result.status = "committed";
+    public Uri commit() {
+        Uri result = clone();
+        result.status = COMMITTED;
         return result;
     }
 
     /**
      * @return A clone of this instance.
      */
-    protected Timing clone() {
+    protected Uri clone() {
         try {
-            return (Timing) super.clone();
+            return (Uri) super.clone();
         } catch (CloneNotSupportedException e) {
             throw new RuntimeException(e);
         }
@@ -94,6 +99,6 @@ public class Timing implements Cloneable {
     public boolean equals(Object obj) {
         return obj != null &&
                 obj.getClass().equals(this.getClass()) &&
-                StringUtils.equals(uri, ((Timing) obj).uri);
+                StringUtils.equals(uri, ((Uri) obj).uri);
     }
 }

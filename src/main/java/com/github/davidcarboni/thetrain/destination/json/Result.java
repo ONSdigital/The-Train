@@ -12,8 +12,8 @@ public class Result {
      * The response message returned from the endpoints in this class.
      *
      * @param message     An informational message.
-     * @param error       If
-     * @param transaction
+     * @param error       If this message represents an application error, true (rather than a general server or network error).
+     * @param transaction The details of the current transaction.
      */
     public Result(String message, boolean error, Transaction transaction) {
         this.message = message;

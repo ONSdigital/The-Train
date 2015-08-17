@@ -1,7 +1,7 @@
 package com.github.davidcarboni.thetrain.destination.storage;
 
 import com.github.davidcarboni.thetrain.destination.helpers.Hash;
-import com.github.davidcarboni.thetrain.destination.json.Timing;
+import com.github.davidcarboni.thetrain.destination.json.Uri;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -18,8 +19,7 @@ import java.util.List;
 public class Publisher {
 
 
-    public static String addFile(Transaction transaction, String uri, Path data) throws IOException {
-        Timing timing = new Timing(uri);
+    public static String addFile(Transaction transaction, String uri, Path data, Date startDate) throws IOException {
         String sha = null;
 
         Path content = Transactions.content(transaction);
@@ -28,10 +28,10 @@ public class Publisher {
             Files.createDirectories(file.getParent());
             Files.move(data, file, StandardCopyOption.REPLACE_EXISTING);
             sha = Hash.sha(file);
-            System.out.println("Published " + sha + " " + uri);
+            System.out.println("Staged " + sha + " " + uri);
         }
 
-        transaction.addUri(timing.stop(sha));
+        transaction.addUri(new Uri(uri, startDate).stop(sha));
         Transactions.update(transaction);
         return sha;
     }
@@ -96,8 +96,8 @@ public class Publisher {
                 }
                 Files.createDirectories(target.getParent());
                 Files.move(path, target);
-                Timing timing = commit(relative, transaction);
-                transaction.addUri(timing);
+                Uri uri = commit(relative, transaction);
+                transaction.addUri(uri);
                 Transactions.update(transaction);
             }
 
@@ -108,14 +108,14 @@ public class Publisher {
         }
     }
 
-    static Timing commit(Path relative, Transaction transaction) {
+    static Uri commit(Path relative, Transaction transaction) {
 
         String uri = relative.toString();
         if (!StringUtils.startsWith(uri, "/")) {
             uri = "/" + uri;
         }
 
-        for (Timing timing : transaction.uris()) {
+        for (Uri timing : transaction.uris()) {
             if (StringUtils.equals(timing.uri, uri)) {
                 return timing.commit();
             }

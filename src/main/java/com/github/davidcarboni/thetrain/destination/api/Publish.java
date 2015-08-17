@@ -20,6 +20,7 @@ import javax.ws.rs.POST;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Date;
 
 /**
  * Created by david on 30/07/2015.
@@ -36,6 +37,8 @@ public class Publish {
         boolean error = false;
 
         try {
+            // Record the start time
+            Date start = new Date();
 
             // Get the file first because request.getParameter will consume the body of the request:
             Path file = getFile(request);
@@ -59,7 +62,7 @@ public class Publish {
 
             if (!error) {
                 // Publish
-                String sha = Publisher.addFile(transaction, uri, file);
+                String sha = Publisher.addFile(transaction, uri, file, start);
                 if (StringUtils.isNotBlank(sha)) {
                     message = sha;
                 } else {
