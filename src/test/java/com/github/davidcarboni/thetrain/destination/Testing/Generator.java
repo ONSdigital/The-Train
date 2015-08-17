@@ -1,5 +1,10 @@
-package com.github.davidcarboni.thetrain.destination.testing;
+package com.github.davidcarboni.thetrain.destination.Testing;
 
+import com.github.davidcarboni.thetrain.destination.json.Transaction;
+import com.github.davidcarboni.thetrain.destination.storage.Publisher;
+import com.github.davidcarboni.thetrain.destination.storage.Transactions;
+import com.github.davidcarboni.thetrain.destination.storage.Website;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
 import java.io.ByteArrayInputStream;
@@ -8,6 +13,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 /**
  * Created by david on 30/07/2015.
@@ -63,12 +69,35 @@ public class Generator {
         return com.github.davidcarboni.cryptolite.Random.password(random() * 1000) + "\n";
     }
 
-    //public static void main(String[] args) {
-    //    for (int i = 0; i<100; i++) System.out.println(random());
-    //}
 
+    /**
+     * Manual test of the commit functionality.
+     *
+     * @param args Not used.
+     * @throws IOException If an error occurs.
+     */
     public static void main(String[] args) throws IOException {
-        Path generate = generate();
-        System.out.println("generate = " + generate);
+
+        // Generate a Transaction containing some content
+        Transaction transaction = Transactions.create();
+        System.out.println("Transaction: " + Transactions.content(transaction).getParent());
+        Path generated = Generator.generate();
+        System.out.println("Generated: " + generated);
+        Files.move(generated, Transactions.content(transaction), StandardCopyOption.REPLACE_EXISTING);
+        System.out.println("Moved to: " + Transactions.content(transaction));
+
+        // Simulate the content already being on the website
+        //Files.delete(Website.path());
+        FileUtils.copyDirectory(Transactions.content(transaction).toFile(), Website.path().toFile());
+
+        // Attempt to commit
+        Publisher.commit(transaction, Website.path());
+        System.out.println("Committed to " + Website.path());
+
+        // Print out
+        System.out.println();
+        System.out.println("Content : " + Transactions.content(transaction));
+        System.out.println("Website : " + Website.path());
+        System.out.println("Backup  : " + Transactions.backup(transaction));
     }
 }
