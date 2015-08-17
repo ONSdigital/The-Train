@@ -11,8 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created by david on 03/08/2015.
@@ -24,7 +22,6 @@ public class Transactions {
     static final String BACKUP = "backup";
 
     static Map<String, Transaction> transactionMap = new ConcurrentHashMap<>();
-    static ExecutorService transactionUpdates = Executors.newSingleThreadExecutor();
     static Path transactionStore;
 
     public static Transaction create() throws IOException {
