@@ -24,7 +24,7 @@ public class Publisher {
         String sha = null;
 
         Path content = Transactions.content(transaction);
-        Path file = path(content, uri);
+        Path file = PathUtils.toPath(uri, content);
         if (file != null) {
             Files.createDirectories(file.getParent());
             Files.move(data, file, StandardCopyOption.REPLACE_EXISTING);
@@ -41,12 +41,12 @@ public class Publisher {
         Path result = null;
 
         Path content = Transactions.content(transaction);
-        Path file = path(content, uri);
-        if (file != null && Files.exists(file) && Files.isRegularFile(file)) {
-            result = file;
+        Path path = PathUtils.toPath(uri, content);
+        if (path != null && Files.exists(path) && Files.isRegularFile(path)) {
+            result = path;
         }
 
-        return file;
+        return result;
     }
 
     /**
@@ -61,8 +61,8 @@ public class Publisher {
         List<Path> paths = listFiles(content);
         List<String> result = new ArrayList<>();
         for (Path path : paths) {
-            Path relative = content.relativize(path);
-            result.add("/"+relative);
+            String uri = PathUtils.toUri(path, content);
+            result.add(uri);
         }
         return result;
     }
@@ -110,7 +110,8 @@ public class Publisher {
                 relative = content.relativize(path);
                 target = website.resolve(relative);
                 Path saved = backup.resolve(relative);
-                uri = findUri(relative, transaction);
+                String uriString = PathUtils.toUri(path, content);
+                uri = findUri(uriString, transaction);
                 if (Files.exists(target)) {
                     Files.createDirectories(saved.getParent());
                     Files.move(target, saved);
@@ -125,50 +126,22 @@ public class Publisher {
                         "Backed up files are in '" + backup + "'.\n" +
                         ExceptionUtils.getStackTrace(t);
                 transaction.addError(error);
-                if (uri !=null) {
+                if (uri != null) {
                     uri.error(error);
                 }
             }
         }
     }
 
-    static Uri findUri(Path relative, Transaction transaction) {
+    static Uri findUri(String uri, Transaction transaction) {
 
-        String uriString = relative.toString();
-        if (!StringUtils.startsWith(uriString, "/")) {
-            uriString = "/" + uriString;
-        }
-        Uri relativeUri = new Uri(uriString, new Date());
-
-        for (Uri uri : transaction.uris()) {
-            if (uri.equals(relativeUri)) {
-                return uri;
+        for (Uri transactionUri : transaction.uris()) {
+            if (StringUtils.equals(uri, transactionUri.uri())) {
+                return transactionUri;
             }
         }
 
+        // We didn't find the requested URI:
         return null;
-    }
-
-    /**
-     * Determines the {@link Path} for the given uri.
-     *
-     * @param uri a path to be resolved within the transaction content.
-     * @return A {@link Path} within the transaction content folder if the uri can be relativized (sic.).
-     */
-    static Path path(Path content, String uri) throws IOException {
-        Path result = null;
-
-        if (!StringUtils.isBlank(uri) && !uri.matches("/+")) {
-            String relativePath = uri;
-            while (relativePath.startsWith("/")) {
-                relativePath = relativePath.substring(1);
-            }
-            Path filePath = content.resolve(relativePath);
-            if (PathUtils.isContained(filePath, content)) {
-                result = filePath;
-            }
-        }
-
-        return result;
     }
 }
