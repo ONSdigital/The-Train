@@ -45,7 +45,9 @@ public class Transaction {
      */
     public void addUri(Uri uri) {
         synchronized (this) {
+            Set<Uri> uris = new HashSet<>(this.uris);
             uris.add(uri);
+            this.uris = uris;
         }
     }
 
@@ -54,7 +56,9 @@ public class Transaction {
      */
     public void addError(String error) {
         synchronized (this) {
+            List<String> errors = new ArrayList<>(this.errors);
             errors.add(error);
+            this.errors = errors;
         }
     }
 
