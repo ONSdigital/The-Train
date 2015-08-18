@@ -1,4 +1,4 @@
-package com.github.davidcarboni.thetrain.destination.json;
+package com.github.davidcarboni.thetrain.destination.helpers;
 
 import org.apache.commons.lang3.StringUtils;
 

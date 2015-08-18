@@ -1,5 +1,6 @@
 package com.github.davidcarboni.thetrain.destination.json;
 
+import com.github.davidcarboni.thetrain.destination.helpers.DateConverter;
 import org.junit.Assert;
 import org.junit.Test;
 
