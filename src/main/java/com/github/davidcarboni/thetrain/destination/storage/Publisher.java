@@ -101,35 +101,45 @@ public class Publisher {
         Path target = null;
         Path content = Transactions.content(transaction);
         Path backup = Transactions.backup(transaction);
-        Path relative = null;
 
         List<Path> files = listFiles(content);
-        for (Path path : files) {
-            Uri uri = null;
-            try {
-                relative = content.relativize(path);
-                target = website.resolve(relative);
-                Path saved = backup.resolve(relative);
-                String uriString = PathUtils.toUri(path, content);
-                uri = findUri(uriString, transaction);
-                if (Files.exists(target)) {
-                    Files.createDirectories(saved.getParent());
-                    Files.move(target, saved);
-                }
-                Files.createDirectories(target.getParent());
-                Files.move(path, target);
-                uri.commit();
-                Transactions.update(transaction);
+        for (Path source : files) {
+            String uri = PathUtils.toUri(source, content);
+            Uri uriInfo = findUri(uri, transaction);
+            target = PathUtils.toPath(uri, website);
+            Path backedUp = PathUtils.toPath(uri, backup);
+            commitFile(transaction, uriInfo, source, target, backedUp);
+            Transactions.update(transaction);
+        }
+    }
 
-            } catch (Throwable t) {
-                String error = "Error committing '" + target + "'.\n" +
-                        "Backed up files are in '" + backup + "'.\n" +
-                        ExceptionUtils.getStackTrace(t);
-                transaction.addError(error);
-                if (uri != null) {
-                    uri.error(error);
-                }
+    static void commitFile(Transaction transaction, Uri uriInfo, Path source, Path target, Path backedUp) {
+
+        try {
+
+            // Back up the existing file, if present
+            if (Files.exists(target)) {
+                Files.createDirectories(backedUp.getParent());
+                Files.move(target, backedUp);
             }
+
+            // Publish the new file
+            Files.createDirectories(target.getParent());
+            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+            uriInfo.commit();
+
+        } catch (Throwable t) {
+
+            // Record the error
+            String error = "Error committing '" + source + "' to '" + target + "'.\n";
+            if (Files.exists(backedUp)) error += "\nBacked up file is '" + backedUp + "'.\n";
+            error += ExceptionUtils.getStackTrace(t);
+            if (uriInfo != null) {
+                uriInfo.error(error);
+            } else {
+                transaction.addError(error);
+            }
+
         }
     }
 
