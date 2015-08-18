@@ -1,6 +1,7 @@
 package com.github.davidcarboni.thetrain.destination.storage;
 
 import com.github.davidcarboni.thetrain.destination.helpers.Hash;
+import com.github.davidcarboni.thetrain.destination.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import com.github.davidcarboni.thetrain.destination.json.Uri;
 import org.apache.commons.lang3.StringUtils;
@@ -163,31 +164,11 @@ public class Publisher {
                 relativePath = relativePath.substring(1);
             }
             Path filePath = content.resolve(relativePath);
-            if (isContained(content, filePath)) {
+            if (PathUtils.isContained(filePath, content)) {
                 result = filePath;
             }
         }
 
         return result;
-    }
-
-    /**
-     * Inspired by <a href="http://stackoverflow.com/questions/18227634/check-if-file-is-in-subdirectory"
-     * >http://stackoverflow.com/questions/18227634/check-if-file-is-in-subdirectory</a>
-     *
-     * @param parent The parent directory. This must exist on the filesystem.
-     * @param path   The path to be checked. This does not need to exist.
-     * @return If path is under parent, true.
-     * @throws IOException
-     */
-    static boolean isContained(Path parent, Path path) throws IOException {
-
-        if (path == null)
-            return false;
-
-        if (Files.exists(path) && Files.isSameFile(parent.normalize(), path.normalize()))
-            return true;
-
-        return isContained(parent, path.normalize().getParent());
     }
 }
