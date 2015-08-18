@@ -8,11 +8,13 @@ import java.util.*;
 
 /**
  * Details of a single transaction, including any files transferred and any errors encountered.
- *
+ * <p/>
  * NB a {@link Transaction} is the unit of synchronization, so methods that manipulate the collections in this class synchronize on <code>this</code>.
  */
 public class Transaction {
 
+    // Whilst an ID collision is technically possible it's a
+    // theoretical rather than a practical consideration.
     String id = Random.id();
     String startDate = DateConverter.toString(new Date());
 
@@ -49,6 +51,13 @@ public class Transaction {
             uris.add(uri);
             this.uris = uris;
         }
+    }
+
+    /**
+     * @return An unmodifiable set of the URIs in this transaction.
+     */
+    public List<String> errors() {
+        return Collections.unmodifiableList(errors);
     }
 
     /**

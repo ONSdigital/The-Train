@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Created by david on 03/08/2015.
+ * Class for working with {@link Transaction} instances.
  */
 public class Transactions {
 
@@ -26,8 +26,6 @@ public class Transactions {
 
     public static Transaction create() throws IOException {
 
-        // Whilst an ID collision is technicall possible it's a
-        // theoretical rather than a practical consideration.
         Transaction transaction = new Transaction();
 
         // Generate the file structure
