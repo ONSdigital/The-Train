@@ -24,7 +24,7 @@ import java.nio.file.Path;
 import java.util.Date;
 
 /**
- * Created by david on 30/07/2015.
+ * API to publish a file within an existing {@link Transaction}.
  */
 @Api
 public class Publish {

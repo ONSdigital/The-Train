@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 /**
- * Created by david on 30/07/2015.
+ * API to commit an existing {@link Transaction}.
  */
 @Api
 public class Commit {

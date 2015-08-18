@@ -14,7 +14,7 @@ import javax.ws.rs.POST;
 import java.io.IOException;
 
 /**
- * Created by david on 30/07/2015.
+ * API to start a new {@link Transaction}.
  */
 @Api
 public class Begin {
@@ -26,6 +26,7 @@ public class Begin {
         Transaction transaction = null;
         String message;
         boolean error = false;
+
         try {
             transaction = Transactions.create();
             message = "New transaction created: " + transaction;
