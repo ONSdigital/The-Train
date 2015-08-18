@@ -11,7 +11,7 @@ import java.nio.file.Path;
 import static org.junit.Assert.*;
 
 /**
- * Created by david on 03/08/2015.
+ * Test for {@link Transactions}.
  */
 public class TransactionsTest {
 

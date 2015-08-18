@@ -10,7 +10,7 @@ import java.nio.file.Path;
 import static org.junit.Assert.*;
 
 /**
- * Created by david on 18/08/2015.
+ * Test for {@link PathUtils}.
  */
 public class PathUtilsTest {
 

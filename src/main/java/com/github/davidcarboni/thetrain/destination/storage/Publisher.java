@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -20,7 +19,7 @@ import java.util.List;
 public class Publisher {
 
 
-    public static String addFile(Transaction transaction, String uri, Path data, Date startDate) throws IOException {
+    public static String addFile(Transaction transaction, Uri uri, Path data) throws IOException {
         String sha = null;
 
         Path content = Transactions.content(transaction);
@@ -32,7 +31,8 @@ public class Publisher {
             System.out.println("Staged " + sha + " " + uri);
         }
 
-        transaction.addUri(new Uri(uri, startDate).stop(sha));
+        uri.stop(sha);
+        transaction.addUri(uri);
         Transactions.update(transaction);
         return sha;
     }

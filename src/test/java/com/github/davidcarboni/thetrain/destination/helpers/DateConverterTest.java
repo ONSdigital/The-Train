@@ -4,7 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * Created by david on 03/08/2015.
+ * Test for {@link DateConverter}.
  */
 public class DateConverterTest {
 

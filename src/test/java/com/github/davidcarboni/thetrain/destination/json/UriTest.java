@@ -25,7 +25,7 @@ public class UriTest {
         Assert.assertEquals(uri.startDate, DateConverter.toDate(uri.start));
         Assert.assertNull(uri.endDate);
         Assert.assertEquals(uri.duration, 0);
-        Assert.assertEquals("started", uri.status);
+        Assert.assertEquals(Uri.STARTED, uri.status);
     }
 
     @Test
@@ -37,14 +37,14 @@ public class UriTest {
         Thread.sleep(2);
 
         // When
-        uri = uri.stop(sha);
+        uri.stop(sha);
 
         // Then
         Assert.assertNotNull(uri.endDate);
         Assert.assertEquals(uri.endDate, DateConverter.toDate(uri.end));
         Assert.assertTrue(uri.duration > 0);
         Assert.assertEquals(sha, uri.sha);
-        Assert.assertEquals("uploaded", uri.status);
+        Assert.assertEquals(Uri.UPLOADED, uri.status);
     }
 
     @Test
@@ -55,11 +55,31 @@ public class UriTest {
         Uri nul = new Uri("null", new Date());
 
         // When
-        blank = blank.stop("");
-        nul = nul.stop(null);
+        blank.stop("");
+        nul.stop(null);
 
         // Then
         Assert.assertEquals("upload failed", blank.status);
         Assert.assertEquals("upload failed", nul.status);
+    }
+
+    @Test
+    public void shouldEvaluateEquality() throws InterruptedException {
+
+        // Given
+        // URIs that are and are not equal
+        Uri compare = new Uri("/uri", new Date());
+        Uri equal = new Uri("/uri", new Date());
+        Uri notEqual = new Uri("/other", new Date());
+
+        // When
+        // We test equality
+        boolean equalResult = compare.equals(equal);
+        boolean notEqualResult = compare.equals(notEqual);
+
+        // Then
+        // We should get equal/not equal as expected
+        Assert.assertTrue(equalResult);
+        Assert.assertFalse(notEqualResult);
     }
 }

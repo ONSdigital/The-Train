@@ -49,7 +49,7 @@ public class Uri {
      *
      * @return <code>this</code>.
      */
-    public Uri stop(String sha) {
+    public void stop(String sha) {
         this.sha = sha;
         endDate = new Date();
         end = DateConverter.toString(endDate);
@@ -59,7 +59,6 @@ public class Uri {
         } else {
             status = UPLOAD_FAILED;
         }
-        return this;
     }
 
     /**

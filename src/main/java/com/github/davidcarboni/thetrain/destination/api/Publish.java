@@ -3,6 +3,7 @@ package com.github.davidcarboni.thetrain.destination.api;
 import com.github.davidcarboni.restolino.framework.Api;
 import com.github.davidcarboni.thetrain.destination.json.Result;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
+import com.github.davidcarboni.thetrain.destination.json.Uri;
 import com.github.davidcarboni.thetrain.destination.storage.Publisher;
 import com.github.davidcarboni.thetrain.destination.storage.Transactions;
 import org.apache.commons.fileupload.DefaultFileItemFactory;
@@ -38,17 +39,17 @@ public class Publish {
 
         try {
             // Record the start time
-            Date start = new Date();
+            Date startDate = new Date();
 
             // Get the file first because request.getParameter will consume the body of the request:
             Path file = getFile(request);
 
             // Now get the parameters:
             String transactionId = request.getParameter("transactionId");
-            String uri = request.getParameter("uri");
+            String uriString = request.getParameter("uri");
 
             // Validate
-            if (StringUtils.isBlank(transactionId) || StringUtils.isBlank(uri)) {
+            if (StringUtils.isBlank(transactionId) || StringUtils.isBlank(uriString)) {
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 error = true;
                 message = "Please provide transactionId and uri parameters.";
@@ -62,7 +63,8 @@ public class Publish {
 
             if (!error) {
                 // Publish
-                String sha = Publisher.addFile(transaction, uri, file, start);
+                Uri uri = new Uri(uriString, startDate);
+                String sha = Publisher.addFile(transaction, uri, file);
                 if (StringUtils.isNotBlank(sha)) {
                     message = sha;
                 } else {

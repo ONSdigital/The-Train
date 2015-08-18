@@ -16,7 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 /**
- * Created by david on 30/07/2015.
+ * Class for generating random folders and content.
  */
 public class Generator {
 
