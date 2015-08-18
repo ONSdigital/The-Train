@@ -137,9 +137,10 @@ public class Publisher {
         if (!StringUtils.startsWith(uriString, "/")) {
             uriString = "/" + uriString;
         }
+        Uri relativeUri = new Uri(uriString, new Date());
 
         for (Uri uri : transaction.uris()) {
-            if (StringUtils.equals(uri.uri(), uriString)) {
+            if (uri.equals(relativeUri)) {
                 return uri;
             }
         }
