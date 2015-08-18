@@ -26,7 +26,7 @@ public class Website {
                 path = Paths.get(websitePath);
             } else {
                 path = Files.createTempDirectory("website");
-                System.out.println("Simulating website for development using a temp folder: " + path);
+                System.out.println("Simulating website for development using a temp folder at: " + path);
             }
         }
 
