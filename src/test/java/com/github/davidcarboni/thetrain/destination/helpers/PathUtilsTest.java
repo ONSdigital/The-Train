@@ -7,8 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 /**
  * Created by david on 18/08/2015.
@@ -29,7 +28,7 @@ public class PathUtilsTest {
         // A contained folder
         Path container = folder("container");
         Path contained = folder("container/sub/folder");
-        Files.createDirectories(contained)  ;
+        Files.createDirectories(contained);
 
         // When
         // We check if the path is contained
@@ -91,7 +90,117 @@ public class PathUtilsTest {
         assertFalse(result);
     }
 
-    private  Path folder(String path) throws IOException {
+    @Test
+    public void shouldComputePath() throws IOException {
+
+        // Given
+        // A directory and a URI in that directory
+        Path container = folder("parent");
+        String uri = "/child";
+
+        // When
+        // We convert the URI to a path within the directory
+        Path path = PathUtils.toPath(uri, container);
+
+        // Then
+        // The path should be within the parent directory
+        assertEquals(container.resolve("child"), path);
+    }
+
+    @Test
+    public void shouldComputeUri() throws IOException {
+
+        // Given
+        // A contained folder
+        Path container = folder("parent");
+        Path contained = folder("parent/child");
+
+        // When
+        // We check if the path is contained
+        String uri = PathUtils.toUri(contained, container);
+
+        // Then
+        // The answer should be yes
+        assertEquals("/child", uri);
+    }
+
+    @Test
+    public void shouldReturnNullUriIfNotContained() throws IOException {
+
+        // Given
+        // A contained folder
+        Path container = folder("parent");
+        Path contained = folder("other/folder");
+
+        // When
+        // We check if the path is contained
+        String uri = PathUtils.toUri(contained, container);
+
+        // Then
+        // The answer should be yes
+        assertNull(uri);
+    }
+
+    @Test
+    public void shouldStripLeadingSlash() throws IOException {
+
+        // Given
+        // A variety of path strings
+        String leadingSlash = "/folder";
+        String leadingSlashes = "///folder";
+        String noLeadingSlash = "folder";
+        String slash = "/";
+        String empty = "";
+        String nul = null;
+
+        // When
+        // We process the paths
+        String leadingSlashResult = PathUtils.stripLeadingSlash(leadingSlash);
+        String leadingSlashesResult = PathUtils.stripLeadingSlash(leadingSlashes);
+        String noLeadingSlashResult = PathUtils.stripLeadingSlash(noLeadingSlash);
+        String slashResult = PathUtils.stripLeadingSlash(slash);
+        String emptyResult = PathUtils.stripLeadingSlash(empty);
+        String nulResult = PathUtils.stripLeadingSlash(nul);
+
+        // Then
+        // We should get any slashes stripped
+        assertEquals("folder", leadingSlashResult);
+        assertEquals("folder", leadingSlashesResult);
+        assertEquals("folder", noLeadingSlashResult);
+        assertEquals("", slashResult);
+        assertEquals("", emptyResult);
+        assertEquals(null, nulResult);
+    }
+
+    @Test
+    public void shouldSetLeadingSlash() throws IOException {
+
+        // Given
+        // A variety of path strings
+        String leadingSlash = "/folder";
+        String noLeadingSlash = "folder";
+        String slash = "/";
+        String empty = "/";
+        String nul = null;
+
+        // When
+        // We process the paths
+        String leadingSlashResult = PathUtils.setLeadingSlash(leadingSlash);
+        String noLeadingSlashResult = PathUtils.setLeadingSlash(noLeadingSlash);
+        String slashResult = PathUtils.setLeadingSlash(slash);
+        String emptyResult = PathUtils.setLeadingSlash(empty);
+        String nulResult = PathUtils.setLeadingSlash(nul);
+
+        // Then
+        // We should get any slashes stripped
+        assertEquals("/folder", leadingSlashResult);
+        assertEquals("/folder", noLeadingSlashResult);
+        assertEquals("/", slashResult);
+        assertEquals("/", emptyResult);
+        assertEquals(null, nulResult);
+    }
+
+    private Path folder(String path) throws IOException {
         Path result = tempFolder.resolve(path);
         Files.createDirectories(result);
         return result;
