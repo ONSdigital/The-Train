@@ -5,16 +5,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
- * Created by david on 18/08/2015.
+ * Test for {@link Transaction}.
  */
 public class TransactionTest {
 
@@ -31,8 +34,8 @@ public class TransactionTest {
 
         // Then
         // A random ID should be generated and the start date should be set
-        assertFalse(StringUtils.isBlank(transaction.id()));
-        assertFalse(StringUtils.isBlank(transaction.startDate()));
+        assertTrue(StringUtils.isNotBlank(transaction.id()));
+        assertTrue(StringUtils.isNotBlank(transaction.startDate));
     }
 
     @Test
@@ -41,7 +44,7 @@ public class TransactionTest {
         // Given
         // A transaction and a URI info
         Transaction transaction = new Transaction();
-        Uri UriInfo = new Uri("test", new Date());
+        Uri UriInfo = new Uri("test");
 
         // When
         // We add the URI info to the Transaction
@@ -53,14 +56,14 @@ public class TransactionTest {
     }
 
     @Test
-    public void shouldAddUrisConcurrently() throws Exception {
+    public void shouldAddUrisConcurrently() throws InterruptedException {
 
         // Given
         // A transaction and lots of URI infos
         final Transaction transaction = new Transaction();
         Set<Uri> uriInfos = new HashSet<>();
         for (int i = 0; i < 2000; i++) {
-            uriInfos.add(new Uri("/"+Random.id(), new Date()));
+            uriInfos.add(new Uri("/"+Random.id()));
         }
         ExecutorService pool = Executors.newFixedThreadPool(100);
 
@@ -86,12 +89,12 @@ public class TransactionTest {
     }
 
     @Test(expected = UnsupportedOperationException.class)
-    public void shouldNotBeAbleToModifyUris() throws Exception {
+    public void shouldNotBeAbleToModifyUris()  {
 
         // Given
         // A transaction
         Transaction transaction = new Transaction();
-        transaction.addUri(new Uri("test", new Date()));
+        transaction.addUri(new Uri("test"));
 
         // When
         // We attempt to modify the URIs
@@ -119,7 +122,7 @@ public class TransactionTest {
     }
 
     @Test
-    public void shouldAddErrorsConcurrently() throws Exception {
+    public void shouldAddErrorsConcurrently() throws InterruptedException {
 
         // Given
         // A transaction and lots of error messages
@@ -152,7 +155,7 @@ public class TransactionTest {
     }
 
     @Test(expected = UnsupportedOperationException.class)
-    public void shouldNotBeAbleToModifyErrors() throws Exception {
+    public void shouldNotBeAbleToModifyErrors()  {
 
         // Given
         // A transaction
@@ -165,5 +168,21 @@ public class TransactionTest {
 
         // Then
         // We should get an exception
+    }
+
+    @Test
+    public void shouldEndTransaction()  {
+
+        // Given
+        // A transaction
+        Transaction transaction = new Transaction();
+
+        // When
+        // We end the transaction
+        transaction.end();
+
+        // Then
+        // We should have one error in the collection
+        assertTrue(StringUtils.isNotBlank(transaction.endDate));
     }
 }

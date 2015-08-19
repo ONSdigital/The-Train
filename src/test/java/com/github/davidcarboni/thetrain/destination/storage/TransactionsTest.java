@@ -1,13 +1,21 @@
 package com.github.davidcarboni.thetrain.destination.storage;
 
+import com.github.davidcarboni.cryptolite.Random;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
+import com.github.davidcarboni.thetrain.destination.json.Uri;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.*;
 
 /**
@@ -55,6 +63,110 @@ public class TransactionsTest {
         assertNotNull(got);
         assertEquals(transaction.id(), got.id());
         assertEquals(transaction.startDate(), got.startDate());
+    }
+
+    /**
+     * Tests that a collection is created with an ID and start date and can be read using the ID.
+     */
+    @Test
+    public void shouldUpdateTransaction() throws IOException {
+
+        // Given
+        // A transaction
+        Transaction transaction = Transactions.create();
+        Uri uri = new Uri("/uri.txt");
+        String error = "error";
+        transaction.addError(error);
+        transaction.addUri(uri);
+
+        // When
+        // We update the transaction
+        Transactions.update(transaction);
+
+        // Then
+        // Re-reading the Transaction should load the updates
+        synchronized (Transactions.transactionMap) {
+            // So we can run tests in parallel
+            Transactions.transactionMap.clear();
+        }
+        Transaction read = Transactions.get(transaction.id());
+        assertEquals(1, read.errors().size());
+        assertEquals(1, read.uris().size());
+        assertTrue(read.errors().contains(error));
+        assertTrue(read.uris().contains(uri));
+    }
+
+    /**
+     * Tests that a collection is created with an ID and start date and can be read using the ID.
+     */
+    @Test
+    public void shouldUpdateTransactionConcurrently() throws IOException, InterruptedException {
+
+
+        // Given
+        // A transaction and lots of URI infos and errors
+        final Transaction transaction = Transactions.create();
+        Set<Uri> uriInfos = new HashSet<>();
+        for (int i = 0; i < 100; i++) {
+            uriInfos.add(new Uri("/" + Random.id()));
+        }
+        Set<String> errors = new HashSet<>();
+        for (int i = 0; i < 100; i++) {
+            errors.add("error " + Random.id());
+        }
+        ExecutorService pool = Executors.newFixedThreadPool(100);
+
+        // When
+        // We add all the URI infos and errors to the Transaction
+        for (final Uri UriInfo : uriInfos) {
+            pool.submit(new Runnable() {
+                @Override
+                public void run() {
+                    transaction.addUri(UriInfo);
+                    try {
+                        //System.out.println("Updating "+UriInfo);
+                        Transactions.update(transaction);
+                    } catch (IOException e) {
+                        System.out.println("Error adding URI info to transaction (" + UriInfo + ")");
+                    }
+                }
+            });
+        }
+        for (final String error : errors) {
+            pool.submit(new Runnable() {
+                @Override
+                public void run() {
+                    transaction.addError(error);
+                    try {
+                        //System.out.println("Updating "+error);
+                        Transactions.update(transaction);
+                    } catch (IOException e) {
+                        System.out.println("Error adding error to transaction (" + error + ")");
+                    }
+                }
+            });
+        }
+
+        // Then
+        // Wait for updates to complete
+        pool.shutdown();
+        pool.awaitTermination(10, SECONDS);
+
+        // Clear the transaction map so we can double-check the Json serialised correctly when it's re-read:
+        synchronized (Transactions.transactionMap) {
+            // So we can run tests in parallel
+            Transactions.transactionMap.clear();
+        }
+
+        // We should have added all URI infos to the Transaction and not lost any
+        assertEquals(uriInfos.size(), transaction.uris().size());
+        assertEquals(errors.size(), transaction.errors().size());
+        for (Uri UriInfo : transaction.uris()) {
+            Assert.assertTrue(uriInfos.contains(UriInfo));
+        }
+        for (String error : transaction.errors()) {
+            Assert.assertTrue(error.contains(error));
+        }
     }
 
     /**

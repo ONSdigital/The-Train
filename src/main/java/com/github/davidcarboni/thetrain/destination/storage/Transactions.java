@@ -86,7 +86,8 @@ public class Transactions {
 
         if (transaction != null && transactionMap.containsKey(transaction.id())) {
             // The transaction passed in should always be an instance from the map
-            // otherwise there's potential to lose updates:
+            // otherwise there's potential to lose updates.
+            // NB the unit of synchronization is always a Transaction object.
             Transaction read = transactionMap.get(transaction.id());
             synchronized (read) {
                 Path transactionPath = path(transaction.id());
@@ -174,7 +175,7 @@ public class Transactions {
         if (transactionStore == null) {
             // In production, the transaction store will be configured,
             // so this should only be needed in development and testing.
-            // That's is why it's not synchronized.
+            // That's is why this is not synchronized:
             transactionStore = Files.createTempDirectory(Transactions.class.getSimpleName());
         }
         return transactionStore;

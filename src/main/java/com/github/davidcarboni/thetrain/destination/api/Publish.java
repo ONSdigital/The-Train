@@ -46,10 +46,10 @@ public class Publish {
 
             // Now get the parameters:
             String transactionId = request.getParameter("transactionId");
-            String uriString = request.getParameter("uri");
+            String uri = request.getParameter("uri");
 
             // Validate
-            if (StringUtils.isBlank(transactionId) || StringUtils.isBlank(uriString)) {
+            if (StringUtils.isBlank(transactionId) || StringUtils.isBlank(uri)) {
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 error = true;
                 message = "Please provide transactionId and uri parameters.";
@@ -63,8 +63,7 @@ public class Publish {
 
             if (!error) {
                 // Publish
-                Uri uri = new Uri(uriString, startDate);
-                String sha = Publisher.addFile(transaction, uri, file);
+                String sha = Publisher.addFile(transaction, uri, file, startDate);
                 if (StringUtils.isNotBlank(sha)) {
                     message = sha;
                 } else {

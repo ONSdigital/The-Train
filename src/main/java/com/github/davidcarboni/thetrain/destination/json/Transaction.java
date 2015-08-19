@@ -17,6 +17,7 @@ public class Transaction {
     // theoretical rather than a practical consideration.
     String id = Random.id();
     String startDate = DateConverter.toString(new Date());
+    String endDate;
 
     Set<Uri> uris = new HashSet<>();
     List<String> errors = new ArrayList<>();
@@ -33,6 +34,13 @@ public class Transaction {
      */
     public String startDate() {
         return startDate;
+    }
+
+    /**
+     * @return The transaction {@link #endDate}.
+     */
+    public String endDate() {
+        return endDate;
     }
 
     /**
@@ -71,8 +79,13 @@ public class Transaction {
         }
     }
 
+    public void end() {
+        endDate = DateConverter.toString(new Date());
+    }
+
     @Override
     public String toString() {
         return id + " (" + uris.size() + " URIs)";
     }
+
 }

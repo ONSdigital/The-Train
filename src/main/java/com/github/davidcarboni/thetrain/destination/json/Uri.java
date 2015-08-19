@@ -13,7 +13,9 @@ public class Uri {
     public static final String STARTED = "started";
     public static final String UPLOADED = "uploaded";
     public static final String UPLOAD_FAILED = "upload failed";
+    public static final String COMMIT_FAILED = "commit failed";
     public static final String COMMITTED = "committed";
+    public static final String UNKNOWN = "This URI was not recorded in Transaction info";
 
     String uri;
     String start;
@@ -29,10 +31,19 @@ public class Uri {
     transient Date startDate;
     transient Date endDate;
 
+    /**
+     * Constructor for serialisation.
+     */
     public Uri() {
         // Constructor for serialisation
     }
 
+    /**
+     * Normal constructor.
+     *
+     * @param uri       The URI to record information about.
+     * @param startDate The point in time this URI started being processed.
+     */
     public Uri(String uri, Date startDate) {
         this.uri = uri;
         this.startDate = startDate;
@@ -40,7 +51,19 @@ public class Uri {
         status = STARTED;
     }
 
-    public  String uri() {
+    /**
+     * Fallback constructor in the event that a file exists in a transaction
+     * but is not present in the {@link Transaction} object.
+     *
+     * @param uri The URI to record information about.
+     */
+    public Uri(String uri) {
+        this.uri = uri;
+        status = UNKNOWN;
+        error = UNKNOWN;
+    }
+
+    public String uri() {
         return uri;
     }
 
@@ -53,7 +76,9 @@ public class Uri {
         this.sha = sha;
         endDate = new Date();
         end = DateConverter.toString(endDate);
-        duration = endDate.getTime() - startDate.getTime();
+        if (startDate != null && endDate != null) {
+            duration = endDate.getTime() - startDate.getTime();
+        }
         if (StringUtils.isNotBlank(sha)) {
             status = UPLOADED;
         } else {
@@ -64,7 +89,8 @@ public class Uri {
     /**
      * @param error An error message to set for this Uri.
      */
-    public void error(String error) {
+    public void fail(String error) {
+        status = COMMIT_FAILED;
         this.error = error;
     }
 
@@ -73,6 +99,13 @@ public class Uri {
      */
     public void commit() {
         status = COMMITTED;
+    }
+
+    /**
+     * Sets the status of this instance to {@value #COMMITTED}.
+     */
+    public String error() {
+        return error;
     }
 
     // The hashCode and equals methods are used to identify this instance in the Set<Uri> in Transaction.
@@ -91,5 +124,10 @@ public class Uri {
         return obj != null &&
                 obj.getClass().equals(this.getClass()) &&
                 StringUtils.equals(uri, ((Uri) obj).uri);
+    }
+
+    @Override
+    public String toString() {
+        return uri() + " (" + status + ")";
     }
 }

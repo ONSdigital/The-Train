@@ -64,13 +64,41 @@ public class UriTest {
     }
 
     @Test
+    public void shouldCommit() throws InterruptedException {
+
+        // Given
+        Uri uri = new Uri("uri");
+
+        // When
+        uri.commit();
+
+        // Then
+        Assert.assertEquals(Uri.COMMITTED, uri.status);
+    }
+
+    @Test
+    public void shouldFail() throws InterruptedException {
+
+        // Given
+        Uri uri = new Uri("uri");
+        String error = "error";
+
+        // When
+        uri.fail(error);
+
+        // Then
+        Assert.assertEquals(Uri.COMMIT_FAILED, uri.status);
+        Assert.assertEquals(error, uri.error);
+    }
+
+    @Test
     public void shouldEvaluateEquality() throws InterruptedException {
 
         // Given
         // URIs that are and are not equal
-        Uri compare = new Uri("/uri", new Date());
-        Uri equal = new Uri("/uri", new Date());
-        Uri notEqual = new Uri("/other", new Date());
+        Uri compare = new Uri("/uri");
+        Uri equal = new Uri("/uri");
+        Uri notEqual = new Uri("/other");
 
         // When
         // We test equality
