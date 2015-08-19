@@ -77,7 +77,6 @@ public class Publish {
             message = ExceptionUtils.getStackTrace(e);
         }
 
-        // FIXME This is causing the error
         Result returnResult = new Result(message, error, transaction);
 
         return returnResult;
