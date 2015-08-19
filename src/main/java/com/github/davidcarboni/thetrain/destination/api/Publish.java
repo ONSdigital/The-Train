@@ -77,9 +77,7 @@ public class Publish {
             message = ExceptionUtils.getStackTrace(e);
         }
 
-        Result returnResult = new Result(message, error, transaction);
-
-        return returnResult;
+        return new Result(message, error, transaction);
     }
 
 
