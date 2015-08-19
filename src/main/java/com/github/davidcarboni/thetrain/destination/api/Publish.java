@@ -3,10 +3,8 @@ package com.github.davidcarboni.thetrain.destination.api;
 import com.github.davidcarboni.restolino.framework.Api;
 import com.github.davidcarboni.thetrain.destination.json.Result;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
-import com.github.davidcarboni.thetrain.destination.json.Uri;
 import com.github.davidcarboni.thetrain.destination.storage.Publisher;
 import com.github.davidcarboni.thetrain.destination.storage.Transactions;
-import org.apache.commons.fileupload.DefaultFileItemFactory;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
@@ -98,7 +96,7 @@ public class Publish {
         Path result = null;
 
         // Set up the objects that do all the heavy lifting
-        DiskFileItemFactory factory = new DefaultFileItemFactory();
+        DiskFileItemFactory factory = new DiskFileItemFactory();
         ServletFileUpload upload = new ServletFileUpload(factory);
 
         try {
