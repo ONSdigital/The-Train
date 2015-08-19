@@ -1,13 +1,11 @@
 package com.github.davidcarboni.thetrain.destination.helpers;
 
-import com.github.davidcarboni.thetrain.destination.json.Uri;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Created by david on 18/08/2015.
+ * Utility methods for dealing with paths and converting to/from URI strings.
  */
 public class PathUtils {
 
@@ -35,17 +33,6 @@ public class PathUtils {
         // amongst the parents of the contained path,
         // this path is not contained:
         return false;
-    }
-
-    /**
-     * Computes a full path for a URI within a
-     *
-     * @param uri  The URI to be resolved
-     * @param root The directory within which to resolve the URI.
-     * @return A {@link Path} for the given URI, under the given root.
-     */
-    public static Path toPath(Uri uri, Path root) {
-        return toPath(uri.uri(), root);
     }
 
     /**
