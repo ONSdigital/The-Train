@@ -2,7 +2,7 @@ package com.github.davidcarboni.thetrain.destination.storage;
 
 import com.github.davidcarboni.cryptolite.Random;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
-import com.github.davidcarboni.thetrain.destination.json.Uri;
+import com.github.davidcarboni.thetrain.destination.json.UriInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
@@ -74,10 +74,10 @@ public class TransactionsTest {
         // Given
         // A transaction
         Transaction transaction = Transactions.create();
-        Uri uri = new Uri("/uri.txt");
+        UriInfo uriInfo = new UriInfo("/uri.txt");
         String error = "error";
         transaction.addError(error);
-        transaction.addUri(uri);
+        transaction.addUri(uriInfo);
 
         // When
         // We update the transaction
@@ -93,7 +93,7 @@ public class TransactionsTest {
         assertEquals(1, read.errors().size());
         assertEquals(1, read.uris().size());
         assertTrue(read.errors().contains(error));
-        assertTrue(read.uris().contains(uri));
+        assertTrue(read.uris().contains(uriInfo));
     }
 
     /**
@@ -106,9 +106,9 @@ public class TransactionsTest {
         // Given
         // A transaction and lots of URI infos and errors
         final Transaction transaction = Transactions.create();
-        Set<Uri> uriInfos = new HashSet<>();
+        Set<UriInfo> uriInfos = new HashSet<>();
         for (int i = 0; i < 100; i++) {
-            uriInfos.add(new Uri("/" + Random.id()));
+            uriInfos.add(new UriInfo("/" + Random.id()));
         }
         Set<String> errors = new HashSet<>();
         for (int i = 0; i < 100; i++) {
@@ -118,16 +118,16 @@ public class TransactionsTest {
 
         // When
         // We add all the URI infos and errors to the Transaction
-        for (final Uri UriInfo : uriInfos) {
+        for (final com.github.davidcarboni.thetrain.destination.json.UriInfo uriInfo : uriInfos) {
             pool.submit(new Runnable() {
                 @Override
                 public void run() {
-                    transaction.addUri(UriInfo);
+                    transaction.addUri(uriInfo);
                     try {
                         //System.out.println("Updating "+UriInfo);
                         Transactions.update(transaction);
                     } catch (IOException e) {
-                        System.out.println("Error adding URI info to transaction (" + UriInfo + ")");
+                        System.out.println("Error adding URI info to transaction (" + uriInfo + ")");
                     }
                 }
             });
@@ -161,8 +161,8 @@ public class TransactionsTest {
         // We should have added all URI infos to the Transaction and not lost any
         assertEquals(uriInfos.size(), transaction.uris().size());
         assertEquals(errors.size(), transaction.errors().size());
-        for (Uri UriInfo : transaction.uris()) {
-            Assert.assertTrue(uriInfos.contains(UriInfo));
+        for (com.github.davidcarboni.thetrain.destination.json.UriInfo uriInfo : transaction.uris()) {
+            Assert.assertTrue(uriInfos.contains(uriInfo));
         }
         for (String error : transaction.errors()) {
             Assert.assertTrue(error.contains(error));

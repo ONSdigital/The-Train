@@ -3,7 +3,7 @@ package com.github.davidcarboni.thetrain.destination.storage;
 import com.github.davidcarboni.thetrain.destination.helpers.Hash;
 import com.github.davidcarboni.thetrain.destination.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
-import com.github.davidcarboni.thetrain.destination.json.Uri;
+import com.github.davidcarboni.thetrain.destination.json.UriInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -15,7 +15,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Created by david on 03/08/2015.
+ * Class for handling publishing actions.
  */
 public class Publisher {
 
@@ -56,7 +56,7 @@ public class Publisher {
         }
 
         // Update the transaction
-        Uri uriInfo = new Uri(uri, startDate);
+        UriInfo uriInfo = new UriInfo(uri, startDate);
         uriInfo.stop(sha);
         transaction.addUri(uriInfo);
         Transactions.update(transaction);
@@ -131,7 +131,7 @@ public class Publisher {
     static boolean commitFile(String uri, Transaction transaction, Path website) throws IOException {
         boolean result = false;
 
-        Uri uriInfo = findUri(uri, transaction);
+        UriInfo uriInfo = findUri(uri, transaction);
         Path source = PathUtils.toPath(uri, Transactions.content(transaction));
         Path target = PathUtils.toPath(uri, website);
         Path backup = null;
@@ -181,15 +181,15 @@ public class Publisher {
         return result;
     }
 
-    static Uri findUri(String uri, Transaction transaction) {
+    static UriInfo findUri(String uri, Transaction transaction) {
 
-        for (Uri transactionUri : transaction.uris()) {
-            if (StringUtils.equals(uri, transactionUri.uri())) {
-                return transactionUri;
+        for (UriInfo transactionUriInfo : transaction.uris()) {
+            if (StringUtils.equals(uri, transactionUriInfo.uri())) {
+                return transactionUriInfo;
             }
         }
 
         // We didn't find the requested URI:
-        return new Uri(uri);
+        return new UriInfo(uri);
     }
 }

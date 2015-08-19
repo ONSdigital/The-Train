@@ -4,7 +4,7 @@ import com.github.davidcarboni.cryptolite.Random;
 import com.github.davidcarboni.thetrain.destination.helpers.Hash;
 import com.github.davidcarboni.thetrain.destination.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
-import com.github.davidcarboni.thetrain.destination.json.Uri;
+import com.github.davidcarboni.thetrain.destination.json.UriInfo;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
@@ -189,9 +189,9 @@ public class PublisherTest {
         assertTrue(StringUtils.isNotBlank(transaction.endDate()));
         assertEquals(0, transaction.errors().size());
         assertEquals(2, transaction.uris().size());
-        assertTrue(transaction.uris().contains(new Uri(create)));
-        assertTrue(transaction.uris().contains(new Uri(update)));
-        for (Uri uriInfo : transaction.uris()) {
+        assertTrue(transaction.uris().contains(new UriInfo(create)));
+        assertTrue(transaction.uris().contains(new UriInfo(update)));
+        for (UriInfo uriInfo : transaction.uris()) {
             assertTrue(StringUtils.isBlank(uriInfo.error()));
         }
     }

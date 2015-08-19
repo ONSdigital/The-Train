@@ -8,7 +8,7 @@ import java.util.Date;
 /**
  * Information about the transfer of a single file.
  */
-public class Uri {
+public class UriInfo {
 
     public static final String STARTED = "started";
     public static final String UPLOADED = "uploaded";
@@ -34,7 +34,7 @@ public class Uri {
     /**
      * Constructor for serialisation.
      */
-    public Uri() {
+    public UriInfo() {
         // Constructor for serialisation
     }
 
@@ -44,7 +44,7 @@ public class Uri {
      * @param uri       The URI to record information about.
      * @param startDate The point in time this URI started being processed.
      */
-    public Uri(String uri, Date startDate) {
+    public UriInfo(String uri, Date startDate) {
         this.uri = uri;
         this.startDate = startDate;
         start = DateConverter.toString(startDate);
@@ -57,7 +57,7 @@ public class Uri {
      *
      * @param uri The URI to record information about.
      */
-    public Uri(String uri) {
+    public UriInfo(String uri) {
         this.uri = uri;
         status = UNKNOWN;
         error = UNKNOWN;
@@ -123,7 +123,7 @@ public class Uri {
     public boolean equals(Object obj) {
         return obj != null &&
                 obj.getClass().equals(this.getClass()) &&
-                StringUtils.equals(uri, ((Uri) obj).uri);
+                StringUtils.equals(uri, ((UriInfo) obj).uri);
     }
 
     @Override

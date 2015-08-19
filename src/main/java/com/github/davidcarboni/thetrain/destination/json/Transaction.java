@@ -19,7 +19,7 @@ public class Transaction {
     String startDate = DateConverter.toString(new Date());
     String endDate;
 
-    Set<Uri> uris = new HashSet<>();
+    Set<UriInfo> uriInfos = new HashSet<>();
     List<String> errors = new ArrayList<>();
 
     /**
@@ -46,18 +46,18 @@ public class Transaction {
     /**
      * @return An unmodifiable set of the URIs in this transaction.
      */
-    public Set<Uri> uris() {
-        return Collections.unmodifiableSet(uris);
+    public Set<UriInfo> uris() {
+        return Collections.unmodifiableSet(uriInfos);
     }
 
     /**
-     * @param uri The URI to add to the set of URIs.
+     * @param uriInfo The URI to add to the set of URIs.
      */
-    public void addUri(Uri uri) {
+    public void addUri(UriInfo uriInfo) {
         synchronized (this) {
-            Set<Uri> uris = new HashSet<>(this.uris);
-            uris.add(uri);
-            this.uris = uris;
+            Set<UriInfo> uriInfos = new HashSet<>(this.uriInfos);
+            uriInfos.add(uriInfo);
+            this.uriInfos = uriInfos;
         }
     }
 
@@ -85,7 +85,7 @@ public class Transaction {
 
     @Override
     public String toString() {
-        return id + " (" + uris.size() + " URIs)";
+        return id + " (" + uriInfos.size() + " URIs)";
     }
 
 }

@@ -44,11 +44,11 @@ public class TransactionTest {
         // Given
         // A transaction and a URI info
         Transaction transaction = new Transaction();
-        Uri UriInfo = new Uri("test");
+        UriInfo uriInfo = new UriInfo("test");
 
         // When
         // We add the URI info to the Transaction
-        transaction.addUri(UriInfo);
+        transaction.addUri(uriInfo);
 
         // Then
         // We should have one URI info in the collection
@@ -61,19 +61,19 @@ public class TransactionTest {
         // Given
         // A transaction and lots of URI infos
         final Transaction transaction = new Transaction();
-        Set<Uri> uriInfos = new HashSet<>();
+        Set<UriInfo> uriInfos = new HashSet<>();
         for (int i = 0; i < 2000; i++) {
-            uriInfos.add(new Uri("/"+Random.id()));
+            uriInfos.add(new UriInfo("/"+Random.id()));
         }
         ExecutorService pool = Executors.newFixedThreadPool(100);
 
         // When
         // We add all the URI infos to the Transaction
-        for (final Uri UriInfo : uriInfos) {
+        for (final com.github.davidcarboni.thetrain.destination.json.UriInfo uriInfo : uriInfos) {
             pool.submit(new Runnable() {
                 @Override
                 public void run() {
-                    transaction.addUri(UriInfo);
+                    transaction.addUri(uriInfo);
                 }
             });
         }
@@ -83,8 +83,8 @@ public class TransactionTest {
         pool.shutdown();
         pool.awaitTermination(10, SECONDS);
         assertEquals(uriInfos.size(), transaction.uris().size());
-        for (Uri UriInfo : transaction.uris()) {
-            Assert.assertTrue(uriInfos.contains(UriInfo));
+        for (com.github.davidcarboni.thetrain.destination.json.UriInfo uriInfo : transaction.uris()) {
+            Assert.assertTrue(uriInfos.contains(uriInfo));
         }
     }
 
@@ -94,7 +94,7 @@ public class TransactionTest {
         // Given
         // A transaction
         Transaction transaction = new Transaction();
-        transaction.addUri(new Uri("test"));
+        transaction.addUri(new UriInfo("test"));
 
         // When
         // We attempt to modify the URIs
