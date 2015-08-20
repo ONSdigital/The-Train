@@ -2,6 +2,7 @@ package com.github.davidcarboni.thetrain.destination.json;
 
 import com.github.davidcarboni.cryptolite.Random;
 import com.github.davidcarboni.thetrain.destination.helpers.DateConverter;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
 
@@ -59,6 +60,18 @@ public class Transaction {
             uriInfos.add(uriInfo);
             this.uriInfos = uriInfos;
         }
+    }
+
+    /**
+     * Checks for errors in this transaction.
+     * @return If {@link #errors} contains anything, or if any {@link UriInfo#error error} field in {@link #uriInfos} is not blank, true.
+     */
+    public boolean hasErrors() {
+        boolean result = errors.size()>0;
+        for (UriInfo uriInfo : uriInfos) {
+            result |= StringUtils.isNotBlank(uriInfo.error());
+        }
+        return result;
     }
 
     /**

@@ -49,7 +49,14 @@ public class Commit {
                 message = "Unknown transaction " + transactionId;
             }
 
-            // Website Path to publish to
+            // Check for errors in the transaction
+            if (transaction != null && transaction.hasErrors()) {
+                response.setStatus(HttpStatus.BAD_REQUEST_400);
+                error = true;
+                message = "This transaction cannot be committed because errors have been reported.";
+            }
+
+            // Get the website Path to publish to
             Path website = Website.path();
             if (website == null) {
                 response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
@@ -59,13 +66,18 @@ public class Commit {
 
             // Commit
             if (!error) {
-                Publisher.commit(transaction, website);
+                boolean result = Publisher.commit(transaction, website);
+                if (!result) {
+                    response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+                    error = true;
+                    message = "Errors were detected in committing the transaction.";
+                }
             }
 
-        } catch (Exception e) {
+        } catch (Throwable t) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             error = true;
-            message = ExceptionUtils.getStackTrace(e);
+            message = ExceptionUtils.getStackTrace(t);
         }
 
         return new Result(message, error, transaction);
