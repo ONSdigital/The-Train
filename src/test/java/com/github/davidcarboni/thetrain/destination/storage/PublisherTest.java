@@ -28,7 +28,7 @@ public class PublisherTest {
 
     @Before
     public void setUp() throws Exception {
-        transaction = Transactions.create();
+        transaction = Transactions.create(null);
     }
 
 
@@ -48,6 +48,34 @@ public class PublisherTest {
         // The transaction should exist and be populated with values
         Path path = Publisher.getFile(transaction, uri);
         assertNotNull(path);
+    }
+
+
+    @Test
+    public void shouldPublishFileEncrypted() throws IOException {
+
+        // Given
+
+        // A file and a URI to copy to
+        Path file = tempFile();
+        String sha = Hash.sha(file);
+        String uri = "/test.txt";
+
+        // An encrypted transaction
+        String password = Random.password(8);
+        Transaction transaction = Transactions.create(password);
+
+
+        // When
+        // We publish the file
+        Publisher.addFile(transaction, uri, file);
+
+
+        // Then
+        // The published file should not have the same hash as the original
+        Path published = PathUtils.toPath(uri, Transactions.content(transaction));
+        assertNotEquals(sha, Hash.sha(published));
+        assertFalse(transaction.hasErrors());
     }
 
 
@@ -148,7 +176,7 @@ public class PublisherTest {
         // Given
 
         // A transaction
-        Transaction transaction = Transactions.create();
+        Transaction transaction = Transactions.create(null);
         Path content = Transactions.content(transaction);
         Path backup = Transactions.backup(transaction);
         Path website = Website.path();
@@ -187,14 +215,48 @@ public class PublisherTest {
         // Check the transaction details
         assertTrue(StringUtils.isNotBlank(transaction.startDate()));
         assertTrue(StringUtils.isNotBlank(transaction.endDate()));
-        assertEquals(0, transaction.errors().size());
+        assertFalse(transaction.hasErrors());
         assertEquals(2, transaction.uris().size());
         assertTrue(transaction.uris().contains(new UriInfo(create)));
         assertTrue(transaction.uris().contains(new UriInfo(update)));
         for (UriInfo uriInfo : transaction.uris()) {
-            assertTrue(StringUtils.isBlank(uriInfo.error()));
             assertEquals(UriInfo.COMMITTED, uriInfo.status());
         }
+    }
+
+
+    @Test
+    public void shouldCommitTransactionWithEncryption() throws IOException {
+
+        // Given
+
+        // A transaction
+        String password = Random.password(8);
+        Transaction transaction = Transactions.create(password);
+        Path content = Transactions.content(transaction);
+        Path website = Website.path();
+
+        // A file being published
+        String uri = "/file-" + Random.id() + ".txt";
+        Path cleartext = tempFile();
+        String sha = Hash.sha(cleartext);
+        Publisher.addFile(transaction, uri, cleartext);
+
+
+        // When
+        // We commit the transaction
+        Publisher.commit(transaction, website);
+
+
+        // Then
+
+        // The published file should be decrypted
+        assertEquals(sha, Hash.sha(PathUtils.toPath(uri, website)));
+
+        // The cleartext file should be deleted
+        assertFalse(Files.exists(cleartext));
+
+        assertFalse(transaction.hasErrors());
     }
 
 
@@ -204,7 +266,6 @@ public class PublisherTest {
         // Given
 
         // A transaction
-        Transaction transaction = Transactions.create();
         Path content = Transactions.content(transaction);
         Path backup = Transactions.backup(transaction);
 
@@ -226,21 +287,20 @@ public class PublisherTest {
         // Check the transaction details
         assertTrue(StringUtils.isNotBlank(transaction.startDate()));
         assertTrue(StringUtils.isNotBlank(transaction.endDate()));
-        assertEquals(0, transaction.errors().size());
+        assertFalse(transaction.hasErrors());
         assertEquals(1, transaction.uris().size());
         assertTrue(transaction.uris().contains(new UriInfo(file)));
         for (UriInfo uriInfo : transaction.uris()) {
-            assertTrue(StringUtils.isBlank(uriInfo.error()));
             assertEquals(UriInfo.ROLLED_BACK, uriInfo.status());
         }
     }
 
-    private Path tempFile() throws IOException {
+    private static Path tempFile() throws IOException {
 
         // A temp file
-        Path file = Files.createTempFile(this.getClass().getSimpleName(), ".txt");
+        Path file = Files.createTempFile(PublisherTest.class.getSimpleName(), ".txt");
 
-        try (OutputStream output = Files.newOutputStream(file); InputStream input = new ByteArrayInputStream(Random.password(5000).getBytes())) {
+        try (InputStream input = new ByteArrayInputStream(Random.password(5000).getBytes()); OutputStream output = Files.newOutputStream(file)) {
             IOUtils.copy(input, output);
         }
 

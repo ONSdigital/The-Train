@@ -40,7 +40,8 @@ public class Rollback {
             }
 
             // Transaction object
-            transaction = Transactions.get(transactionId);
+            String encryptionPassword = request.getParameter("encryptionPassword");
+            transaction = Transactions.get(transactionId, encryptionPassword);
             if (transaction == null) {
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 error = true;

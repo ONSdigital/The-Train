@@ -1,6 +1,7 @@
 package com.github.davidcarboni.thetrain.destination.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
+import com.github.davidcarboni.thetrain.destination.helpers.Hash;
 import com.github.davidcarboni.thetrain.destination.json.Result;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import com.github.davidcarboni.thetrain.destination.storage.Publisher;
@@ -45,14 +46,17 @@ public class Publish {
             // Now get the parameters:
             String transactionId = request.getParameter("transactionId");
             String uri = request.getParameter("uri");
+            String encryptionPassword = request.getParameter("encryptionPassword");
 
-            // Validate
+            // Validate parameters
             if (StringUtils.isBlank(transactionId) || StringUtils.isBlank(uri)) {
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 error = true;
                 message = "Please provide transactionId and uri parameters.";
             }
-            transaction = Transactions.get(transactionId);
+
+            // Get the transaction
+            transaction = Transactions.get(transactionId, encryptionPassword);
             if (transaction == null) {
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 error = true;
@@ -103,11 +107,9 @@ public class Publish {
                     // Write file to local temp file
                     result = Files.createTempFile("upload", ".file");
                     item.write(result.toFile());
-
-                    // Move file to Transaction folder
-
-
-                    System.out.println("writing " + result.toString());
+                    // TODO: DiskFileItemFactory writes uploads to disk if they are over a certain size,
+                    // TODO: so we delete the FileItem as soon as it's processed to minimise exposure:
+                    item.delete();
                 }
             }
         } catch (Exception e) {

@@ -131,6 +131,13 @@ public class UriInfo {
         return error;
     }
 
+    /**
+     * @return The file SHA fingerprint.
+     */
+    public String sha() {
+        return sha;
+    }
+
     // The hashCode and equals methods are used to identify this instance in the Set<Uri> in Transaction.
 
     @Override

@@ -1,9 +1,12 @@
 package com.github.davidcarboni.thetrain.destination.json;
 
+import com.github.davidcarboni.cryptolite.KeyWrapper;
+import com.github.davidcarboni.cryptolite.Keys;
 import com.github.davidcarboni.cryptolite.Random;
 import com.github.davidcarboni.thetrain.destination.helpers.DateConverter;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.crypto.SecretKey;
 import java.util.*;
 
 
@@ -19,9 +22,33 @@ public class Transaction {
     String id = Random.id();
     String startDate = DateConverter.toString(new Date());
     String endDate;
+    String wrappedKey;
+    String salt;
+    transient SecretKey key;
 
     Set<UriInfo> uriInfos = new HashSet<>();
     List<String> errors = new ArrayList<>();
+
+
+    /**
+     * Sets encryption-related fields for this transaction.
+     *
+     * @param password If this is not blank, encryption-related fields will be initialised.
+     */
+    public void enableEncryption(String password) {
+
+        if (StringUtils.isNotBlank(password)) {
+            if (StringUtils.isBlank(wrappedKey)) {
+                // Set up a key
+                key = Keys.newSecretKey();
+                salt = Random.salt();
+                wrappedKey = new KeyWrapper(password, salt).wrapSecretKey(key);
+            } else {
+                // Unwrap the existing key
+                key = new KeyWrapper(password, salt).unwrapSecretKey(wrappedKey);
+            }
+        }
+    }
 
     /**
      * @return The transaction {@link #id}.
@@ -30,6 +57,12 @@ public class Transaction {
         return id;
     }
 
+    /**
+     * @return The encryption key for this transaction, if encryption is enabled, otherwise null.
+     */
+    public SecretKey key() {
+        return key;
+    }
     /**
      * @return The transaction {@link #startDate}.
      */
@@ -64,10 +97,11 @@ public class Transaction {
 
     /**
      * Checks for errors in this transaction.
+     *
      * @return If {@link #errors} contains anything, or if any {@link UriInfo#error error} field in {@link #uriInfos} is not blank, true.
      */
     public boolean hasErrors() {
-        boolean result = errors.size()>0;
+        boolean result = errors.size() > 0;
         for (UriInfo uriInfo : uriInfos) {
             result |= StringUtils.isNotBlank(uriInfo.error());
         }
@@ -100,5 +134,6 @@ public class Transaction {
     public String toString() {
         return id + " (" + uriInfos.size() + " URIs)";
     }
+
 
 }

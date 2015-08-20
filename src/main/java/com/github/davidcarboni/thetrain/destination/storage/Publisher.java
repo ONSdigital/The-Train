@@ -5,10 +5,13 @@ import com.github.davidcarboni.thetrain.destination.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import com.github.davidcarboni.thetrain.destination.json.UriInfo;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
@@ -38,22 +41,29 @@ public class Publisher {
      *
      * @param transaction The transaction to add the file to
      * @param uri         The target URI for the file
-     * @param data        The file content
+     * @param source      The file content
      * @param startDate   The start date for the file transfer. Typically this is when an HTTP request was received, before the uploaded file started being processed.
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public static String addFile(Transaction transaction, String uri, Path data, Date startDate) throws IOException {
-        String sha = null;
+    public static String addFile(Transaction transaction, String uri, Path source, Date startDate) throws IOException {
+        String sha = Hash.sha(source);
+        System.out.println("Cleartex sha: "+sha);
 
         // Add the file
         Path content = Transactions.content(transaction);
-        Path file = PathUtils.toPath(uri, content);
-        if (file != null) {
-            Files.createDirectories(file.getParent());
-            Files.move(data, file, StandardCopyOption.REPLACE_EXISTING);
-            sha = Hash.sha(file);
-            System.out.println("Staged " + sha + " " + uri);
+        Path target = PathUtils.toPath(uri, content);
+        if (target != null) {
+            Files.createDirectories(target.getParent());
+            if (transaction.key() == null) {
+                Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                // Encrypt, then delete the original
+                try (InputStream input = PathUtils.inputStream(source); OutputStream output = PathUtils.encryptingStream(target, transaction.key())) {
+                    IOUtils.copy(input, output);
+                }
+                Files.delete(source);
+            }
         }
 
         // Update the transaction
@@ -61,6 +71,7 @@ public class Publisher {
         uriInfo.stop(sha);
         transaction.addUri(uriInfo);
         Transactions.update(transaction);
+        System.out.println("Encrypted sha: " + Hash.sha(target));
 
         return sha;
     }
@@ -156,9 +167,11 @@ public class Publisher {
             Files.createDirectories(target.getParent());
             // NB We're using copy rather than move for two reasons:
             // - To be able to review a transaction after the fac and see all the files that were published
-            // - If we introduce encryption we'll want to copy through a cipher stream to handle decryption
-            Files.copy(source, target);
-            if (StringUtils.equals(Hash.sha(source), Hash.sha(target))) {
+            // - If we use encryption we need to copy through a cipher stream to handle decryption
+            try (InputStream input = PathUtils.decryptingStream(source, transaction.key()); OutputStream output = PathUtils.outputStream(target)) {
+                IOUtils.copy(input, output);
+            }
+            if (StringUtils.equals(uriInfo.sha(), Hash.sha(target))) {
                 uriInfo.commit();
                 result = true;
             } else {
@@ -176,6 +189,9 @@ public class Publisher {
             } else {
                 transaction.addError(error);
             }
+
+            System.out.println("Encrypted sha: " + Hash.sha(source));
+            System.out.println("Decrypted sha: " + Hash.sha(target));
         }
 
         // If this fails, we have a serious issue, so let it fail the entire request:
@@ -199,6 +215,7 @@ public class Publisher {
 
         return result;
     }
+
     static boolean rollbackFile(String uri, Transaction transaction) throws IOException {
         boolean result = false;
 
@@ -242,4 +259,5 @@ public class Publisher {
         // We didn't find the requested URI:
         return new UriInfo(uri);
     }
+
 }

@@ -24,7 +24,7 @@ import static org.junit.Assert.*;
 public class TransactionsTest {
 
     /**
-     * Tests that a collection is created with an ID and start date and can be read using the ID.
+     * Tests that a transaction is created with an ID and start date and can be read using the ID.
      */
     @Test
     public void shouldCreateTransaction() throws IOException {
@@ -34,14 +34,33 @@ public class TransactionsTest {
 
         // When
         // We create a transaction
-        Transaction transaction = Transactions.create();
+        Transaction transaction = Transactions.create(null);
 
         // Then
         // The transaction should exist and be populated with values
         assertNotNull(transaction);
         assertTrue(StringUtils.isNotBlank(transaction.id()));
         assertTrue(StringUtils.isNotBlank(transaction.startDate()));
-        assertNotNull(Transactions.get(transaction.id()));
+        assertNotNull(Transactions.get(transaction.id(), null));
+    }
+
+    /**
+     * Tests that a transaction can be created with an encryption key.
+     */
+    @Test
+    public void shouldCreateTransactionWithEncryption() throws IOException {
+
+        // Given
+        // An encryption password
+        String password = Random.password(8);
+
+        // When
+        // We create a transaction
+        Transaction transaction = Transactions.create(password);
+
+        // Then
+        // The transaction should exist and be populated with values
+        assertNotNull(transaction.key());
     }
 
     /**
@@ -52,11 +71,11 @@ public class TransactionsTest {
 
         // Given
         // A transaction
-        Transaction transaction = Transactions.create();
+        Transaction transaction = Transactions.create(null);
 
         // When
         // We get the transaction
-        Transaction got = Transactions.get(transaction.id());
+        Transaction got = Transactions.get(transaction.id(), null);
 
         // Then
         // The read transaction should contain the expected values:
@@ -73,7 +92,7 @@ public class TransactionsTest {
 
         // Given
         // A transaction
-        Transaction transaction = Transactions.create();
+        Transaction transaction = Transactions.create(null);
         UriInfo uriInfo = new UriInfo("/uri.txt");
         String error = "error";
         transaction.addError(error);
@@ -89,7 +108,7 @@ public class TransactionsTest {
             // So we can run tests in parallel
             Transactions.transactionMap.clear();
         }
-        Transaction read = Transactions.get(transaction.id());
+        Transaction read = Transactions.get(transaction.id(), null);
         assertEquals(1, read.errors().size());
         assertEquals(1, read.uris().size());
         assertTrue(read.errors().contains(error));
@@ -105,7 +124,7 @@ public class TransactionsTest {
 
         // Given
         // A transaction and lots of URI infos and errors
-        final Transaction transaction = Transactions.create();
+        final Transaction transaction = Transactions.create(null);
         Set<UriInfo> uriInfos = new HashSet<>();
         for (int i = 0; i < 100; i++) {
             uriInfos.add(new UriInfo("/" + Random.id()));
@@ -181,7 +200,7 @@ public class TransactionsTest {
 
         // When
         // We get with the ID
-        Transaction got = Transactions.get(id);
+        Transaction got = Transactions.get(id, null);
 
         // Then
         // We should get null and no error
@@ -200,7 +219,7 @@ public class TransactionsTest {
 
         // When
         // We get with the ID
-        Transaction got = Transactions.get(id);
+        Transaction got = Transactions.get(id, null);
 
         // Then
         // We should get null and no error
@@ -212,7 +231,7 @@ public class TransactionsTest {
 
         // Given
         // A transaction
-        Transaction transaction = Transactions.create();
+        Transaction transaction = Transactions.create(null);
 
         // When
         // We get the files path

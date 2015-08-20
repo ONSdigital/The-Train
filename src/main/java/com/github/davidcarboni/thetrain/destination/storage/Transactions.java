@@ -24,9 +24,12 @@ public class Transactions {
     static Map<String, Transaction> transactionMap = new ConcurrentHashMap<>();
     static Path transactionStore;
 
-    public static Transaction create() throws IOException {
+    public static Transaction create(String encryptionPassword) throws IOException {
 
         Transaction transaction = new Transaction();
+
+        // Enable encryption if requested
+        transaction.enableEncryption(encryptionPassword);
 
         // Generate the file structure
         Path path = path(transaction.id());
@@ -51,7 +54,7 @@ public class Transactions {
      * @throws IOException If an error occurs in reading the transaction Json.
      */
 
-    public static Transaction get(String id) throws IOException {
+    public static Transaction get(String id, String encryptionPassword) throws IOException {
         Transaction result = null;
 
         if (StringUtils.isNotBlank(id)) {
@@ -70,6 +73,9 @@ public class Transactions {
             }
 
             result = transactionMap.get(id);
+            if (result !=null) {
+                result.enableEncryption(encryptionPassword);
+            }
         }
 
         return result;

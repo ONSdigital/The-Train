@@ -28,7 +28,8 @@ public class Begin {
         boolean error = false;
 
         try {
-            transaction = Transactions.create();
+            String encryptionPassword = request.getParameter("encryptionPassword");
+            transaction = Transactions.create(encryptionPassword);
             message = "New transaction created: " + transaction;
         } catch (Exception e) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);

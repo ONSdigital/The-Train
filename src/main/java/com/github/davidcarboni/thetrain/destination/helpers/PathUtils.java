@@ -1,8 +1,12 @@
 package com.github.davidcarboni.thetrain.destination.helpers;
 
-import java.io.IOException;
+import com.github.davidcarboni.cryptolite.Crypto;
+
+import javax.crypto.SecretKey;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.InvalidKeyException;
 
 /**
  * Utility methods for dealing with paths and converting to/from URI strings.
@@ -88,6 +92,64 @@ public class PathUtils {
         String result = string;
         while (string != null && result.length() > 0 && result.startsWith("/")) {
             result = result.substring(1);
+        }
+        return result;
+    }
+
+    /**
+     * Generates a {@link BufferedInputStream} for the given {@link Path}.
+     * @param file The file to be read.
+     * @return  A {@link BufferedInputStream}.
+     * @throws IOException If an error occurs in getting the stream.
+     */
+    public static InputStream inputStream(Path file) throws IOException {
+        return new BufferedInputStream(Files.newInputStream(file));
+    }
+
+    /**
+     * Generates a {@link BufferedOutputStream} for the given {@link Path}.
+     * @param file The file to be read.
+     * @return  A {@link BufferedOutputStream}.
+     * @throws IOException If an error occurs in getting the stream.
+     */
+    public static OutputStream outputStream(Path file) throws IOException {
+        return new BufferedOutputStream(Files.newOutputStream(file));
+    }
+
+    /**
+     * Generates a {@link BufferedInputStream} for the given {@link Path}, which will encrypt data as they are read if the given key is not null.
+     * @param file The file to be read.
+     * @param key The encryption key. If null, no encryption will be performed.
+     * @return A {@link BufferedInputStream} wrapped with a cipher stream.
+     * @throws IOException If an error occurs in getting the stream, or if the encryption key is invalid.
+     */
+    public static OutputStream encryptingStream(Path file, SecretKey key) throws IOException {
+        OutputStream result = outputStream(file);
+        if (key !=null) {
+            try {
+                result = new Crypto().encrypt(result, key);
+            } catch (InvalidKeyException e) {
+                throw new IOException("Error using encryption key", e);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Generates a {@link BufferedInputStream} for the given {@link Path}, which will decrypt data as they are read if the given key is not null.
+     * @param file The file to be read.
+     * @param key The encryption key. If null, no decryption will be performed.
+     * @return A {@link BufferedInputStream} wrapped with a cipher stream.
+     * @throws IOException If an error occurs in getting the stream, or if the encryption key is invalid.
+     */
+    public static InputStream decryptingStream(Path file, SecretKey key) throws IOException {
+        InputStream result = inputStream(file);
+        if (key !=null) {
+            try {
+                result = new Crypto().decrypt(result, key);
+            } catch (InvalidKeyException e) {
+                throw new IOException("Error using encryption key", e);
+            }
         }
         return result;
     }
