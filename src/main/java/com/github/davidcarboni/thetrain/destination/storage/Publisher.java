@@ -4,6 +4,7 @@ import com.github.davidcarboni.thetrain.destination.helpers.Hash;
 import com.github.davidcarboni.thetrain.destination.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import com.github.davidcarboni.thetrain.destination.json.UriInfo;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -117,6 +118,8 @@ public class Publisher {
         }
 
         transaction.end();
+        Transactions.update(transaction);
+
         return result;
     }
 
@@ -167,6 +170,53 @@ public class Publisher {
             // Record the error
             String error = "Error committing '" + source + "' to '" + target + "'.\n";
             if (backup != null) error += "\nBackup file is '" + backup + "'.\n";
+            error += ExceptionUtils.getStackTrace(t);
+            if (uriInfo != null) {
+                uriInfo.fail(error);
+            } else {
+                transaction.addError(error);
+            }
+        }
+
+        // If this fails, we have a serious issue, so let it fail the entire request:
+        Transactions.update(transaction);
+
+        return result;
+    }
+
+    public static boolean rollback(Transaction transaction) throws IOException {
+        boolean result = true;
+
+        List<String> uris = listUris(transaction);
+        for (String uri : uris) {
+            result &= rollbackFile(uri, transaction);
+        }
+        FileUtils.deleteQuietly(Transactions.content(transaction).toFile());
+        FileUtils.deleteQuietly(Transactions.backup(transaction).toFile());
+
+        transaction.end();
+        Transactions.update(transaction);
+
+        return result;
+    }
+    static boolean rollbackFile(String uri, Transaction transaction) throws IOException {
+        boolean result = false;
+
+        UriInfo uriInfo = findUri(uri, transaction);
+        Path source = PathUtils.toPath(uri, Transactions.content(transaction));
+
+        // We use a very broad exception catch clause to
+        // ensure any and all commit errors are trapped
+        try {
+
+            // Delete the file
+            Files.delete(source);
+            uriInfo.rollback();
+
+        } catch (Throwable t) {
+
+            // Record the error
+            String error = "Error rolling back '" + source + ".\n";
             error += ExceptionUtils.getStackTrace(t);
             if (uriInfo != null) {
                 uriInfo.fail(error);

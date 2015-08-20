@@ -15,18 +15,30 @@ public class UriInfo {
     public static final String UPLOAD_FAILED = "upload failed";
     public static final String COMMIT_FAILED = "commit failed";
     public static final String COMMITTED = "committed";
+    public static final String ROLLED_BACK = "rolled back";
     public static final String UNKNOWN = "This URI was not recorded in Transaction info";
 
+    /**
+     * This is a String rather than an enum to make deserialisation lenient.
+     *
+     * This should be one of the following constant values defined in this class:
+     * <ul>
+     *     <li>{@value #STARTED}</li>
+     *     <li>{@value #UPLOADED}</li>
+     *     <li>{@value #UPLOAD_FAILED}</li>
+     *     <li>{@value #COMMIT_FAILED}</li>
+     *     <li>{@value #COMMITTED}</li>
+     *     <li>{@value #ROLLED_BACK}</li>
+     *     <li>{@value #UNKNOWN}</li>
+     * </ul>
+     */
+    String status;
     String uri;
     String start;
     String end;
     long duration;
     String sha;
     String error;
-    /**
-     * This is a String rather than an enum to make deserialisation easy. This should be {@value #STARTED}, {@value #UPLOADED}, {@value #UPLOAD_FAILED} or {@value #COMMITTED}.
-     */
-    String status;
 
     transient Date startDate;
     transient Date endDate;
@@ -36,6 +48,10 @@ public class UriInfo {
      */
     public UriInfo() {
         // Constructor for serialisation
+    }
+
+    public String status() {
+        return status;
     }
 
     /**
@@ -99,6 +115,13 @@ public class UriInfo {
      */
     public void commit() {
         status = COMMITTED;
+    }
+
+    /**
+     * Sets the status of this instance to {@value #ROLLED_BACK}.
+     */
+    public void rollback() {
+        status = ROLLED_BACK;
     }
 
     /**

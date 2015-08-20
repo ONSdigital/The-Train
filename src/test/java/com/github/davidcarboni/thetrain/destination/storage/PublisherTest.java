@@ -193,6 +193,45 @@ public class PublisherTest {
         assertTrue(transaction.uris().contains(new UriInfo(update)));
         for (UriInfo uriInfo : transaction.uris()) {
             assertTrue(StringUtils.isBlank(uriInfo.error()));
+            assertEquals(UriInfo.COMMITTED, uriInfo.status());
+        }
+    }
+
+
+    @Test
+    public void shouldRollbackTransaction() throws IOException {
+
+        // Given
+
+        // A transaction
+        Transaction transaction = Transactions.create();
+        Path content = Transactions.content(transaction);
+        Path backup = Transactions.backup(transaction);
+
+        // Files being published
+        String file = "/file-" + Random.id() + ".txt";
+        Publisher.addFile(transaction, file, tempFile());
+
+
+        // When
+        // We roll back the transaction
+        Publisher.rollback(transaction);
+
+
+        // Then
+
+        // The staged file should be deleted
+        assertFalse(Files.exists(PathUtils.toPath(file, content)));
+
+        // Check the transaction details
+        assertTrue(StringUtils.isNotBlank(transaction.startDate()));
+        assertTrue(StringUtils.isNotBlank(transaction.endDate()));
+        assertEquals(0, transaction.errors().size());
+        assertEquals(1, transaction.uris().size());
+        assertTrue(transaction.uris().contains(new UriInfo(file)));
+        for (UriInfo uriInfo : transaction.uris()) {
+            assertTrue(StringUtils.isBlank(uriInfo.error()));
+            assertEquals(UriInfo.ROLLED_BACK, uriInfo.status());
         }
     }
 
