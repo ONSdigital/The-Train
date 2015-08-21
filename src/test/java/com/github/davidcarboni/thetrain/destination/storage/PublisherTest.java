@@ -213,9 +213,9 @@ public class PublisherTest {
                 Hash.sha(PathUtils.toPath(update, website)));
 
         // Check the transaction details
+        assertFalse(transaction.hasErrors());
         assertTrue(StringUtils.isNotBlank(transaction.startDate()));
         assertTrue(StringUtils.isNotBlank(transaction.endDate()));
-        assertFalse(transaction.hasErrors());
         assertEquals(2, transaction.uris().size());
         assertTrue(transaction.uris().contains(new UriInfo(create)));
         assertTrue(transaction.uris().contains(new UriInfo(update)));
@@ -250,13 +250,14 @@ public class PublisherTest {
 
         // Then
 
+        assertFalse(transaction.hasErrors());
+
         // The published file should be decrypted
         assertEquals(sha, Hash.sha(PathUtils.toPath(uri, website)));
 
         // The cleartext file should be deleted
         assertFalse(Files.exists(cleartext));
 
-        assertFalse(transaction.hasErrors());
     }
 
 
@@ -285,9 +286,9 @@ public class PublisherTest {
         assertFalse(Files.exists(PathUtils.toPath(file, content)));
 
         // Check the transaction details
+        assertFalse(transaction.hasErrors());
         assertTrue(StringUtils.isNotBlank(transaction.startDate()));
         assertTrue(StringUtils.isNotBlank(transaction.endDate()));
-        assertFalse(transaction.hasErrors());
         assertEquals(1, transaction.uris().size());
         assertTrue(transaction.uris().contains(new UriInfo(file)));
         for (UriInfo uriInfo : transaction.uris()) {

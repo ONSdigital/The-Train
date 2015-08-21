@@ -1,6 +1,7 @@
 package com.github.davidcarboni.thetrain.destination.storage;
 
-import com.github.davidcarboni.thetrain.destination.helpers.Hash;
+import com.github.davidcarboni.thetrain.destination.helpers.Hash.ShaInputStream;
+import com.github.davidcarboni.thetrain.destination.helpers.Hash.ShaOutputStream;
 import com.github.davidcarboni.thetrain.destination.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import com.github.davidcarboni.thetrain.destination.json.UriInfo;
@@ -11,8 +12,10 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.*;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Date;
@@ -47,23 +50,19 @@ public class Publisher {
      * @throws IOException If a filesystem error occurs.
      */
     public static String addFile(Transaction transaction, String uri, Path source, Date startDate) throws IOException {
-        String sha = Hash.sha(source);
-        System.out.println("Cleartex sha: "+sha);
+        String sha = null;
 
         // Add the file
         Path content = Transactions.content(transaction);
         Path target = PathUtils.toPath(uri, content);
         if (target != null) {
+            // Encrypt if a key was provided, then delete the original
             Files.createDirectories(target.getParent());
-            if (transaction.key() == null) {
-                Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
-            } else {
-                // Encrypt, then delete the original
-                try (InputStream input = PathUtils.inputStream(source); OutputStream output = PathUtils.encryptingStream(target, transaction.key())) {
-                    IOUtils.copy(input, output);
-                }
-                Files.delete(source);
+            try (InputStream input = PathUtils.inputStream(source); ShaOutputStream output = PathUtils.encryptingStream(target, transaction.key())) {
+                IOUtils.copy(input, output);
+                sha = output.sha();
             }
+            Files.delete(source);
         }
 
         // Update the transaction
@@ -71,7 +70,6 @@ public class Publisher {
         uriInfo.stop(sha);
         transaction.addUri(uriInfo);
         Transactions.update(transaction);
-        System.out.println("Encrypted sha: " + Hash.sha(target));
 
         return sha;
     }
@@ -168,14 +166,17 @@ public class Publisher {
             // NB We're using copy rather than move for two reasons:
             // - To be able to review a transaction after the fac and see all the files that were published
             // - If we use encryption we need to copy through a cipher stream to handle decryption
-            try (InputStream input = PathUtils.decryptingStream(source, transaction.key()); OutputStream output = PathUtils.outputStream(target)) {
+            String uploadedSha = uriInfo.sha();
+            String committedSha;
+            try (ShaInputStream input = PathUtils.decryptingStream(source, transaction.key()); ShaOutputStream output = new ShaOutputStream(PathUtils.outputStream(target))) {
                 IOUtils.copy(input, output);
+                committedSha = output.sha();
             }
-            if (StringUtils.equals(uriInfo.sha(), Hash.sha(target))) {
+            if (StringUtils.equals(uploadedSha, committedSha)) {
                 uriInfo.commit();
                 result = true;
             } else {
-                uriInfo.fail("Published file hash mismatch. Source: " + Hash.sha(source) + " Target: " + Hash.sha(target));
+                uriInfo.fail("Published file hash mismatch. Uploaded: " + uploadedSha + " Committed: " + committedSha);
             }
 
         } catch (Throwable t) {
@@ -189,9 +190,6 @@ public class Publisher {
             } else {
                 transaction.addError(error);
             }
-
-            System.out.println("Encrypted sha: " + Hash.sha(source));
-            System.out.println("Decrypted sha: " + Hash.sha(target));
         }
 
         // If this fails, we have a serious issue, so let it fail the entire request:

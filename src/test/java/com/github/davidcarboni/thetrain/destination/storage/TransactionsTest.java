@@ -227,37 +227,73 @@ public class TransactionsTest {
     }
 
     @Test
-    public void shouldGetFilesPath() throws IOException {
+    public void shouldGetContentPath() throws IOException {
 
         // Given
         // A transaction
         Transaction transaction = Transactions.create(null);
 
         // When
-        // We get the files path
-        Path files = Transactions.content(transaction);
+        // We get the content staging path
+        Path content = Transactions.content(transaction);
 
         // Then
         // The transaction should contain a content directory:
-        assertNotNull(files);
-        assertTrue(Files.exists(files));
-        assertTrue(Files.isDirectory(files));
+        assertNotNull(content);
+        assertTrue(Files.exists(content));
+        assertTrue(Files.isDirectory(content));
+        assertEquals(Transactions.CONTENT, content.getFileName().toString());
     }
 
     @Test
-    public void shouldNotGetNonexistentFilesPath() throws IOException {
+    public void shouldNotGetNonexistentContentPath() throws IOException {
 
         // Given
         // A nonexistent transaction ID (ie not created on disk)
         Transaction transaction = new Transaction();
 
         // When
-        // We get the files path
-        Path files = Transactions.content(transaction);
+        // We get the content staging path
+        Path content = Transactions.content(transaction);
 
         // Then
         // We should get null and no error
-        assertNull(files);
+        assertNull(content);
+    }
+
+    @Test
+    public void shouldGetBackupPath() throws IOException {
+
+        // Given
+        // A transaction
+        Transaction transaction = Transactions.create(null);
+
+        // When
+        // We get the backup path
+        Path backup = Transactions.backup(transaction);
+
+        // Then
+        // The transaction should contain a content directory:
+        assertNotNull(backup);
+        assertTrue(Files.exists(backup));
+        assertTrue(Files.isDirectory(backup));
+        assertEquals(Transactions.BACKUP, backup.getFileName().toString());
+    }
+
+    @Test
+    public void shouldNotGetNonexistentBackupPath() throws IOException {
+
+        // Given
+        // A nonexistent transaction ID (ie not created on disk)
+        Transaction transaction = new Transaction();
+
+        // When
+        // We get the backup path
+        Path backup = Transactions.backup(transaction);
+
+        // Then
+        // We should get null and no error
+        assertNull(backup);
     }
 
 }

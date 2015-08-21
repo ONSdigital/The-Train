@@ -8,6 +8,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.InvalidKeyException;
 
+import static com.github.davidcarboni.thetrain.destination.helpers.Hash.ShaInputStream;
+import static com.github.davidcarboni.thetrain.destination.helpers.Hash.ShaOutputStream;
+
 /**
  * Utility methods for dealing with paths and converting to/from URI strings.
  */
@@ -120,29 +123,29 @@ public class PathUtils {
      * Generates a {@link BufferedInputStream} for the given {@link Path}, which will encrypt data as they are read if the given key is not null.
      * @param file The file to be read.
      * @param key The encryption key. If null, no encryption will be performed.
-     * @return A {@link BufferedInputStream} wrapped with a cipher stream.
+     * @return A {@link BufferedInputStream}, wrapped with a cipher stream if a key is provided, wrapped in an {@link ShaOutputStream}.
      * @throws IOException If an error occurs in getting the stream, or if the encryption key is invalid.
      */
-    public static OutputStream encryptingStream(Path file, SecretKey key) throws IOException {
+    public static ShaOutputStream encryptingStream(Path file, SecretKey key) throws IOException {
         OutputStream result = outputStream(file);
         if (key !=null) {
             try {
-                result = new Crypto().encrypt(result, key);
+                result =  new Crypto().encrypt(result, key);
             } catch (InvalidKeyException e) {
                 throw new IOException("Error using encryption key", e);
             }
         }
-        return result;
+        return new ShaOutputStream(result);
     }
 
     /**
      * Generates a {@link BufferedInputStream} for the given {@link Path}, which will decrypt data as they are read if the given key is not null.
      * @param file The file to be read.
      * @param key The encryption key. If null, no decryption will be performed.
-     * @return A {@link BufferedInputStream} wrapped with a cipher stream.
+     * @return A {@link BufferedInputStream}, wrapped with a cipher stream if a key is provided, wrapped in an {@link ShaOutputStream}.
      * @throws IOException If an error occurs in getting the stream, or if the encryption key is invalid.
      */
-    public static InputStream decryptingStream(Path file, SecretKey key) throws IOException {
+    public static ShaInputStream decryptingStream(Path file, SecretKey key) throws IOException {
         InputStream result = inputStream(file);
         if (key !=null) {
             try {
@@ -151,6 +154,6 @@ public class PathUtils {
                 throw new IOException("Error using encryption key", e);
             }
         }
-        return result;
+        return new ShaInputStream(result);
     }
 }

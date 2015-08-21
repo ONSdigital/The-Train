@@ -24,6 +24,12 @@ public class Transactions {
     static Map<String, Transaction> transactionMap = new ConcurrentHashMap<>();
     static Path transactionStore;
 
+    /**
+     * Creates a new transaction.
+     * @param encryptionPassword If this is not blank, encryption will be enabled for the transaction.
+     * @return The details of the newly created transaction.
+     * @throws IOException If a filesystem error occurs in creating the transaction.
+     */
     public static Transaction create(String encryptionPassword) throws IOException {
 
         Transaction transaction = new Transaction();
@@ -37,8 +43,8 @@ public class Transactions {
         Path json = path.resolve(JSON);
         try (OutputStream output = Files.newOutputStream(json)) {
             Serialiser.serialise(output, transaction);
-            Files.createDirectory(content(transaction));
-            Files.createDirectory(backup(transaction));
+            Files.createDirectory(path.resolve(CONTENT));
+            Files.createDirectory(path.resolve(BACKUP));
 
             // Return the new transaction:
             transactionMap.put(transaction.id(), transaction);
@@ -116,9 +122,10 @@ public class Transactions {
      */
     public static Path content(Transaction transaction) throws IOException {
         Path result = null;
-        Path path = path(transaction);
+        Path path = path(transaction.id());
         if (path != null) {
-            result = path.resolve(CONTENT);
+            path = path.resolve(CONTENT);
+            if (Files.exists(path)) result = path;
         }
         return result;
     }
@@ -132,28 +139,10 @@ public class Transactions {
      */
     public static Path backup(Transaction transaction) throws IOException {
         Path result = null;
-        Path path = path(transaction);
-        if (path != null) {
-            result = path.resolve(BACKUP);
-        }
-        return result;
-    }
-
-    /**
-     * Determines the directory for a {@link Transaction}.
-     *
-     * @param transaction The {@link Transaction}
-     * @return The {@link Path} for the specified transaction, or null if the ID is blank or the path does not exist.
-     * @throws IOException If an error occurs in determining the path.
-     */
-    static Path path(Transaction transaction) throws IOException {
-        if (transaction == null) {
-            throw new IllegalArgumentException("Please provide a valid transaction.");
-        }
-        Path result = null;
         Path path = path(transaction.id());
-        if (Files.exists(path)) {
-            result = path;
+        if (path != null) {
+            path = path.resolve(BACKUP);
+            if (Files.exists(path)) result = path;
         }
         return result;
     }
