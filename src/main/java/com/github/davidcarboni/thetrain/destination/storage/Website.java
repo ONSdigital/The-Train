@@ -9,13 +9,21 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * Created by david on 05/08/2015.
+ * Works out the directory that contains web content so that files can be published on transaction commit.
  */
 public class Website {
 
     static final String WEBSITE = "content_url";
     static Path path;
 
+    /**
+     * Determines the {@link Path} to the website content.
+     * For development purposes, if no {@value #WEBSITE} configuration value is set
+     * then a temponary folder is created.
+     *
+     * @return A path to the website root or, if the determined path does not point to a directory, null.
+     * @throws IOException
+     */
     public static Path path() throws IOException {
         Path result = null;
 
@@ -32,6 +40,8 @@ public class Website {
 
         if (Files.isDirectory(path)) {
             result = path;
+        } else {
+            System.out.println("The configured website path is not a directory: " + path);
         }
 
         return result;

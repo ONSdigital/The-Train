@@ -3,7 +3,7 @@ package com.github.davidcarboni.thetrain.destination.helpers;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Created by david on 05/08/2015.
+ * Convenience class to get configuration values from {@link System#getProperty(String)} or gracefully fall back to {@link System#getenv()}.
  */
 public class Configuration {
 

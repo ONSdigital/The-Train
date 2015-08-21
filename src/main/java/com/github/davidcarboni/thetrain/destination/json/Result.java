@@ -1,7 +1,7 @@
 package com.github.davidcarboni.thetrain.destination.json;
 
 /**
- * Created by david on 31/07/2015.
+ * Json message returned by API endpoints.
  */
 public class Result {
     public String message;

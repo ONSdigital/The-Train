@@ -12,7 +12,7 @@ import java.security.DigestInputStream;
 import java.security.DigestOutputStream;
 
 /**
- * Created by david on 05/08/2015.
+ * Functionality for computing SHA1 hashes in order to verify file integrity and correct functioning of encryption/decryption.
  */
 public class Hash {
 
