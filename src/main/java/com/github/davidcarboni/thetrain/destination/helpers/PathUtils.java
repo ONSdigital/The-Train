@@ -4,9 +4,14 @@ import com.github.davidcarboni.cryptolite.Crypto;
 
 import javax.crypto.SecretKey;
 import java.io.*;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.InvalidKeyException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.github.davidcarboni.thetrain.destination.helpers.Hash.ShaInputStream;
 import static com.github.davidcarboni.thetrain.destination.helpers.Hash.ShaOutputStream;
@@ -163,5 +168,35 @@ public class PathUtils {
 
         // NB the ShaInputStream must process content read from the stream after decryption in order to return the correct SHA:
         return new ShaInputStream(result);
+    }
+
+    /**
+     * Lists URIs relative to the given {@link Path}.
+     * @param content The path within which to list URIs.
+     * @return A list of URIs for files only (not directories)>
+     * @throws IOException If a filesystem error occurs.
+     */
+    public static List<String> listUris(Path content) throws IOException {
+        List<Path> paths = listFiles(content);
+        List<String> result = new ArrayList<>();
+        for (Path path : paths) {
+            String uri = toUri(path, content);
+            result.add(uri);
+        }
+        return result;
+    }
+
+    static List<Path> listFiles(Path path) throws IOException {
+        final List<Path> result = new ArrayList<>();
+
+        Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                result.add(file);
+                return FileVisitResult.CONTINUE;
+            }
+        });
+
+        return result;
     }
 }

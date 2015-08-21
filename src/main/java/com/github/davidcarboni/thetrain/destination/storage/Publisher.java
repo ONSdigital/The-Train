@@ -12,12 +12,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -95,27 +91,7 @@ public class Publisher {
      */
     public static List<String> listUris(Transaction transaction) throws IOException {
         Path content = Transactions.content(transaction);
-        List<Path> paths = listFiles(content);
-        List<String> result = new ArrayList<>();
-        for (Path path : paths) {
-            String uri = PathUtils.toUri(path, content);
-            result.add(uri);
-        }
-        return result;
-    }
-
-    static List<Path> listFiles(Path path) throws IOException {
-        final List<Path> result = new ArrayList<>();
-
-        Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                result.add(file);
-                return FileVisitResult.CONTINUE;
-            }
-        });
-
-        return result;
+        return PathUtils.listUris(content);
     }
 
     public static boolean commit(Transaction transaction, Path website) throws IOException {

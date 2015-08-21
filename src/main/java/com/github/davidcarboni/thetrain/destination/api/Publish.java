@@ -5,9 +5,9 @@ import com.github.davidcarboni.thetrain.destination.json.Result;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import com.github.davidcarboni.thetrain.destination.storage.Publisher;
 import com.github.davidcarboni.thetrain.destination.storage.Transactions;
+import com.github.davidcarboni.thetrain.destination.upload.EncryptedFileItemFactory;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -96,7 +96,7 @@ public class Publish {
         Path result = null;
 
         // Set up the objects that do all the heavy lifting
-        DiskFileItemFactory factory = new DiskFileItemFactory();
+        EncryptedFileItemFactory factory = new EncryptedFileItemFactory();
         ServletFileUpload upload = new ServletFileUpload(factory);
 
         try {

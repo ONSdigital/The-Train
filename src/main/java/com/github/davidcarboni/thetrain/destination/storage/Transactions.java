@@ -1,6 +1,7 @@
 package com.github.davidcarboni.thetrain.destination.storage;
 
 import com.github.davidcarboni.restolino.json.Serialiser;
+import com.github.davidcarboni.thetrain.destination.helpers.Configuration;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import org.apache.commons.lang3.StringUtils;
 
@@ -9,6 +10,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -17,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Transactions {
 
+    static final String TRANSACTION_STORE = "transaction.store";
     static final String JSON = "transaction.json";
     static final String CONTENT = "content";
     static final String BACKUP = "backup";
@@ -169,10 +172,24 @@ public class Transactions {
      */
     static Path store() throws IOException {
         if (transactionStore == null) {
-            // In production, the transaction store will be configured,
-            // so this should only be needed in development and testing.
-            // That's is why this is not synchronized:
-            transactionStore = Files.createTempDirectory(Transactions.class.getSimpleName());
+
+            // Production configuration
+            String transactionStorePath = Configuration.get(TRANSACTION_STORE);
+            if (StringUtils.isNotBlank(transactionStorePath)) {
+                Path path = Paths.get(transactionStorePath);
+                if (Files.isDirectory(path)) {
+                    transactionStore = path;
+                } else {
+                    System.out.println("Not a valid transaction store directory: " + path);
+                }
+            }
+
+            // Development fallback
+            if (transactionStore == null) {
+                transactionStore = Files.createTempDirectory(Transactions.class.getSimpleName());
+                System.out.println("Temporary transaction store created at: " + transactionStore);
+            }
+
         }
         return transactionStore;
     }
