@@ -1,7 +1,6 @@
 package com.github.davidcarboni.thetrain.destination.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
-import com.github.davidcarboni.thetrain.destination.helpers.Hash;
 import com.github.davidcarboni.thetrain.destination.json.Result;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import com.github.davidcarboni.thetrain.destination.storage.Publisher;

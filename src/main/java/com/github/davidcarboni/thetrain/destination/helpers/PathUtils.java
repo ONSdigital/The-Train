@@ -101,8 +101,9 @@ public class PathUtils {
 
     /**
      * Generates a {@link BufferedInputStream} for the given {@link Path}.
+     *
      * @param file The file to be read.
-     * @return  A {@link BufferedInputStream}.
+     * @return A {@link BufferedInputStream}.
      * @throws IOException If an error occurs in getting the stream.
      */
     public static InputStream inputStream(Path file) throws IOException {
@@ -111,8 +112,9 @@ public class PathUtils {
 
     /**
      * Generates a {@link BufferedOutputStream} for the given {@link Path}.
+     *
      * @param file The file to be read.
-     * @return  A {@link BufferedOutputStream}.
+     * @return A {@link BufferedOutputStream}.
      * @throws IOException If an error occurs in getting the stream.
      */
     public static OutputStream outputStream(Path file) throws IOException {
@@ -121,16 +123,17 @@ public class PathUtils {
 
     /**
      * Generates a {@link BufferedInputStream} for the given {@link Path}, which will encrypt data as they are read if the given key is not null.
+     *
      * @param file The file to be read.
-     * @param key The encryption key. If null, no encryption will be performed.
+     * @param key  The encryption key. If null, no encryption will be performed.
      * @return A {@link BufferedInputStream}, wrapped with a cipher stream if a key is provided, wrapped in an {@link ShaOutputStream}.
      * @throws IOException If an error occurs in getting the stream, or if the encryption key is invalid.
      */
     public static ShaOutputStream encryptingStream(Path file, SecretKey key) throws IOException {
         OutputStream result = outputStream(file);
-        if (key !=null) {
+        if (key != null) {
             try {
-                result =  new Crypto().encrypt(result, key);
+                result = new Crypto().encrypt(result, key);
             } catch (InvalidKeyException e) {
                 throw new IOException("Error using encryption key", e);
             }
@@ -142,14 +145,15 @@ public class PathUtils {
 
     /**
      * Generates a {@link BufferedInputStream} for the given {@link Path}, which will decrypt data as they are read if the given key is not null.
+     *
      * @param file The file to be read.
-     * @param key The encryption key. If null, no decryption will be performed.
+     * @param key  The encryption key. If null, no decryption will be performed.
      * @return A {@link BufferedInputStream}, wrapped with a cipher stream if a key is provided, wrapped in an {@link ShaOutputStream}.
      * @throws IOException If an error occurs in getting the stream, or if the encryption key is invalid.
      */
     public static ShaInputStream decryptingStream(Path file, SecretKey key) throws IOException {
         InputStream result = inputStream(file);
-        if (key !=null) {
+        if (key != null) {
             try {
                 result = new Crypto().decrypt(result, key);
             } catch (InvalidKeyException e) {

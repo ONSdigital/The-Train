@@ -29,6 +29,7 @@ public class Hash {
         public ShaInputStream(InputStream input) {
             super(input, DigestUtils.getSha1Digest());
         }
+
         public String sha() {
             return ByteArray.toString(getMessageDigest().digest());
         }
@@ -41,6 +42,7 @@ public class Hash {
         public ShaOutputStream(OutputStream output) {
             super(output, DigestUtils.getSha1Digest());
         }
+
         public String sha() {
             return ByteArray.toString(getMessageDigest().digest());
         }

@@ -63,6 +63,7 @@ public class Transaction {
     public SecretKey key() {
         return key;
     }
+
     /**
      * @return The transaction {@link #startDate}.
      */

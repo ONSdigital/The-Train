@@ -23,7 +23,7 @@ public class Rollback {
 
     @PUT
     public Result rollback(HttpServletRequest request,
-                         HttpServletResponse response) throws IOException, FileUploadException {
+                           HttpServletResponse response) throws IOException, FileUploadException {
 
         Transaction transaction = null;
         String message = null;

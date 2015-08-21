@@ -20,16 +20,16 @@ public class UriInfo {
 
     /**
      * This is a String rather than an enum to make deserialisation lenient.
-     *
+     * <p/>
      * This should be one of the following constant values defined in this class:
      * <ul>
-     *     <li>{@value #STARTED}</li>
-     *     <li>{@value #UPLOADED}</li>
-     *     <li>{@value #UPLOAD_FAILED}</li>
-     *     <li>{@value #COMMIT_FAILED}</li>
-     *     <li>{@value #COMMITTED}</li>
-     *     <li>{@value #ROLLED_BACK}</li>
-     *     <li>{@value #UNKNOWN}</li>
+     * <li>{@value #STARTED}</li>
+     * <li>{@value #UPLOADED}</li>
+     * <li>{@value #UPLOAD_FAILED}</li>
+     * <li>{@value #COMMIT_FAILED}</li>
+     * <li>{@value #COMMITTED}</li>
+     * <li>{@value #ROLLED_BACK}</li>
+     * <li>{@value #UNKNOWN}</li>
      * </ul>
      */
     String status;

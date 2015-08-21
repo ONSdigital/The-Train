@@ -26,6 +26,7 @@ public class Transactions {
 
     /**
      * Creates a new transaction.
+     *
      * @param encryptionPassword If this is not blank, encryption will be enabled for the transaction.
      * @return The details of the newly created transaction.
      * @throws IOException If a filesystem error occurs in creating the transaction.
@@ -79,7 +80,7 @@ public class Transactions {
             }
 
             result = transactionMap.get(id);
-            if (result !=null) {
+            if (result != null) {
                 result.enableEncryption(encryptionPassword);
             }
         }

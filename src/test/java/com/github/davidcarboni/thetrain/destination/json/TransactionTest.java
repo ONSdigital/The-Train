@@ -63,7 +63,7 @@ public class TransactionTest {
         final Transaction transaction = new Transaction();
         Set<UriInfo> uriInfos = new HashSet<>();
         for (int i = 0; i < 2000; i++) {
-            uriInfos.add(new UriInfo("/"+Random.id()));
+            uriInfos.add(new UriInfo("/" + Random.id()));
         }
         ExecutorService pool = Executors.newFixedThreadPool(100);
 
@@ -89,7 +89,7 @@ public class TransactionTest {
     }
 
     @Test(expected = UnsupportedOperationException.class)
-    public void shouldNotBeAbleToModifyUris()  {
+    public void shouldNotBeAbleToModifyUris() {
 
         // Given
         // A transaction
@@ -105,7 +105,7 @@ public class TransactionTest {
     }
 
     @Test
-    public void shouldAddError()  {
+    public void shouldAddError() {
 
         // Given
         // A transaction and an error message
@@ -155,7 +155,7 @@ public class TransactionTest {
     }
 
     @Test(expected = UnsupportedOperationException.class)
-    public void shouldNotBeAbleToModifyErrors()  {
+    public void shouldNotBeAbleToModifyErrors() {
 
         // Given
         // A transaction
@@ -171,7 +171,7 @@ public class TransactionTest {
     }
 
     @Test
-    public void shouldEndTransaction()  {
+    public void shouldEndTransaction() {
 
         // Given
         // A transaction
