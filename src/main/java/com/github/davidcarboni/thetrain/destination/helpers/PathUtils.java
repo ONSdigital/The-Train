@@ -135,6 +135,8 @@ public class PathUtils {
                 throw new IOException("Error using encryption key", e);
             }
         }
+
+        // NB the ShaOutputStream must process cleartext content as it is written to the stream, before being encrypted, in order to return the correct SHA:
         return new ShaOutputStream(result);
     }
 
@@ -154,6 +156,8 @@ public class PathUtils {
                 throw new IOException("Error using encryption key", e);
             }
         }
+
+        // NB the ShaInputStream must process content read from the stream after decryption in order to return the correct SHA:
         return new ShaInputStream(result);
     }
 }
