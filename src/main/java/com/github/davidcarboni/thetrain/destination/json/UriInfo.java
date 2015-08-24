@@ -68,6 +68,11 @@ public class UriInfo {
         return status;
     }
 
+
+    public String action() {
+        return action;
+    }
+
     /**
      * Normal constructor.
      *
@@ -126,10 +131,12 @@ public class UriInfo {
 
     /**
      * Sets the status of this instance to {@value #COMMITTED}.
+     *
      * @param action {@value #CREATE} or {@value #UPDATE}.
      */
     public void commit(String action) {
         status = COMMITTED;
+        this.action = action;
     }
 
     /**
@@ -175,4 +182,5 @@ public class UriInfo {
     public String toString() {
         return uri() + " (" + status + ")";
     }
+
 }
