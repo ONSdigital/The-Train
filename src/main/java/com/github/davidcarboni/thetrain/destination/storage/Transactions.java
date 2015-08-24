@@ -2,6 +2,7 @@ package com.github.davidcarboni.thetrain.destination.storage;
 
 import com.github.davidcarboni.restolino.json.Serialiser;
 import com.github.davidcarboni.thetrain.destination.helpers.Configuration;
+import com.github.davidcarboni.thetrain.destination.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.destination.json.Transaction;
 import org.apache.commons.lang3.StringUtils;
 
@@ -11,6 +12,8 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -84,8 +87,26 @@ public class Transactions {
 
             result = transactionMap.get(id);
             if (result != null) {
+                result.files = list(result);
+            }
+            if (result != null) {
                 result.enableEncryption(encryptionPassword);
             }
+        }
+
+        return result;
+    }
+
+    public static Map<String, List<String>> list(Transaction transaction) throws IOException {
+        Map<String, List<String>> result = new HashMap<>();
+
+        Path content = content(transaction);
+        if (Files.isDirectory(content)) {
+            result.put("content", PathUtils.listUris(content));
+        }
+        Path backup = backup(transaction);
+        if (Files.isDirectory(backup)) {
+            result.put("backup", PathUtils.listUris(backup));
         }
 
         return result;
@@ -95,7 +116,6 @@ public class Transactions {
      * Reads the transaction Json specified by the given id.
      *
      * @param transaction The {@link Transaction}.
-     * @return The {@link Transaction} if it exists, otherwise null.
      * @throws IOException If an error occurs in reading the transaction Json.
      */
     public static void update(Transaction transaction) throws IOException {
