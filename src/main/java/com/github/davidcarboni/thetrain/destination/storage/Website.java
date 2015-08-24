@@ -35,6 +35,7 @@ public class Website {
             } else {
                 path = Files.createTempDirectory("website");
                 System.out.println("Simulating website for development using a temp folder at: " + path);
+                System.out.println("Please configure a "+WEBSITE+" variable to configure this directory in production.");
             }
         }
 
