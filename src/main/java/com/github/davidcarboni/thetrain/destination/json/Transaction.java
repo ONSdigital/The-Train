@@ -29,7 +29,8 @@ public class Transaction {
     Set<UriInfo> uriInfos = new HashSet<>();
     List<String> errors = new ArrayList<>();
 
-    /** The actual files on disk in this transaction.
+    /**
+     * The actual files on disk in this transaction.
      * This might differ slightly from {@link #uriInfos}
      * if there is an issue, so useful to have a direct view of these.
      */

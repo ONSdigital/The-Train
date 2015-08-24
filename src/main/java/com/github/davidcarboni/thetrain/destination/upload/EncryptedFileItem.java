@@ -23,7 +23,7 @@ import static java.lang.String.format;
  * <p/>
  * This class adds encryption if data are written to disk.
  */
-public class EncryptedFileItem    implements FileItem {
+public class EncryptedFileItem implements FileItem {
 
     // ----------------------------------------------------- Manifest constants
 
@@ -141,8 +141,8 @@ public class EncryptedFileItem    implements FileItem {
      *                      exceed the threshold.
      */
     public EncryptedFileItem(String fieldName,
-                        String contentType, boolean isFormField, String fileName,
-                        int sizeThreshold, File repository) {
+                             String contentType, boolean isFormField, String fileName,
+                             int sizeThreshold, File repository) {
         this.fieldName = fieldName;
         this.contentType = contentType;
         this.isFormField = isFormField;
@@ -159,15 +159,14 @@ public class EncryptedFileItem    implements FileItem {
      * used to retrieve the contents of the file.
      *
      * @return An {@link java.io.InputStream InputStream} that can be
-     *         used to retrieve the contents of the file.
-     *
+     * used to retrieve the contents of the file.
      * @throws IOException if an error occurs.
      */
     public InputStream getInputStream()
             throws IOException {
         if (!isInMemory()) {
             try {
-                return new Crypto().decrypt( new FileInputStream(dfos.getFile()), key);
+                return new Crypto().decrypt(new FileInputStream(dfos.getFile()), key);
             } catch (InvalidKeyException e) {
                 throw new RuntimeException("Error using decryption key", e);
             }
@@ -184,7 +183,7 @@ public class EncryptedFileItem    implements FileItem {
      * not defined.
      *
      * @return The content type passed by the agent or <code>null</code> if
-     *         not defined.
+     * not defined.
      */
     public String getContentType() {
         return contentType;
@@ -195,7 +194,7 @@ public class EncryptedFileItem    implements FileItem {
      * not defined.
      *
      * @return The content charset passed by the agent or <code>null</code> if
-     *         not defined.
+     * not defined.
      */
     public String getCharSet() {
         ParameterParser parser = new ParameterParser();
@@ -210,9 +209,9 @@ public class EncryptedFileItem    implements FileItem {
      *
      * @return The original filename in the client's filesystem.
      * @throws org.apache.commons.fileupload.InvalidFileNameException The file name contains a NUL character,
-     *   which might be an indicator of a security attack. If you intend to
-     *   use the file name anyways, catch the exception and use
-     *   {@link org.apache.commons.fileupload.InvalidFileNameException#getName()}.
+     *                                                                which might be an indicator of a security attack. If you intend to
+     *                                                                use the file name anyways, catch the exception and use
+     *                                                                {@link org.apache.commons.fileupload.InvalidFileNameException#getName()}.
      */
     public String getName() {
         return Streams.checkFileName(fileName);
@@ -225,7 +224,7 @@ public class EncryptedFileItem    implements FileItem {
      * from memory.
      *
      * @return <code>true</code> if the file contents will be read
-     *         from memory; <code>false</code> otherwise.
+     * from memory; <code>false</code> otherwise.
      */
     public boolean isInMemory() {
         if (cachedContent != null) {
@@ -268,7 +267,7 @@ public class EncryptedFileItem    implements FileItem {
 
         byte[] fileData = new byte[(int) getSize()];
 
-        try (InputStream fis = new Crypto().decrypt( new BufferedInputStream(new FileInputStream(dfos.getFile())), key);) {
+        try (InputStream fis = new Crypto().decrypt(new BufferedInputStream(new FileInputStream(dfos.getFile())), key);) {
             fis.read(fileData);
         } catch (IOException e) {
             fileData = null;
@@ -285,9 +284,7 @@ public class EncryptedFileItem    implements FileItem {
      * contents of the file.
      *
      * @param charset The charset to use.
-     *
      * @return The contents of the file, as a string.
-     *
      * @throws UnsupportedEncodingException if the requested character
      *                                      encoding is not available.
      */
@@ -300,7 +297,7 @@ public class EncryptedFileItem    implements FileItem {
      * Returns the contents of the file as a String, using the default
      * character encoding.  This method uses {@link #get()} to retrieve the
      * contents of the file.
-     *
+     * <p/>
      * <b>TODO</b> Consider making this method throw UnsupportedEncodingException.
      *
      * @return The contents of the file, as a string.
@@ -323,11 +320,11 @@ public class EncryptedFileItem    implements FileItem {
      * is not concerned with whether or not the item is stored in memory, or on
      * disk in a temporary location. They just want to write the uploaded item
      * to a file.
-     * <p>
+     * <p/>
      * This implementation first attempts to rename the uploaded item to the
      * specified destination file, if the item was originally written to disk.
      * Otherwise, the data will be copied to the specified file.
-     * <p>
+     * <p/>
      * This method is only guaranteed to work <em>once</em>, the first time it
      * is invoked for a particular item. This is because, in the event that the
      * method renames a temporary file, that file will no longer be available
@@ -335,7 +332,6 @@ public class EncryptedFileItem    implements FileItem {
      *
      * @param file The <code>File</code> into which the uploaded item should
      *             be stored.
-     *
      * @throws Exception if an error occurs.
      */
     public void write(File file) throws Exception {
@@ -365,7 +361,7 @@ public class EncryptedFileItem    implements FileItem {
                     try {
                         in = new BufferedInputStream(
                                 new Crypto().decrypt(
-                                new FileInputStream(outputFile), key));
+                                        new FileInputStream(outputFile), key));
                         out = new BufferedOutputStream(
                                 new FileOutputStream(file));
                         IOUtils.copy(in, out);
@@ -417,9 +413,7 @@ public class EncryptedFileItem    implements FileItem {
      * this file item.
      *
      * @return The name of the form field.
-     *
      * @see #setFieldName(java.lang.String)
-     *
      */
     public String getFieldName() {
         return fieldName;
@@ -429,9 +423,7 @@ public class EncryptedFileItem    implements FileItem {
      * Sets the field name used to reference this file item.
      *
      * @param fieldName The name of the form field.
-     *
      * @see #getFieldName()
-     *
      */
     public void setFieldName(String fieldName) {
         this.fieldName = fieldName;
@@ -442,10 +434,8 @@ public class EncryptedFileItem    implements FileItem {
      * a simple form field.
      *
      * @return <code>true</code> if the instance represents a simple form
-     *         field; <code>false</code> if it represents an uploaded file.
-     *
+     * field; <code>false</code> if it represents an uploaded file.
      * @see #setFormField(boolean)
-     *
      */
     public boolean isFormField() {
         return isFormField;
@@ -457,9 +447,7 @@ public class EncryptedFileItem    implements FileItem {
      *
      * @param state <code>true</code> if the instance represents a simple form
      *              field; <code>false</code> if it represents an uploaded file.
-     *
      * @see #isFormField()
-     *
      */
     public void setFormField(boolean state) {
         isFormField = state;
@@ -470,8 +458,7 @@ public class EncryptedFileItem    implements FileItem {
      * be used for storing the contents of the file.
      *
      * @return An {@link java.io.OutputStream OutputStream} that can be used
-     *         for storing the contensts of the file.
-     *
+     * for storing the contensts of the file.
      * @throws IOException if an error occurs.
      */
     public OutputStream getOutputStream()
@@ -496,7 +483,7 @@ public class EncryptedFileItem    implements FileItem {
      * volume.
      *
      * @return The data file, or <code>null</code> if the data is stored in
-     *         memory.
+     * memory.
      */
     public File getStoreLocation() {
         if (dfos == null) {
@@ -578,11 +565,10 @@ public class EncryptedFileItem    implements FileItem {
 
     /**
      * // TODO: this probably won't play nicely with encryption.
-     *
+     * <p/>
      * Writes the state of this object during serialization.
      *
      * @param out The stream to which the state should be written.
-     *
      * @throws IOException if an error occurs.
      */
     private void writeObject(ObjectOutputStream out) throws IOException {
@@ -600,12 +586,11 @@ public class EncryptedFileItem    implements FileItem {
 
     /**
      * // TODO: this probably won't play nicely with encryption.
-     *
+     * <p/>
      * Reads the state of this object during deserialization.
      *
      * @param in The stream from which the state should be read.
-     *
-     * @throws IOException if an error occurs.
+     * @throws IOException            if an error occurs.
      * @throws ClassNotFoundException if class cannot be found.
      */
     private void readObject(ObjectInputStream in)
@@ -649,6 +634,7 @@ public class EncryptedFileItem    implements FileItem {
 
     /**
      * Returns the file item headers.
+     *
      * @return The file items headers.
      */
     public FileItemHeaders getHeaders() {
@@ -657,6 +643,7 @@ public class EncryptedFileItem    implements FileItem {
 
     /**
      * Sets the file item headers.
+     *
      * @param pHeaders The file items headers.
      */
     public void setHeaders(FileItemHeaders pHeaders) {

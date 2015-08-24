@@ -172,6 +172,7 @@ public class PathUtils {
 
     /**
      * Lists URIs relative to the given {@link Path}.
+     *
      * @param content The path within which to list URIs.
      * @return A list of URIs for files only (not directories)>
      * @throws IOException If a filesystem error occurs.
