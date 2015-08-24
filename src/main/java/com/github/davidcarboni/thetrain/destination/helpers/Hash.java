@@ -44,7 +44,7 @@ public class Hash {
         }
 
         public String sha() {
-            return ByteArray.toString(getMessageDigest().digest());
+            return ByteArray.toBase64String(getMessageDigest().digest());
         }
     }
 }
