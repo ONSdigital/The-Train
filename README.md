@@ -1,8 +1,8 @@
 # The Train
 
-Transactional file publishing tool over HTTP.
+Transactional file publishing tool over HTTP, inspired by The Train from The Magic Roundabout.
 
-Inspired by The Train from The Magic Roundabout.
+Runs an embedded Jetty server that accepts files in parallel over HTTP and commits them to a local directory, backing up replaced files as necessary and providing optional encryption.
 
 ## Basics
 
