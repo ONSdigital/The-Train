@@ -20,7 +20,7 @@ import java.io.IOException;
 public class Transaction {
 
     @GET
-    public Result beginTransaction(HttpServletRequest request,
+    public Result getTransactionDetails(HttpServletRequest request,
                                    HttpServletResponse response) throws IOException, FileUploadException {
 
         com.github.davidcarboni.thetrain.destination.json.Transaction transaction = null;
