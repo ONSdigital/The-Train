@@ -11,7 +11,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.jetty.http.HttpStatus;
 
-import javax.crypto.SecretKey;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.PUT;
@@ -64,14 +63,6 @@ public class Commit {
                 response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                 error = true;
                 message = "Website folder could not be used: " + website;
-            }
-
-            // Encryption key, if provided
-            SecretKey key = null;
-            String wrappedKey = request.getParameter("wrappedKey");
-            String salt = request.getParameter("salt");
-            if (StringUtils.isNotBlank(wrappedKey) && StringUtils.isNotBlank(salt)) {
-
             }
 
             // Commit
