@@ -70,10 +70,11 @@ public class UriInfoTest {
         UriInfo uriInfo = new UriInfo("uri");
 
         // When
-        uriInfo.commit();
+        uriInfo.commit(UriInfo.UPDATE);
 
         // Then
         Assert.assertEquals(UriInfo.COMMITTED, uriInfo.status);
+        Assert.assertEquals(UriInfo.UPDATE, uriInfo.action);
     }
 
     @Test
