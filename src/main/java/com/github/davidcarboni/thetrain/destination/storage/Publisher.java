@@ -129,10 +129,12 @@ public class Publisher {
         try {
 
             // Back up the existing file, if present
+            String action = UriInfo.CREATE;
             if (Files.exists(target)) {
                 backup = PathUtils.toPath(uri, Transactions.backup(transaction));
                 Files.createDirectories(backup.getParent());
                 Files.move(target, backup);
+                action = UriInfo.UPDATE;
             }
 
             // Publish the file
@@ -149,7 +151,7 @@ public class Publisher {
                 committedSha = output.sha();
             }
             if (StringUtils.equals(uploadedSha, committedSha)) {
-                uriInfo.commit();
+                uriInfo.commit(action);
                 result = true;
             } else {
                 uriInfo.fail("Published file hash mismatch. Uploaded: " + uploadedSha + " Committed: " + committedSha);

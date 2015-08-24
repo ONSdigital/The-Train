@@ -18,6 +18,9 @@ public class UriInfo {
     public static final String ROLLED_BACK = "rolled back";
     public static final String UNKNOWN = "This URI was not recorded in Transaction info";
 
+    public static final String CREATE = "created";
+    public static final String UPDATE = "updated";
+
     /**
      * This is a String rather than an enum to make deserialisation lenient.
      * <p/>
@@ -33,6 +36,17 @@ public class UriInfo {
      * </ul>
      */
     String status;
+
+    /**
+     * This is a String rather than an enum to make deserialisation lenient.
+     * <p/>
+     * This should be one of the following constant values defined in this class:
+     * <ul>
+     * <li>{@value #CREATE}</li>
+     * <li>{@value #UPDATE}</li>
+     * </ul>
+     */
+    String action;
     String uri;
     String start;
     String end;
@@ -112,8 +126,9 @@ public class UriInfo {
 
     /**
      * Sets the status of this instance to {@value #COMMITTED}.
+     * @param action {@value #CREATE} or {@value #UPDATE}.
      */
-    public void commit() {
+    public void commit(String action) {
         status = COMMITTED;
     }
 
