@@ -12,7 +12,7 @@ import org.eclipse.jetty.http.HttpStatus;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.PUT;
+import javax.ws.rs.POST;
 import java.io.IOException;
 
 /**
@@ -21,7 +21,7 @@ import java.io.IOException;
 @Api
 public class Rollback {
 
-    @PUT
+    @POST
     public Result rollback(HttpServletRequest request,
                            HttpServletResponse response) throws IOException, FileUploadException {
 
