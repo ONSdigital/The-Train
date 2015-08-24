@@ -1,4 +1,4 @@
-package com.github.davidcarboni.thetrain.destination.Testing;
+package com.github.davidcarboni.thetrain.destination;
 
 import com.github.davidcarboni.cryptolite.Random;
 import com.github.davidcarboni.httpino.Endpoint;
@@ -6,6 +6,7 @@ import com.github.davidcarboni.httpino.Host;
 import com.github.davidcarboni.httpino.Http;
 import com.github.davidcarboni.httpino.Response;
 import com.github.davidcarboni.restolino.json.Serialiser;
+import com.github.davidcarboni.thetrain.destination.Testing.Generator;
 import com.github.davidcarboni.thetrain.destination.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.destination.json.Result;
 
@@ -50,6 +51,23 @@ public class Client {
             check(commitResponse);
 
             System.out.println("Committed transaction " + transactionId);
+
+            System.out.println("Transaction details:");
+            Endpoint transaction = new Endpoint(host, "transaction").setParameter("transactionId", transactionId).setParameter("encryptionPassword", encryptionPassword);
+            Response<Result> transactionResponse = http.getJson(transaction, Result.class);
+            check(transactionResponse);
+            Serialiser.getBuilder().setPrettyPrinting();
+            System.out.println(Serialiser.serialise(transactionResponse.body));
+//            int i = 0;
+//            for (UriInfo uriInfo : transactionResponse.body.transaction.uris()) {
+//                System.out.println(uriInfo.uri());
+//                System.out.println(uriInfo.sha());
+//                System.out.println(uriInfo.action());
+//                System.out.println(uriInfo.status());
+//                System.out.println();
+//                i++;
+//            }
+//            System.out.println("Total: " + i);
         }
     }
 
