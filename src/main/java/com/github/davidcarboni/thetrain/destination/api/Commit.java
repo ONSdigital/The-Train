@@ -72,6 +72,8 @@ public class Commit {
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     error = true;
                     message = "Errors were detected in committing the transaction.";
+                } else {
+                    message = "Transaction committed.";
                 }
             }
 

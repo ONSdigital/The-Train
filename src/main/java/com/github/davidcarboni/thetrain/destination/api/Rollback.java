@@ -55,6 +55,8 @@ public class Rollback {
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     error = true;
                     message = "Errors were detected in rolling back the transaction.";
+                } else {
+                    message = "Transaction rolled back.";
                 }
             }
 

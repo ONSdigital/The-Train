@@ -66,7 +66,7 @@ public class Publish {
                 // Publish
                 String sha = Publisher.addFile(transaction, uri, file, startDate);
                 if (StringUtils.isNotBlank(sha)) {
-                    message = sha;
+                    message = "Published " + uri + " with SHA " + sha;
                 } else {
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     error = true;
