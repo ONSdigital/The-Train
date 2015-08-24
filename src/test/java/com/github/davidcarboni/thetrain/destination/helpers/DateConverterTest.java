@@ -21,7 +21,7 @@ public class DateConverterTest {
 
         // Then
         // The String representation should be correct:
-        Assert.assertEquals(date, reconverted);
+        Assert.assertEquals(DateConverter.toDate(date), DateConverter.toDate(reconverted));
     }
 
     @Test
@@ -37,7 +37,7 @@ public class DateConverterTest {
 
         // Then
         // The String representation should be correct:
-        Assert.assertEquals(date, reconverted);
+        Assert.assertEquals(DateConverter.toDate(date), DateConverter.toDate(reconverted));
     }
 
     public static void main(String[] args) {
