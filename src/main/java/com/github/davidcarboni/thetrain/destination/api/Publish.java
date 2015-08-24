@@ -66,11 +66,11 @@ public class Publish {
                 // Publish
                 String sha = Publisher.addFile(transaction, uri, file, startDate);
                 if (StringUtils.isNotBlank(sha)) {
-                    message = "Published " + uri + " with SHA " + sha;
+                    message = "Published " + uri;
                 } else {
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     error = true;
-                    message = "Sadly '" + uri + "' was not published.";
+                    message = "Sadly " + uri + " was not published.";
                 }
             }
 

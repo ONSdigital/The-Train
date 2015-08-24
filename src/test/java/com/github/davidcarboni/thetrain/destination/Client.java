@@ -50,9 +50,6 @@ public class Client {
             Response<Result> commitResponse = http.put(commit, null, Result.class);
             check(commitResponse);
 
-            System.out.println("Committed transaction " + transactionId);
-
-            System.out.println("Transaction details:");
             Endpoint transaction = new Endpoint(host, "transaction").setParameter("transactionId", transactionId).setParameter("encryptionPassword", encryptionPassword);
             Response<Result> transactionResponse = http.getJson(transaction, Result.class);
             check(transactionResponse);
@@ -77,5 +74,6 @@ public class Client {
         } else if (response.body.transaction.hasErrors()) {
             throw new RuntimeException(Serialiser.serialise(response.body.transaction));
         }
+        System.out.println(response.body.message);
     }
 }

@@ -21,7 +21,7 @@ public class Transaction {
 
     @GET
     public Result getTransactionDetails(HttpServletRequest request,
-                                   HttpServletResponse response) throws IOException, FileUploadException {
+                                        HttpServletResponse response) throws IOException, FileUploadException {
 
         com.github.davidcarboni.thetrain.destination.json.Transaction transaction = null;
         String message = null;
@@ -44,6 +44,8 @@ public class Transaction {
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 error = true;
                 message = "Unknown transaction " + transactionId;
+            } else {
+                message = "Details for transaction " + transaction.id();
             }
 
         } catch (Throwable t) {
