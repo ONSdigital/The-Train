@@ -13,7 +13,7 @@ FIve APIs are available to control file publishing:
  * POST to `/commit` or `/rollback`, specifying a `transactionId` parameter in the url to end a transaction.
  * GET `/transaction`, specifying a `transactionId` parameter in the url to get the details of a transaction.
  
-By default the publisher will operate on temp directories. It prints out console messages about the configuration variables you can use to set up directories in production.
+By default the publisher will operate on temp directories. It prints out console messages about the configuration variables you can use to set up directories in production, or take a look at the `Configuration` class.
 
 ## Encryption
 
