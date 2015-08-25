@@ -17,14 +17,16 @@ By default the publisher will operate on temp directories. It prints out console
 
 ## Encryption
 
-If you wish to encrypt transferred files until a transaction is committed, specify an `encryptionPassword` parameter in the url. This will be used to trigger AES encryption.
+If you wish to encrypt transferred files until a transaction is committed, specify an `encryptionPassword` parameter in the url. This will be used to trigger AES encryption when files are written to disk.
 
-HTTP uploads stored as temp files are encrypted by default, using classes based on the implementatios provided by Apache Commons Fileupload:
+NB to secure the transfer of files to The Train, run it over HTTPS. Encryption functionality is provided for data written to disk between `publish` and `commit`.
+
+HTTP uploads are processed by Apache Commons Fileupload and, if stored as temp files, are transparently encrypted using classes based on the implementations provided in Commons Fileupload:
 
  * `EncryptedFileItemFactory`
  * `EncryptedFileItem`
  * `EncryptedDeferredOutputStream`
 
-The `EncryptedFileItemFactory` class ensures that any data written to disk as temp files are encrypted using a random AES key.
+The `EncryptedFileItemFactory` class ensures that any data written to disk as temp files are encrypted using a temporary AES key.
 
-File upload encryption is implicit and requires no additional effort or adjustment.
+File upload encryption is implicit and requires no adjustment to the way Fileupload is used.
