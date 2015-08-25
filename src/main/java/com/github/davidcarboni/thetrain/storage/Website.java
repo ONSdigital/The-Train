@@ -13,12 +13,11 @@ import java.nio.file.Paths;
  */
 public class Website {
 
-    static final String WEBSITE = "thetrain.website";
     static Path path;
 
     /**
      * Determines the {@link Path} to the website content.
-     * For development purposes, if no {@value #WEBSITE} configuration value is set
+     * For development purposes, if no {@value Configuration#WEBSITE} configuration value is set
      * then a temponary folder is created.
      *
      * @return A path to the website root or, if the determined path does not point to a directory, null.
@@ -29,13 +28,13 @@ public class Website {
 
         // Get the Path to the website folder we're going to publish to
         if (path == null) {
-            String websitePath = Configuration.get(WEBSITE);
+            String websitePath = Configuration.get(Configuration.WEBSITE);
             if (StringUtils.isNotBlank(websitePath)) {
                 path = Paths.get(websitePath);
             } else {
                 path = Files.createTempDirectory("website");
                 System.out.println("Simulating website for development using a temp folder at: " + path);
-                System.out.println("Please configure a " + WEBSITE + " variable to configure this directory in production.");
+                System.out.println("Please configure a " + Configuration.WEBSITE + " variable to configure this directory in production.");
             }
         }
 

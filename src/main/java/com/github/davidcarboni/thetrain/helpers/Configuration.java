@@ -7,6 +7,9 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class Configuration {
 
+    public static final String TRANSACTION_STORE = "thetrain.transactions";
+    public static final String WEBSITE = "thetrain.website";
+
     /**
      * Gets a configuration value from {@link System#getProperty(String)}, falling back to {@link System#getenv()}
      * if the property comes back blank.

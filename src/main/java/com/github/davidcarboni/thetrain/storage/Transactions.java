@@ -22,7 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Transactions {
 
-    static final String TRANSACTION_STORE = "thetrain.transactions";
     static final String JSON = "transaction.json";
     static final String CONTENT = "content";
     static final String BACKUP = "backup";
@@ -187,6 +186,9 @@ public class Transactions {
     }
 
     /**
+     * For development purposes, if no {@value Configuration#TRANSACTION_STORE} configuration value is set
+     * then a temponary folder is created.
+     *
      * @return The {@link Path} to the storage directory for all transactions.
      * @throws IOException If an error occurs.
      */
@@ -194,7 +196,7 @@ public class Transactions {
         if (transactionStore == null) {
 
             // Production configuration
-            String transactionStorePath = Configuration.get(TRANSACTION_STORE);
+            String transactionStorePath = Configuration.get(Configuration.TRANSACTION_STORE);
             if (StringUtils.isNotBlank(transactionStorePath)) {
                 Path path = Paths.get(transactionStorePath);
                 if (Files.isDirectory(path)) {
@@ -208,7 +210,7 @@ public class Transactions {
             if (transactionStore == null) {
                 transactionStore = Files.createTempDirectory(Transactions.class.getSimpleName());
                 System.out.println("Temporary transaction store created at: " + transactionStore);
-                System.out.println("Please configure a  " + TRANSACTION_STORE + " variable to configure this directory in production.");
+                System.out.println("Please configure a  " + Configuration.TRANSACTION_STORE + " variable to configure this directory in production.");
             }
 
         }
