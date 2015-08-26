@@ -352,33 +352,31 @@ public class EncryptedFileItem implements FileItem {
                 size = outputFile.length();
                 /*
                  * The uploaded file is being stored on disk
-                 * in a temporary location so move it to the
-                 * desired file.
+                 * in a temporary location so needs decrypting
+                 * into the desired file.
                  */
-                if (!outputFile.renameTo(file)) {
-                    BufferedInputStream in = null;
-                    BufferedOutputStream out = null;
-                    try {
-                        in = new BufferedInputStream(
-                                new Crypto().decrypt(
-                                        new FileInputStream(outputFile), key));
-                        out = new BufferedOutputStream(
-                                new FileOutputStream(file));
-                        IOUtils.copy(in, out);
-                    } finally {
-                        if (in != null) {
-                            try {
-                                in.close();
-                            } catch (IOException e) {
-                                // ignore
-                            }
+                BufferedInputStream in = null;
+                BufferedOutputStream out = null;
+                try {
+                    in = new BufferedInputStream(
+                            new Crypto().decrypt(
+                                    new FileInputStream(outputFile), key));
+                    out = new BufferedOutputStream(
+                            new FileOutputStream(file));
+                    IOUtils.copy(in, out);
+                } finally {
+                    if (in != null) {
+                        try {
+                            in.close();
+                        } catch (IOException e) {
+                            // ignore
                         }
-                        if (out != null) {
-                            try {
-                                out.close();
-                            } catch (IOException e) {
-                                // ignore
-                            }
+                    }
+                    if (out != null) {
+                        try {
+                            out.close();
+                        } catch (IOException e) {
+                            // ignore
                         }
                     }
                 }
