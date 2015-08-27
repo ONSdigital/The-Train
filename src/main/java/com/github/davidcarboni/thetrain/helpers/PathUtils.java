@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -137,11 +136,7 @@ public class PathUtils {
     public static ShaOutputStream encryptingStream(Path file, SecretKey key) throws IOException {
         OutputStream result = outputStream(file);
         if (key != null) {
-            try {
-                result = new Crypto().encrypt(result, key);
-            } catch (InvalidKeyException e) {
-                throw new IOException("Error using encryption key", e);
-            }
+            result = new Crypto().encrypt(result, key);
         }
 
         // NB the ShaOutputStream must process cleartext content as it is written to the stream, before being encrypted, in order to return the correct SHA:
@@ -159,11 +154,7 @@ public class PathUtils {
     public static ShaInputStream decryptingStream(Path file, SecretKey key) throws IOException {
         InputStream result = inputStream(file);
         if (key != null) {
-            try {
-                result = new Crypto().decrypt(result, key);
-            } catch (InvalidKeyException e) {
-                throw new IOException("Error using encryption key", e);
-            }
+            result = new Crypto().decrypt(result, key);
         }
 
         // NB the ShaInputStream must process content read from the stream after decryption in order to return the correct SHA:
