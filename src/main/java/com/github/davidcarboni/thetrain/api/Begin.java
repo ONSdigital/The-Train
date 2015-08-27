@@ -37,6 +37,7 @@ public class Begin {
             message = ExceptionUtils.getStackTrace(e);
         }
 
+        Transactions.listFiles(transaction);
         return new Result(message, error, transaction);
     }
 }

@@ -80,6 +80,7 @@ public class Publish {
             message = ExceptionUtils.getStackTrace(e);
         }
 
+        Transactions.listFiles(transaction);
         return new Result(message, error, transaction);
     }
 

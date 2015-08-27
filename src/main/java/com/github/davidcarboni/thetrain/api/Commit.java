@@ -83,6 +83,7 @@ public class Commit {
             message = ExceptionUtils.getStackTrace(t);
         }
 
+        Transactions.listFiles(transaction);
         return new Result(message, error, transaction);
     }
 }

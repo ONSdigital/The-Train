@@ -86,9 +86,6 @@ public class Transactions {
 
             result = transactionMap.get(id);
             if (result != null) {
-                result.files = list(result);
-            }
-            if (result != null) {
                 result.enableEncryption(encryptionPassword);
             }
         }
@@ -96,19 +93,19 @@ public class Transactions {
         return result;
     }
 
-    public static Map<String, List<String>> list(Transaction transaction) throws IOException {
-        Map<String, List<String>> result = new HashMap<>();
+    public static void listFiles(Transaction transaction) throws IOException {
+        Map<String, List<String>> list = new HashMap<>();
 
         Path content = content(transaction);
         if (Files.isDirectory(content)) {
-            result.put("content", PathUtils.listUris(content));
+            list.put("content", PathUtils.listUris(content));
         }
         Path backup = backup(transaction);
         if (Files.isDirectory(backup)) {
-            result.put("backup", PathUtils.listUris(backup));
+            list.put("backup", PathUtils.listUris(backup));
         }
 
-        return result;
+        transaction.files = list;
     }
 
     /**
