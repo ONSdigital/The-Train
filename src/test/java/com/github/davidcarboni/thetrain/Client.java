@@ -14,7 +14,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Created by david on 21/08/2015.
+ * Example publishing client implementation.
  */
 public class Client {
 
