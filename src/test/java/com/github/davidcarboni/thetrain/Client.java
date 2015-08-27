@@ -46,7 +46,7 @@ public class Client {
 
             // Commit the transaction
             Endpoint commit = new Endpoint(host, "commit").setParameter("transactionId", transactionId).setParameter("encryptionPassword", encryptionPassword);
-            Response<Result> commitResponse = http.put(commit, null, Result.class);
+            Response<Result> commitResponse = http.post(commit, null, Result.class);
             check(commitResponse);
 
             Endpoint transaction = new Endpoint(host, "transaction").setParameter("transactionId", transactionId).setParameter("encryptionPassword", encryptionPassword);
