@@ -1,19 +1,23 @@
 package com.github.davidcarboni.thetrain;
 
+import com.github.davidcarboni.cryptolite.Random;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.storage.Publisher;
 import com.github.davidcarboni.thetrain.storage.Transactions;
 import com.github.davidcarboni.thetrain.storage.Website;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Class for generating random folders and content.
@@ -28,28 +32,50 @@ public class Generator {
 
     static void generate(Path path) throws IOException {
 
-        generateFiles(path);
-        generateFolders(path);
+        ExecutorService pool = Executors.newCachedThreadPool();
+        generateFiles(path, pool);
+        generateFolders(path, pool);
+        pool.shutdown();
+        try {
+            pool.awaitTermination(60, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Error generating files", e);
+        }
     }
 
-    static void generateFolders(Path path) throws IOException {
+    static void generateFolders(Path path, ExecutorService pool) throws IOException {
 
         // Generate some folders
         for (int folders = 0; folders < random(); folders++) {
             Path folder = path.resolve(name());
             Files.createDirectory(folder);
-            generateFiles(folder);
+            generateFiles(folder, pool);
         }
     }
 
-    static void generateFiles(Path path) throws IOException {
+    static void generateFiles(final Path path, ExecutorService pool) throws IOException {
 
         // Generate some files
-        for (int files = 0; files < random(); files++) {
-            Path file = path.resolve(name() + ".txt");
-            try (OutputStream output = Files.newOutputStream(file); InputStream input = new ByteArrayInputStream(content().getBytes())) {
-                IOUtils.copy(input, output);
-            }
+        for (int files = 0; files < random() + 10; files++) {
+            final int count = files;
+            pool.submit(new Runnable() {
+                @Override
+                public void run() {
+
+                    Path file = path.resolve(name() + ".txt");
+                    // Generate a range of file sizes that don't fall on simple buffer-size boundaries:
+                    int size = (int) (Math.abs((int) Math.pow(2, count)) * 100) + (random() * 17);
+
+                    try (OutputStream output = Files.newOutputStream(file); InputStream input = Random.inputStream(size)) {
+                        IOUtils.copy(input, output);
+                        System.out.println("Generated a file of size " + size);
+                    } catch (IOException e) {
+                        System.out.println(ExceptionUtils.getStackTrace(e));
+                        ;
+                    }
+                }
+            });
+
         }
     }
 
