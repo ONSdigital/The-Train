@@ -26,12 +26,26 @@ public class Hash {
      * An extension of {@link DigestInputStream} with a convenience method for getting the SHA1 digest as a String.
      */
     public static class ShaInputStream extends DigestInputStream {
+
+        long size;
+
         public ShaInputStream(InputStream input) {
             super(input, DigestUtils.getSha1Digest());
         }
 
+        @Override
+        public int read(byte[] b) throws IOException {
+            int read = super.read(b);
+            size += read;
+            return read;
+        }
+
         public String sha() {
             return ByteArray.toString(getMessageDigest().digest());
+        }
+
+        public long size() {
+            return size;
         }
     }
 
@@ -39,12 +53,37 @@ public class Hash {
      * An extension of {@link DigestInputStream} with a convenience method for getting the SHA1 digest as a String.
      */
     public static class ShaOutputStream extends DigestOutputStream {
+
+        long size;
+
         public ShaOutputStream(OutputStream output) {
             super(output, DigestUtils.getSha1Digest());
         }
 
+        @Override
+        public void write(int b) throws IOException {
+            super.write(b);
+            size++;
+        }
+
+        @Override
+        public void write(byte[] b) throws IOException {
+            super.write(b);
+            size+=b.length;
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            super.write(b, off, len);
+            size+=len;
+        }
+
         public String sha() {
             return ByteArray.toBase64String(getMessageDigest().digest());
+        }
+
+        public long size() {
+            return size;
         }
     }
 }
