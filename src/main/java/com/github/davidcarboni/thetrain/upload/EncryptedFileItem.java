@@ -11,7 +11,6 @@ import org.apache.commons.io.IOUtils;
 
 import javax.crypto.SecretKey;
 import java.io.*;
-import java.security.InvalidKeyException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -165,11 +164,7 @@ public class EncryptedFileItem implements FileItem {
     public InputStream getInputStream()
             throws IOException {
         if (!isInMemory()) {
-            try {
-                return new Crypto().decrypt(new FileInputStream(dfos.getFile()), key);
-            } catch (InvalidKeyException e) {
-                throw new RuntimeException("Error using decryption key", e);
-            }
+            return new Crypto().decrypt(new FileInputStream(dfos.getFile()), key);
         }
 
         if (cachedContent == null) {
@@ -271,8 +266,6 @@ public class EncryptedFileItem implements FileItem {
             fis.read(fileData);
         } catch (IOException e) {
             fileData = null;
-        } catch (InvalidKeyException e) {
-            throw new RuntimeException("Error using decryption key", e);
         }
 
         return fileData;

@@ -7,7 +7,6 @@ import org.apache.commons.io.output.ThresholdingOutputStream;
 
 import javax.crypto.SecretKey;
 import java.io.*;
-import java.security.InvalidKeyException;
 
 /**
  * Based on {@link org.apache.commons.io.output.DeferredFileOutputStream DeferredOutputStream}.
@@ -150,14 +149,10 @@ public class EncryptedDeferredOutputStream extends ThresholdingOutputStream {
         if (prefix != null) {
             outputFile = File.createTempFile(prefix, suffix, directory);
         }
-        try {
-            OutputStream fos = new Crypto().encrypt(new FileOutputStream(outputFile), key);
-            memoryOutputStream.writeTo(fos);
-            currentOutputStream = fos;
-            memoryOutputStream = null;
-        } catch (InvalidKeyException e) {
-            throw new RuntimeException("Error using encryption key", e);
-        }
+        OutputStream fos = new Crypto().encrypt(new FileOutputStream(outputFile), key);
+        memoryOutputStream.writeTo(fos);
+        currentOutputStream = fos;
+        memoryOutputStream = null;
     }
 
 
@@ -243,8 +238,6 @@ public class EncryptedDeferredOutputStream extends ThresholdingOutputStream {
         } else {
             try (InputStream fis = new Crypto().encrypt(new FileInputStream(outputFile), key)) {
                 IOUtils.copy(fis, out);
-            } catch (InvalidKeyException e) {
-                throw new RuntimeException("Error using encryption key", e);
             }
         }
     }
