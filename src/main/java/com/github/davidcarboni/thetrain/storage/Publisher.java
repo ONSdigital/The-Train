@@ -47,6 +47,7 @@ public class Publisher {
      */
     public static String addFile(Transaction transaction, String uri, Path source, Date startDate) throws IOException {
         String sha = null;
+        long size = 0;
 
         // Add the file
         Path content = Transactions.content(transaction);
@@ -57,13 +58,14 @@ public class Publisher {
             try (InputStream input = PathUtils.inputStream(source); ShaOutputStream output = PathUtils.encryptingStream(target, transaction.key())) {
                 IOUtils.copy(input, output);
                 sha = output.sha();
+                size = output.size();
             }
             Files.delete(source);
         }
 
         // Update the transaction
         UriInfo uriInfo = new UriInfo(uri, startDate);
-        uriInfo.stop(sha);
+        uriInfo.stop(sha, size);
         transaction.addUri(uriInfo);
         Transactions.update(transaction);
 
@@ -145,16 +147,19 @@ public class Publisher {
             // - To be able to review a transaction after the fac and see all the files that were published
             // - If we use encryption we need to copy through a cipher stream to handle decryption
             String uploadedSha = uriInfo.sha();
+            long uploadedSize = uriInfo.size();
             String committedSha;
+            long committedSize;
             try (ShaInputStream input = PathUtils.decryptingStream(source, transaction.key()); ShaOutputStream output = new ShaOutputStream(PathUtils.outputStream(target))) {
                 IOUtils.copy(input, output);
                 committedSha = output.sha();
+                committedSize = output.size();
             }
-            if (StringUtils.equals(uploadedSha, committedSha)) {
+            if (StringUtils.equals(uploadedSha, committedSha) && uploadedSize == committedSize) {
                 uriInfo.commit(action);
                 result = true;
             } else {
-                uriInfo.fail("Published file hash mismatch. Uploaded: " + uploadedSha + " Committed: " + committedSha);
+                uriInfo.fail("Published file mismatch. Uploaded: " + uploadedSize + " bytes (" + uploadedSha + ") Committed: " + committedSize + " bytes (" + committedSha + ")");
             }
 
         } catch (Throwable t) {

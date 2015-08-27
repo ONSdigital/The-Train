@@ -37,7 +37,7 @@ public class UriInfoTest {
         Thread.sleep(2);
 
         // When
-        uriInfo.stop(sha);
+        uriInfo.stop(sha, 0);
 
         // Then
         Assert.assertNotNull(uriInfo.endDate);
@@ -55,8 +55,8 @@ public class UriInfoTest {
         UriInfo nul = new UriInfo("null", new Date());
 
         // When
-        blank.stop("");
-        nul.stop(null);
+        blank.stop("", 0);
+        nul.stop(null, 0);
 
         // Then
         Assert.assertEquals("upload failed", blank.status);

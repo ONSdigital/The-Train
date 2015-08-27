@@ -52,6 +52,7 @@ public class UriInfo {
     String end;
     long duration;
     String sha;
+    long size;
     String error;
 
     transient Date startDate;
@@ -107,8 +108,9 @@ public class UriInfo {
      *
      * @return <code>this</code>.
      */
-    public void stop(String sha) {
+    public void stop(String sha, long size) {
         this.sha = sha;
+        this.size = size;
         endDate = new Date();
         end = DateConverter.toString(endDate);
         if (startDate != null && endDate != null) {
@@ -158,6 +160,13 @@ public class UriInfo {
      */
     public String sha() {
         return sha;
+    }
+
+    /**
+     * @return The file size.
+     */
+    public long size() {
+        return size;
     }
 
     // The hashCode and equals methods are used to identify this instance in the Set<Uri> in Transaction.
