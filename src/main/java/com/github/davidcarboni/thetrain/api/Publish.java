@@ -67,6 +67,8 @@ public class Publish {
                 String sha = Publisher.addFile(transaction, uri, file, startDate);
                 if (StringUtils.isNotBlank(sha)) {
                     message = "Published " + uri;
+                    Transactions.listFiles(transaction);
+                    System.out.println(message + " (" + transaction.id() + ")");
                 } else {
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     error = true;
@@ -74,13 +76,15 @@ public class Publish {
                 }
             }
 
+            Transactions.listFiles(transaction);
+            System.out.println("Staged file for publish: " + uri + " (" + transaction.id() + ")");
+
         } catch (Exception e) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             error = true;
             message = ExceptionUtils.getStackTrace(e);
         }
 
-        Transactions.listFiles(transaction);
         return new Result(message, error, transaction);
     }
 

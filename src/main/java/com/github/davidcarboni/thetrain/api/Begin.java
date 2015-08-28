@@ -28,16 +28,18 @@ public class Begin {
         boolean error = false;
 
         try {
+
             String encryptionPassword = request.getParameter("encryptionPassword");
             transaction = Transactions.create(encryptionPassword);
             message = "New transaction created.";
+            Transactions.listFiles(transaction);
+            System.out.println(message + " (" + transaction.id() + ")");
+
         } catch (Exception e) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             error = true;
             message = ExceptionUtils.getStackTrace(e);
         }
-
-        Transactions.listFiles(transaction);
         return new Result(message, error, transaction);
     }
 }
