@@ -69,13 +69,13 @@ public class Hash {
         @Override
         public void write(byte[] b) throws IOException {
             super.write(b);
-            size+=b.length;
+            size += b.length;
         }
 
         @Override
         public void write(byte[] b, int off, int len) throws IOException {
             super.write(b, off, len);
-            size+=len;
+            size += len;
         }
 
         public String sha() {
