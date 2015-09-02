@@ -17,9 +17,17 @@ import java.util.*;
  */
 public class Transaction {
 
+    public static final String STARTED = "started";
+    public static final String PUBLISHING = "publishing";
+    public static final String COMMIT_FAILED = "commit failed";
+    public static final String COMMITTED = "committed";
+    public static final String ROLLED_BACK = "rolled back";
+    public static final String ROLLBACK_FAILED = "rollback failed";
+
     // Whilst an ID collision is technically possible it's a
     // theoretical rather than a practical consideration.
     String id = Random.id();
+    String status = STARTED;
     String startDate = DateConverter.toString(new Date());
     String endDate;
     String wrappedKey;
@@ -100,6 +108,7 @@ public class Transaction {
             Set<UriInfo> uriInfos = new HashSet<>(this.uriInfos);
             uriInfos.add(uriInfo);
             this.uriInfos = uriInfos;
+            status=PUBLISHING;
         }
     }
 
@@ -134,8 +143,22 @@ public class Transaction {
         }
     }
 
-    public void end() {
+    public void commit(boolean success) {
         endDate = DateConverter.toString(new Date());
+        if (success) {
+            status = COMMITTED;
+        } else {
+            status = COMMIT_FAILED;
+        }
+    }
+
+    public void rollback(boolean success) {
+        endDate = DateConverter.toString(new Date());
+        if (success) {
+            status = ROLLED_BACK;
+        } else {
+            status = ROLLBACK_FAILED;
+        }
     }
 
     @Override

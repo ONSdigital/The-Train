@@ -36,6 +36,7 @@ public class TransactionTest {
         // A random ID should be generated and the start date should be set
         assertTrue(StringUtils.isNotBlank(transaction.id()));
         assertTrue(StringUtils.isNotBlank(transaction.startDate));
+        assertEquals(Transaction.STARTED, transaction.status);
     }
 
     @Test
@@ -53,6 +54,7 @@ public class TransactionTest {
         // Then
         // We should have one URI info in the collection
         assertEquals(1, transaction.uris().size());
+        assertEquals(Transaction.PUBLISHING, transaction.status);
     }
 
     @Test
@@ -171,18 +173,44 @@ public class TransactionTest {
     }
 
     @Test
-    public void shouldEndTransaction() {
+    public void shouldCommitTransaction() {
 
         // Given
-        // A transaction
-        Transaction transaction = new Transaction();
+        // Transactions
+        Transaction ok = new Transaction();
+        Transaction error = new Transaction();
 
         // When
-        // We end the transaction
-        transaction.end();
+        // We flag the transactions as committed
+        ok.commit(true);
+        error.commit(false);
 
         // Then
-        // We should have one error in the collection
-        assertTrue(StringUtils.isNotBlank(transaction.endDate));
+        // We should have end dates and the expected status strings
+        assertEquals(Transaction.COMMITTED, ok.status);
+        assertEquals(Transaction.COMMIT_FAILED, error.status);
+        assertTrue(StringUtils.isNotBlank(ok.endDate));
+        assertTrue(StringUtils.isNotBlank(error.endDate));
+    }
+
+    @Test
+    public void shouldRollBackTransaction() {
+
+        // Given
+        // Transactions
+        Transaction ok = new Transaction();
+        Transaction error = new Transaction();
+
+        // When
+        // We flag the transactions as rolled back
+        ok.rollback(true);
+        error.rollback(false);
+
+        // Then
+        // We should have end dates and the expected status strings
+        assertEquals(Transaction.ROLLED_BACK, ok.status);
+        assertEquals(Transaction.ROLLBACK_FAILED, error.status);
+        assertTrue(StringUtils.isNotBlank(ok.endDate));
+        assertTrue(StringUtils.isNotBlank(error.endDate));
     }
 }

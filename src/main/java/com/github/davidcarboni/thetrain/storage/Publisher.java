@@ -105,7 +105,7 @@ public class Publisher {
             result &= commitFile(uri, transaction, website);
         }
 
-        transaction.end();
+        transaction.commit(result);
         Transactions.update(transaction);
 
         return result;
@@ -194,7 +194,7 @@ public class Publisher {
         FileUtils.deleteQuietly(Transactions.content(transaction).toFile());
         FileUtils.deleteQuietly(Transactions.backup(transaction).toFile());
 
-        transaction.end();
+        transaction.rollback(result);
         Transactions.update(transaction);
 
         return result;
@@ -213,6 +213,7 @@ public class Publisher {
             // Delete the file
             Files.delete(source);
             uriInfo.rollback();
+            result = true;
 
         } catch (Throwable t) {
 
