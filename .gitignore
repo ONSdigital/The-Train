@@ -1,0 +1,34 @@
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Intellij
+.idea/
+*.iml
+*.iws
+
+# Mac
+.DS_Store
+
+# Maven
+log/
+target/
+
+.anvil
+.target
+target
+.dpl
+/target/
+*.psd
+*.DS_Store
+Thumbs.db
+*~HEAD
+src/main/scss/dist
+sonar-project.properties
+web/node_modules/
+web/dist/
+npm-debug.log
+.tmp
+
+
