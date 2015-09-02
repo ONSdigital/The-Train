@@ -1,6 +1,7 @@
 package com.github.davidcarboni.thetrain.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
+import com.github.davidcarboni.thetrain.helpers.DateConverter;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.storage.Publisher;
@@ -16,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.POST;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Date;
 
 /**
  * API to commit an existing {@link Transaction}.
@@ -75,7 +77,6 @@ public class Commit {
                 } else {
                     message = "Transaction committed.";
                     Transactions.listFiles(transaction);
-                    System.out.println(message + " (" + transaction.id() + ")");
                 }
             }
 
@@ -85,6 +86,7 @@ public class Commit {
             message = ExceptionUtils.getStackTrace(e);
         }
 
+        System.out.println(DateConverter.toString(new Date()) + " " + message + (transaction!=null?" (" + transaction.id() + ")":""));
         return new Result(message, error, transaction);
     }
 }

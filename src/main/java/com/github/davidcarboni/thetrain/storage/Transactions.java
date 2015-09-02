@@ -198,6 +198,7 @@ public class Transactions {
                 Path path = Paths.get(transactionStorePath);
                 if (Files.isDirectory(path)) {
                     transactionStore = path;
+                    System.out.println(Configuration.TRANSACTION_STORE + " configured as: " + path);
                 } else {
                     System.out.println("Not a valid transaction store directory: " + path);
                 }

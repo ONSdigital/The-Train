@@ -1,6 +1,7 @@
 package com.github.davidcarboni.thetrain.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
+import com.github.davidcarboni.thetrain.helpers.DateConverter;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.storage.Transactions;
@@ -12,6 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.POST;
 import java.io.IOException;
+import java.util.Date;
 
 /**
  * API to start a new {@link Transaction}.
@@ -33,13 +35,14 @@ public class Begin {
             transaction = Transactions.create(encryptionPassword);
             message = "New transaction created.";
             Transactions.listFiles(transaction);
-            System.out.println(message + " (" + transaction.id() + ")");
 
         } catch (Exception e) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             error = true;
             message = ExceptionUtils.getStackTrace(e);
         }
+
+        System.out.println(DateConverter.toString(new Date()) + " " + message + (transaction!=null?" (" + transaction.id() + ")":""));
         return new Result(message, error, transaction);
     }
 }

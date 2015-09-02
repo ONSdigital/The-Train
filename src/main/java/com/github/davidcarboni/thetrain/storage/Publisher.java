@@ -99,7 +99,6 @@ public class Publisher {
     public static boolean commit(Transaction transaction, Path website) throws IOException {
         boolean result = true;
 
-        System.out.println("Committing transaction " + transaction.id() + " to path " + website);
         List<String> uris = listUris(transaction);
         for (String uri : uris) {
             result &= commitFile(uri, transaction, website);
@@ -138,7 +137,6 @@ public class Publisher {
                 Files.createDirectories(backup.getParent());
                 Files.move(target, backup);
                 action = UriInfo.UPDATE;
-                System.out.println("Backed up " + target + " to " + backup);
             }
 
             // Publish the file
@@ -160,7 +158,6 @@ public class Publisher {
             if (StringUtils.equals(uploadedSha, committedSha) && uploadedSize == committedSize) {
                 uriInfo.commit(action);
                 result = true;
-                System.out.println("Committed " + source + " to " + target);
             } else {
                 uriInfo.fail("Published file mismatch. Uploaded: " + uploadedSize + " bytes (" + uploadedSha + ") Committed: " + committedSize + " bytes (" + committedSha + ")");
             }

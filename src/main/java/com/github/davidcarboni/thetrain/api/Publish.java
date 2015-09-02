@@ -1,6 +1,7 @@
 package com.github.davidcarboni.thetrain.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
+import com.github.davidcarboni.thetrain.helpers.DateConverter;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.storage.Publisher;
@@ -68,7 +69,6 @@ public class Publish {
                 if (StringUtils.isNotBlank(sha)) {
                     message = "Published " + uri;
                     Transactions.listFiles(transaction);
-                    System.out.println(message + " (" + transaction.id() + ")");
                 } else {
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     error = true;
@@ -77,7 +77,6 @@ public class Publish {
             }
 
             Transactions.listFiles(transaction);
-            System.out.println("Staged file for publish: " + uri + " (" + transaction.id() + ")");
 
         } catch (Exception e) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
@@ -85,6 +84,7 @@ public class Publish {
             message = ExceptionUtils.getStackTrace(e);
         }
 
+        System.out.println(DateConverter.toString(new Date()) + " " + message + (transaction!=null?" (" + transaction.id() + ")":""));
         return new Result(message, error, transaction);
     }
 

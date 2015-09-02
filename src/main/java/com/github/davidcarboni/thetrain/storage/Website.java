@@ -31,6 +31,7 @@ public class Website {
             String websitePath = Configuration.get(Configuration.WEBSITE);
             if (StringUtils.isNotBlank(websitePath)) {
                 path = Paths.get(websitePath);
+                System.out.println(Configuration.WEBSITE + " configured as: " + path);
             } else {
                 path = Files.createTempDirectory("website");
                 System.out.println("Simulating website for development using a temp folder at: " + path);
