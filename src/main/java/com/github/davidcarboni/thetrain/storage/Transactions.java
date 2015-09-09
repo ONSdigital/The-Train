@@ -143,15 +143,12 @@ public class Transactions {
     public static Path content(Transaction transaction) throws IOException {
         Path result = null;
         Path path = path(transaction.id());
-        System.out.println("\tTrastaction path for " + transaction.id() + " : " + path);
         if (path != null) {
             path = path.resolve(CONTENT);
-            System.out.println("\tContent path for " + transaction.id() + " : " + path);
             if (Files.exists(path)) {
                 result = path;
-                System.out.println("\tOK.");
             } else {
-                System.out.println("\tContent path for " + transaction.id() + " does not exist!");
+                System.out.println("Content path for " + transaction.id() + " does not exist: " + path);
             }
         }
         return result;
