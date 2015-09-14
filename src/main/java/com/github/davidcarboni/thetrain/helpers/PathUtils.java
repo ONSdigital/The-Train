@@ -104,6 +104,34 @@ public class PathUtils {
     }
 
     /**
+     * Ensures the given string has a trailing slash. This is useful for ensuring partial URIs always have a trailing slash before appending another partial URI.
+     *
+     * @param string The value to be altered if necessary.
+     * @return If the given string already has a trailing slash, the string is returned, otherwise a string with a slash appended.
+     */
+    public static String setTrailingSlash(String string) {
+        String result = string;
+        if (result != null && !result.endsWith("/")) {
+            result = result + "/";
+        }
+        return result;
+    }
+
+    /**
+     * Ensures the given string does not have a trailing slash. This is useful for partial URIs don't have a trailing slash before appending another partial URI.
+     *
+     * @param string The value to be altered if necessary.
+     * @return If the given string has no trailing slash, the string is returned, otherwise a string with any trailing slashes removed.
+     */
+    public static String stripTrailingSlash(String string) {
+        String result = string;
+        while (string != null && result.length() > 0 && result.endsWith("/")) {
+            result = result.substring(0, result.length() - 1);
+        }
+        return result;
+    }
+
+    /**
      * Generates a {@link BufferedInputStream} for the given {@link Path}.
      *
      * @param file The file to be read.

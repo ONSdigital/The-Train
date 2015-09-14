@@ -180,7 +180,7 @@ public class PathUtilsTest {
         String leadingSlash = "/folder";
         String noLeadingSlash = "folder";
         String slash = "/";
-        String empty = "/";
+        String empty = "";
         String nul = null;
 
         // When
@@ -195,6 +195,65 @@ public class PathUtilsTest {
         // We should get any slashes stripped
         assertEquals("/folder", leadingSlashResult);
         assertEquals("/folder", noLeadingSlashResult);
+        assertEquals("/", slashResult);
+        assertEquals("/", emptyResult);
+        assertEquals(null, nulResult);
+    }
+
+    @Test
+    public void shouldStripTrailingSlash() throws IOException {
+
+        // Given
+        // A variety of path strings
+        String trailingSlash = "folder/";
+        String trailingSlashes = "folder///";
+        String noTrailingSlash = "folder";
+        String slash = "/";
+        String empty = "";
+        String nul = null;
+
+        // When
+        // We process the paths
+        String trailingSlashResult = PathUtils.stripTrailingSlash(trailingSlash);
+        String trailingSlashesResult = PathUtils.stripTrailingSlash(trailingSlashes);
+        String noTrailingSlashResult = PathUtils.stripTrailingSlash(noTrailingSlash);
+        String slashResult = PathUtils.stripTrailingSlash(slash);
+        String emptyResult = PathUtils.stripTrailingSlash(empty);
+        String nulResult = PathUtils.stripTrailingSlash(nul);
+
+        // Then
+        // We should get any slashes stripped
+        assertEquals("folder", trailingSlashResult);
+        assertEquals("folder", trailingSlashesResult);
+        assertEquals("folder", noTrailingSlashResult);
+        assertEquals("", slashResult);
+        assertEquals("", emptyResult);
+        assertEquals(null, nulResult);
+    }
+
+    @Test
+    public void shouldSetTrailingSlash() throws IOException {
+
+        // Given
+        // A variety of path strings
+        String trailingSlash = "folder/";
+        String noTrailingSlash = "folder";
+        String slash = "/";
+        String empty = "";
+        String nul = null;
+
+        // When
+        // We process the paths
+        String trailingSlashResult = PathUtils.setTrailingSlash(trailingSlash);
+        String noTrailingSlashResult = PathUtils.setTrailingSlash(noTrailingSlash);
+        String slashResult = PathUtils.setTrailingSlash(slash);
+        String emptyResult = PathUtils.setTrailingSlash(empty);
+        String nulResult = PathUtils.setTrailingSlash(nul);
+
+        // Then
+        // We should get any slashes stripped
+        assertEquals("folder/", trailingSlashResult);
+        assertEquals("folder/", noTrailingSlashResult);
         assertEquals("/", slashResult);
         assertEquals("/", emptyResult);
         assertEquals(null, nulResult);
