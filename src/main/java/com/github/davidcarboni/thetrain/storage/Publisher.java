@@ -5,7 +5,6 @@ import com.github.davidcarboni.thetrain.helpers.Hash.ShaOutputStream;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.json.UriInfo;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -188,8 +187,6 @@ public class Publisher {
         for (String uri : uris) {
             result &= rollbackFile(uri, transaction);
         }
-        FileUtils.deleteQuietly(Transactions.content(transaction).toFile());
-        FileUtils.deleteQuietly(Transactions.backup(transaction).toFile());
 
         transaction.rollback(result);
         Transactions.update(transaction);
@@ -207,8 +204,6 @@ public class Publisher {
         // ensure any and all commit errors are trapped
         try {
 
-            // Delete the file
-            Files.delete(source);
             uriInfo.rollback();
             result = true;
 
