@@ -4,6 +4,7 @@ import com.github.davidcarboni.restolino.json.Serialiser;
 import com.github.davidcarboni.thetrain.helpers.Configuration;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.json.Transaction;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -15,7 +16,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 /**
  * Class for working with {@link Transaction} instances.
@@ -26,8 +27,11 @@ public class Transactions {
     static final String CONTENT = "content";
     static final String BACKUP = "backup";
 
-    static Map<String, Transaction> transactionMap = new ConcurrentHashMap<>();
+    static final Map<String, Transaction> transactionMap = new ConcurrentHashMap<>();
+    static final Map<String, ExecutorService> transactionExecutorMap = new ConcurrentHashMap<>();
+
     static Path transactionStore;
+
 
     /**
      * Creates a new transaction.
@@ -52,9 +56,29 @@ public class Transactions {
             Files.createDirectory(path.resolve(CONTENT));
             Files.createDirectory(path.resolve(BACKUP));
 
-            // Return the new transaction:
             transactionMap.put(transaction.id(), transaction);
+
+            if (!transactionExecutorMap.containsKey(transaction.id())) {
+                transactionExecutorMap.put(transaction.id(), Executors.newSingleThreadExecutor());
+            }
+
             return transaction;
+        }
+    }
+
+    /**
+     * Cleanup any resources held by the transaction.
+     *
+     * @param transaction
+     */
+    public static void end(Transaction transaction) {
+        if (transactionMap.containsKey(transaction.id())) {
+            transactionMap.remove(transaction.id());
+        }
+
+        if (transactionExecutorMap.containsKey(transaction.id())) {
+            transactionExecutorMap.get(transaction.id()).shutdownNow();
+            transactionExecutorMap.remove(transaction.id());
         }
     }
 
@@ -70,23 +94,22 @@ public class Transactions {
         Transaction result = null;
 
         if (StringUtils.isNotBlank(id)) {
-            synchronized (transactionMap) {
-                if (!transactionMap.containsKey(id)) {
-                    // Generate the file structure
-                    Path transactionPath = path(id);
-                    if (transactionPath != null && Files.exists(transactionPath)) {
-                        final Path json = transactionPath.resolve(JSON);
-                        try (InputStream input = Files.newInputStream(json)) {
-                            Transaction transaction = Serialiser.deserialise(input, Transaction.class);
-                            transactionMap.put(id, transaction);
-                        }
+
+            if (!transactionMap.containsKey(id)) {
+                // Generate the file structure
+                Path transactionPath = path(id);
+                if (transactionPath != null && Files.exists(transactionPath)) {
+                    final Path json = transactionPath.resolve(JSON);
+                    try (InputStream input = Files.newInputStream(json)) {
+                        result = Serialiser.deserialise(input, Transaction.class);
                     }
                 }
-            }
+            } else {
+                result = transactionMap.get(id);
 
-            result = transactionMap.get(id);
-            if (result != null) {
-                result.enableEncryption(encryptionPassword);
+                if (result != null) {
+                    result.enableEncryption(encryptionPassword);
+                }
             }
         }
 
@@ -106,6 +129,59 @@ public class Transactions {
         }
 
         transaction.files = list;
+    }
+
+    /**
+     * Queue a task to update the transaction file. This task will only get run if the transaction
+     * is not already committed.
+     *
+     * @param transactionId
+     * @return
+     * @throws IOException
+     */
+    public static Future<Boolean> tryUpdateAsync(final String transactionId) throws IOException {
+        Future<Boolean> future = null;
+
+        if (transactionExecutorMap.containsKey(transactionId)) {
+            ExecutorService transactionUpdateExecutor = transactionExecutorMap.get(transactionId);
+
+            future = transactionUpdateExecutor.submit(new Callable<Boolean>() {
+                @Override
+                public Boolean call() throws Exception {
+                    Boolean result = false;
+
+                    try {
+                        //System.out.print("X");
+                        if (transactionExecutorMap.containsKey(transactionId)
+                                && transactionMap.containsKey(transactionId)) {
+                            // The transaction passed in should always be an instance from the map
+                            // otherwise there's potential to lose updates.
+                            // NB the unit of synchronization is always a Transaction object.
+                            Transaction read = transactionMap.get(transactionId);
+                            synchronized (read) {
+                                Path transactionPath = path(transactionId);
+                                if (transactionPath != null && Files.exists(transactionPath)) {
+                                    final Path json = transactionPath.resolve(JSON);
+                                    try (OutputStream output = Files.newOutputStream(json)) {
+                                        Serialiser.serialise(output, read);
+                                    }
+                                }
+                                result = true;
+                            }
+                        } else {
+                            //System.out.print("O");
+                        }
+                    } catch (IOException exception) {
+                        System.out.println("Exception updating transaction: " + exception.getMessage());
+                        ExceptionUtils.printRootCauseStackTrace(exception);
+                    }
+
+                    return result;
+                }
+            });
+        }
+
+        return future;
     }
 
     /**

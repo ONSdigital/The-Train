@@ -66,7 +66,7 @@ public class Publisher {
         UriInfo uriInfo = new UriInfo(uri, startDate);
         uriInfo.stop(sha, size);
         transaction.addUri(uriInfo);
-        Transactions.update(transaction);
+        Transactions.tryUpdateAsync(transaction.id());
 
         return sha;
     }
@@ -105,6 +105,10 @@ public class Publisher {
 
         transaction.commit(result);
         Transactions.update(transaction);
+
+        if (result) {
+            Transactions.end(transaction);
+        }
 
         return result;
     }
@@ -175,7 +179,7 @@ public class Publisher {
         }
 
         // If this fails, we have a serious issue, so let it fail the entire request:
-        Transactions.update(transaction);
+        Transactions.tryUpdateAsync(transaction.id());
 
         return result;
     }
@@ -190,6 +194,10 @@ public class Publisher {
 
         transaction.rollback(result);
         Transactions.update(transaction);
+
+        if (result) {
+            Transactions.end(transaction);
+        }
 
         return result;
     }
@@ -220,7 +228,7 @@ public class Publisher {
         }
 
         // If this fails, we have a serious issue, so let it fail the entire request:
-        Transactions.update(transaction);
+        Transactions.tryUpdateAsync(transaction.id());
 
         return result;
     }

@@ -12,8 +12,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.*;
@@ -113,6 +115,72 @@ public class TransactionsTest {
         assertEquals(1, read.uris().size());
         assertTrue(read.errors().contains(error));
         assertTrue(read.uris().contains(uriInfo));
+    }
+
+    /**
+     * Tests that a transaction can be created and ended.
+     */
+    @Test
+    public void shouldEndTransaction() throws IOException {
+
+        // Given
+        // A transaction
+        Transaction transaction = Transactions.create(null);
+
+        assertTrue(Transactions.transactionMap.containsKey(transaction.id()));
+        assertTrue(Transactions.transactionExecutorMap.containsKey(transaction.id()));
+
+        // When
+        // We end the transaction
+        Transactions.end(transaction);
+
+        // Then
+        // The transaction maps should not contain entries for the transaction
+        assertFalse(Transactions.transactionMap.containsKey(transaction.id()));
+        assertFalse(Transactions.transactionExecutorMap.containsKey(transaction.id()));
+    }
+
+    /**
+     * Tests that a transaction can be created and ended.
+     */
+    @Test
+    public void shouldUpdateTransactionAsync() throws IOException, ExecutionException, InterruptedException {
+
+        // Given
+        // A transaction
+        Transaction transaction = Transactions.create(null);
+
+        // When
+        // We update the transaction using the async method
+        Future<Boolean> future = Transactions.tryUpdateAsync(transaction.id());
+        boolean result = future.get();
+
+        // Then
+        // The response should be true as the update succeeds.
+        assertTrue(result);
+
+        Transactions.end(transaction);
+    }
+
+    /**
+     * Tests that a transaction can be created and ended.
+     */
+    @Test
+    public void shouldNotUpdateTransactionAsyncWhenTransactionEnded() throws IOException, ExecutionException, InterruptedException {
+
+        // Given
+        // A transaction
+        Transaction transaction = Transactions.create(null);
+
+        // When
+        // We update the transaction using the async method when the transaction is ended.
+        Transactions.end(transaction);
+        Future<Boolean> future = Transactions.tryUpdateAsync(transaction.id());
+
+        // Then
+        // The response should be null;
+        assertNull(future);
+
     }
 
     /**
