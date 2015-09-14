@@ -10,7 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -36,13 +35,12 @@ public class PublisherTest {
     public void shouldPublishFile() throws IOException {
 
         // Given
-        // A file and a URI to copy to
-        Path file = tempFile();
+        // A URI to copy to
         String uri = "/test.txt";
 
         // When
         // We publish the file
-        Publisher.addFile(transaction, uri, file);
+        Publisher.addFile(transaction, uri, Random.inputStream(5000));
 
         // Then
         // The transaction should exist and be populated with values
@@ -56,19 +54,20 @@ public class PublisherTest {
 
         // Given
 
-        // A file and a URI to copy to
+        // Content to publish
         Path file = tempFile();
         String sha = Hash.sha(file);
+
+        // A URI to publish to
         String uri = "/test.txt";
 
         // An encrypted transaction
-        String password = Random.password(8);
-        Transaction transaction = Transactions.create(password);
+        Transaction transaction = Transactions.create(Random.password(8));
 
 
         // When
         // We publish the file
-        Publisher.addFile(transaction, uri, file);
+        Publisher.addFile(transaction, uri, Files.newInputStream(file));
 
 
         // Then
@@ -83,13 +82,12 @@ public class PublisherTest {
     public void shouldComputeHash() throws IOException {
 
         // Given
-        // A file and a URI to copy to
-        Path file = tempFile();
+        // A URI to copy to
         String uri = "/test.txt";
 
         // When
         // We publish the file
-        Publisher.addFile(transaction, uri, file);
+        Publisher.addFile(transaction, uri, data());
 
         // Then
         // The transaction should exist and be populated with values
@@ -103,9 +101,8 @@ public class PublisherTest {
 
         // Given
         // A published file
-        Path file = tempFile();
         String uri = "/greeneggs.txt";
-        Publisher.addFile(transaction, uri, file);
+        Publisher.addFile(transaction, uri, data());
 
         // When
         // We get the file
@@ -122,18 +119,15 @@ public class PublisherTest {
 
         // Given
         // Files with inconsistent leading slashes
-        Path file0 = tempFile();
-        Path file1 = tempFile();
-        Path file2 = tempFile();
         String zero = "zero.txt";
         String one = "/one.txt";
         String two = "//two.txt";
 
         // When
         // We publish the files
-        Publisher.addFile(transaction, zero, file0);
-        Publisher.addFile(transaction, one, file1);
-        Publisher.addFile(transaction, two, file2);
+        Publisher.addFile(transaction, zero, data());
+        Publisher.addFile(transaction, one, data());
+        Publisher.addFile(transaction, two, data());
 
         // Then
         // The transaction should exist and be populated with values
@@ -150,19 +144,17 @@ public class PublisherTest {
     public void shouldHandleSubdirectories() throws IOException {
 
         // Given
-        // Files with inconsistent leading slashes
-        Path file1 = tempFile();
-        Path file2 = tempFile();
+        // URIs that describe subdirectories
         String sub = "/folder/sub.txt";
         String subsub = "/another/directory/subsub.txt";
 
         // When
-        // We publish the files
-        Publisher.addFile(transaction, sub, file1);
-        Publisher.addFile(transaction, subsub, file2);
+        // We publish data to those URIs
+        Publisher.addFile(transaction, sub, data());
+        Publisher.addFile(transaction, subsub, data());
 
         // Then
-        // The transaction should exist and be populated with values
+        // The data should be present at the requested URIs
         Path pathSub = Publisher.getFile(transaction, sub);
         Path pathSubsub = Publisher.getFile(transaction, subsub);
         assertNotNull(pathSub);
@@ -184,8 +176,8 @@ public class PublisherTest {
         // Files being published
         String create = "/create-" + Random.id() + ".txt";
         String update = "/update-" + Random.id() + ".txt";
-        Publisher.addFile(transaction, create, tempFile());
-        Publisher.addFile(transaction, update, tempFile());
+        Publisher.addFile(transaction, create, data());
+        Publisher.addFile(transaction, update, data());
 
         // An existing file on the website
         Files.move(tempFile(), PathUtils.toPath(update, website));
@@ -238,9 +230,9 @@ public class PublisherTest {
 
         // A file being published
         String uri = "/file-" + Random.id() + ".txt";
-        Path cleartext = tempFile();
-        String sha = Hash.sha(cleartext);
-        Publisher.addFile(transaction, uri, cleartext);
+        Path source = tempFile();
+        String sha = Hash.sha(source);
+        Publisher.addFile(transaction, uri, Files.newInputStream(source));
 
 
         // When
@@ -249,15 +241,9 @@ public class PublisherTest {
 
 
         // Then
-
-        assertFalse(transaction.hasErrors());
-
         // The published file should be decrypted
         assertEquals(sha, Hash.sha(PathUtils.toPath(uri, website)));
-
-        // The cleartext file should be deleted
-        assertFalse(Files.exists(cleartext));
-
+        assertFalse(transaction.hasErrors());
     }
 
 
@@ -272,7 +258,7 @@ public class PublisherTest {
 
         // Files being published
         String file = "/file-" + Random.id() + ".txt";
-        Publisher.addFile(transaction, file, tempFile());
+        Publisher.addFile(transaction, file, data());
 
 
         // When
@@ -281,10 +267,6 @@ public class PublisherTest {
 
 
         // Then
-
-        // The staged file should be deleted
-        assertFalse(Files.exists(PathUtils.toPath(file, content)));
-
         // Check the transaction details
         assertFalse(transaction.hasErrors());
         assertTrue(StringUtils.isNotBlank(transaction.startDate()));
@@ -296,12 +278,16 @@ public class PublisherTest {
         }
     }
 
+    private static InputStream data() throws IOException {
+        return Random.inputStream(5000);
+    }
+
     private static Path tempFile() throws IOException {
 
         // A temp file
         Path file = Files.createTempFile(PublisherTest.class.getSimpleName(), ".txt");
 
-        try (InputStream input = new ByteArrayInputStream(Random.password(5000).getBytes()); OutputStream output = Files.newOutputStream(file)) {
+        try (InputStream input = Random.inputStream(5000); OutputStream output = Files.newOutputStream(file)) {
             IOUtils.copy(input, output);
         }
 
