@@ -83,7 +83,6 @@ public class Commit {
                     message = "Errors were detected in committing the transaction.";
                 } else {
                     message = "Transaction committed.";
-                    Transactions.listFiles(transaction);
                 }
             }
 

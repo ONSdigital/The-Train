@@ -34,7 +34,6 @@ public class Begin {
             String encryptionPassword = request.getParameter("encryptionPassword");
             transaction = Transactions.create(encryptionPassword);
             message = "New transaction created.";
-            Transactions.listFiles(transaction);
 
         } catch (Exception e) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);

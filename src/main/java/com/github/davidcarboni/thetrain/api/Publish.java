@@ -71,6 +71,7 @@ public class Publish {
 
                 if (data == null) {
                     response.setStatus(HttpStatus.BAD_REQUEST_400);
+
                     error = true;
                     message = "No data found for published file.";
                 }
@@ -80,7 +81,6 @@ public class Publish {
                     String sha = Publisher.addFile(transaction, uri, data, startDate);
                     if (StringUtils.isNotBlank(sha)) {
                         message = "Published " + uri;
-                        Transactions.listFiles(transaction);
                     } else {
                         response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                         error = true;
@@ -89,16 +89,13 @@ public class Publish {
                 }
 
             }
-
-            Transactions.listFiles(transaction);
-
         } catch (Exception e) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             error = true;
             message = ExceptionUtils.getStackTrace(e);
         }
 
-        System.out.println(DateConverter.toString(new Date()) + " " + message + (transaction!=null?" (" + transaction.id() + ")":""));
+        System.out.println(DateConverter.toString(new Date()) + " " + message + (transaction != null ? " (" + transaction.id() + ")" : ""));
         return new Result(message, error, transaction);
     }
 
