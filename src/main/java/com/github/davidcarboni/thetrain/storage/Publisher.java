@@ -9,6 +9,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -30,7 +31,7 @@ public class Publisher {
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public static String addFile(Transaction transaction, String uri, Path data) throws IOException {
+    public static String addFile(Transaction transaction, String uri, InputStream data) throws IOException {
         return addFile(transaction, uri, data, new Date());
     }
 
@@ -39,12 +40,12 @@ public class Publisher {
      *
      * @param transaction The transaction to add the file to
      * @param uri         The target URI for the file
-     * @param source      The file content
+     * @param data      The file content
      * @param startDate   The start date for the file transfer. Typically this is when an HTTP request was received, before the uploaded file started being processed.
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public static String addFile(Transaction transaction, String uri, Path source, Date startDate) throws IOException {
+    public static String addFile(Transaction transaction, String uri, InputStream data, Date startDate) throws IOException {
         String sha = null;
         long size = 0;
 
@@ -54,12 +55,11 @@ public class Publisher {
         if (target != null) {
             // Encrypt if a key was provided, then delete the original
             Files.createDirectories(target.getParent());
-            try (InputStream input = PathUtils.inputStream(source); ShaOutputStream output = PathUtils.encryptingStream(target, transaction.key())) {
+            try (InputStream input = new BufferedInputStream(data); ShaOutputStream output = PathUtils.encryptingStream(target, transaction.key())) {
                 IOUtils.copy(input, output);
                 sha = output.sha();
                 size = output.size();
             }
-            Files.delete(source);
         }
 
         // Update the transaction

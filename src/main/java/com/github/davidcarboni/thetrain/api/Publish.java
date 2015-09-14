@@ -1,12 +1,12 @@
 package com.github.davidcarboni.thetrain.api;
 
+import com.github.davidcarboni.encryptedfileupload.EncryptedFileItemFactory;
 import com.github.davidcarboni.restolino.framework.Api;
 import com.github.davidcarboni.thetrain.helpers.DateConverter;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.storage.Publisher;
 import com.github.davidcarboni.thetrain.storage.Transactions;
-import com.github.davidcarboni.encryptedfileupload.EncryptedFileItemFactory;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
@@ -18,8 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.POST;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.InputStream;
 import java.util.Date;
 
 /**
@@ -41,46 +40,54 @@ public class Publish {
             Date startDate = new Date();
 
             // Get the file first because request.getParameter will consume the body of the request:
-            Path file = getFile(request);
+            try (InputStream data = getFile(request)) {
 
-            // Now get the parameters:
-            String transactionId = request.getParameter("transactionId");
-            String uri = request.getParameter("uri");
-            String encryptionPassword = request.getParameter("encryptionPassword");
+                // Now get the parameters:
+                String transactionId = request.getParameter("transactionId");
+                String uri = request.getParameter("uri");
+                String encryptionPassword = request.getParameter("encryptionPassword");
 
-            // Validate parameters
-            if (StringUtils.isBlank(transactionId) || StringUtils.isBlank(uri)) {
-                response.setStatus(HttpStatus.BAD_REQUEST_400);
-                error = true;
-                message = "Please provide transactionId and uri parameters.";
-            }
-
-            // Get the transaction
-            transaction = Transactions.get(transactionId, encryptionPassword);
-            if (transaction == null) {
-                response.setStatus(HttpStatus.BAD_REQUEST_400);
-                error = true;
-                message = "Unknown transaction " + transactionId;
-            }
-
-            // Check the transaction state
-            if (transaction !=null && !transaction.isOpen()) {
-                response.setStatus(HttpStatus.BAD_REQUEST_400);
-                error = true;
-                message = "This transaction is closed.";
-            }
-
-            if (!error) {
-                // Publish
-                String sha = Publisher.addFile(transaction, uri, file, startDate);
-                if (StringUtils.isNotBlank(sha)) {
-                    message = "Published " + uri;
-                    Transactions.listFiles(transaction);
-                } else {
-                    response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+                // Validate parameters
+                if (StringUtils.isBlank(transactionId) || StringUtils.isBlank(uri)) {
+                    response.setStatus(HttpStatus.BAD_REQUEST_400);
                     error = true;
-                    message = "Sadly " + uri + " was not published.";
+                    message = "Please provide transactionId and uri parameters.";
                 }
+
+                // Get the transaction
+                transaction = Transactions.get(transactionId, encryptionPassword);
+                if (transaction == null) {
+                    response.setStatus(HttpStatus.BAD_REQUEST_400);
+                    error = true;
+                    message = "Unknown transaction " + transactionId;
+                }
+
+                // Check the transaction state
+                if (transaction != null && !transaction.isOpen()) {
+                    response.setStatus(HttpStatus.BAD_REQUEST_400);
+                    error = true;
+                    message = "This transaction is closed.";
+                }
+
+                if (data == null) {
+                    response.setStatus(HttpStatus.BAD_REQUEST_400);
+                    error = true;
+                    message = "No data found for published file.";
+                }
+
+                if (!error) {
+                    // Publish
+                    String sha = Publisher.addFile(transaction, uri, data, startDate);
+                    if (StringUtils.isNotBlank(sha)) {
+                        message = "Published " + uri;
+                        Transactions.listFiles(transaction);
+                    } else {
+                        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+                        error = true;
+                        message = "Sadly " + uri + " was not published.";
+                    }
+                }
+
             }
 
             Transactions.listFiles(transaction);
@@ -103,9 +110,9 @@ public class Publish {
      * @return A temp file containing the file data.
      * @throws IOException If an error occurs in processing the file.
      */
-    Path getFile(HttpServletRequest request)
+    InputStream getFile(HttpServletRequest request)
             throws IOException {
-        Path result = null;
+        InputStream result = null;
 
         // Set up the objects that do all the heavy lifting
         EncryptedFileItemFactory factory = new EncryptedFileItemFactory();
@@ -115,12 +122,7 @@ public class Publish {
             // Read the items - this will save the values to temp files
             for (FileItem item : upload.parseRequest(request)) {
                 if (!item.isFormField()) {
-                    // Write file to local temp file
-                    result = Files.createTempFile("upload", ".file");
-                    item.write(result.toFile());
-                    // TODO: DiskFileItemFactory writes uploads to disk if they are over a certain size,
-                    // TODO: so we delete the FileItem as soon as it's processed to minimise exposure:
-                    item.delete();
+                    result = item.getInputStream();
                 }
             }
         } catch (Exception e) {
