@@ -9,13 +9,14 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Date;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * Class for handling publishing actions.
@@ -23,16 +24,26 @@ import java.util.List;
 public class Publisher {
 
     /**
-     * Adds a file to the given transaction. The start date for the file transfer is assumed to be the current instant.
+     * Adds a set of files contained in a zip to the given transaction. The start date for each file transfer is the instant when each {@link ZipEntry} is accessed.
      *
      * @param transaction The transaction to add the file to
      * @param uri         The target URI for the file
-     * @param data        The file content
+     * @param zip         The zipped files
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public static String addFile(Transaction transaction, String uri, InputStream data) throws IOException {
-        return addFile(transaction, uri, data, new Date());
+    public static boolean addFiles(Transaction transaction, String uri, ZipInputStream zip) throws IOException {
+        boolean result = true;
+        ZipEntry entry;
+        Date startDate;
+        while ((entry = zip.getNextEntry()) != null && !entry.isDirectory()) {
+            startDate = new Date();
+            String targetUri = PathUtils.stripTrailingSlash(uri) + PathUtils.setLeadingSlash(entry.getName());
+            System.out.println("Unzipping: " + targetUri);
+            result &= addFile(transaction, targetUri, zip, startDate);
+            zip.closeEntry();
+        }
+        return result;
     }
 
     /**
@@ -40,12 +51,25 @@ public class Publisher {
      *
      * @param transaction The transaction to add the file to
      * @param uri         The target URI for the file
-     * @param data      The file content
+     * @param input       The file content
+     * @return The hash of the file once included in the transaction.
+     * @throws IOException If a filesystem error occurs.
+     */
+    public static boolean addFile(Transaction transaction, String uri, InputStream input) throws IOException {
+        return addFile(transaction, uri, input, new Date());
+    }
+
+    /**
+     * Adds a file to the given transaction. The start date for the file transfer is assumed to be the current instant.
+     *
+     * @param transaction The transaction to add the file to
+     * @param uri         The target URI for the file
+     * @param input       The file content
      * @param startDate   The start date for the file transfer. Typically this is when an HTTP request was received, before the uploaded file started being processed.
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public static String addFile(Transaction transaction, String uri, InputStream data, Date startDate) throws IOException {
+    public static boolean addFile(Transaction transaction, String uri, InputStream input, Date startDate) throws IOException {
         String sha = null;
         long size = 0;
 
@@ -55,7 +79,7 @@ public class Publisher {
         if (target != null) {
             // Encrypt if a key was provided, then delete the original
             Files.createDirectories(target.getParent());
-            try (InputStream input = new BufferedInputStream(data); ShaOutputStream output = PathUtils.encryptingStream(target, transaction.key())) {
+            try (ShaOutputStream output = PathUtils.encryptingStream(target, transaction.key())) {
                 IOUtils.copy(input, output);
                 sha = output.sha();
                 size = output.size();
@@ -68,7 +92,7 @@ public class Publisher {
         transaction.addUri(uriInfo);
         Transactions.tryUpdateAsync(transaction.id());
 
-        return sha;
+        return StringUtils.isNotBlank(sha);
     }
 
     public static Path getFile(Transaction transaction, String uri) throws IOException {

@@ -10,6 +10,7 @@ import com.github.davidcarboni.thetrain.storage.Transactions;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.jetty.http.HttpStatus;
@@ -17,9 +18,11 @@ import org.eclipse.jetty.http.HttpStatus;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.POST;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
+import java.util.zip.ZipInputStream;
 
 /**
  * API to publish a file within an existing {@link Transaction}.
@@ -76,11 +79,23 @@ public class Publish {
                     message = "No data found for published file.";
                 }
 
+                boolean zipped = BooleanUtils.toBoolean(request.getParameter("zip"));
+
                 if (!error) {
                     // Publish
-                    String sha = Publisher.addFile(transaction, uri, data, startDate);
-                    if (StringUtils.isNotBlank(sha)) {
-                        message = "Published " + uri;
+                    boolean published;
+                    if (zipped) {
+                        try (ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))) {
+                            published = Publisher.addFiles(transaction, uri, input);
+                        }
+                    }else {
+                        try (InputStream input = new BufferedInputStream(data)) {
+                            published = Publisher.addFile(transaction, uri, input, startDate);
+                        }
+                    }
+
+                    if (published) {
+                        message = "Published to " + uri;
                     } else {
                         response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                         error = true;
