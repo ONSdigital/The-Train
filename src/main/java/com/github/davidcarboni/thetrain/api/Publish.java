@@ -63,6 +63,13 @@ public class Publish {
                 message = "Unknown transaction " + transactionId;
             }
 
+            // Check the transaction state
+            if (transaction !=null && !transaction.isOpen()) {
+                response.setStatus(HttpStatus.BAD_REQUEST_400);
+                error = true;
+                message = "This transaction is closed.";
+            }
+
             if (!error) {
                 // Publish
                 String sha = Publisher.addFile(transaction, uri, file, startDate);

@@ -50,7 +50,14 @@ public class Rollback {
                 message = "Unknown transaction " + transactionId;
             }
 
-            // Commit
+            // Check the transaction state
+            if (transaction !=null && !transaction.isOpen()) {
+                response.setStatus(HttpStatus.BAD_REQUEST_400);
+                error = true;
+                message = "This transaction is closed.";
+            }
+
+            // Roll back
             if (!error) {
                 boolean result = Publisher.rollback(transaction);
                 if (!result) {

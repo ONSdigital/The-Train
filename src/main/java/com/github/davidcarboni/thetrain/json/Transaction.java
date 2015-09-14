@@ -108,8 +108,15 @@ public class Transaction {
             Set<UriInfo> uriInfos = new HashSet<>(this.uriInfos);
             uriInfos.add(uriInfo);
             this.uriInfos = uriInfos;
-            status=PUBLISHING;
+            status = PUBLISHING;
         }
+    }
+
+    /**
+     * @return If the status of the transaction is {@value #STARTED} or {@value #PUBLISHING}, true, otherwise false.
+     */
+    public boolean isOpen() {
+        return StringUtils.equals(STARTED, status) || StringUtils.equals(PUBLISHING, status);
     }
 
     /**
