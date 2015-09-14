@@ -1,11 +1,13 @@
 #!/bin/bash
 mkdir target/website
 mkdir target/transactions
-JAVA_OPTS="-Xdebug -Xrunjdwp:transport=dt_socket,address=8003,server=y,suspend=n"
+JAVA_OPTS="-Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=n"
+
+mvn package && \
 java $JAVA_OPTS \
           -Dthetrain.website=target/website \
           -Dthetrain.transactions=target/transactions \
-          -DPORT=8083 \
+          -DPORT=8084 \
           -Drestolino.packageprefix=com.github.davidcarboni.thetrain.api \
           -jar target/the-train-destination-0.0.1-SNAPSHOT-jar-with-dependencies.jar
 
