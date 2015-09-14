@@ -1,6 +1,6 @@
 #!/bin/bash
-mkdir target/website
-mkdir target/transactions
+mkdir -p target/website
+mkdir -p target/transactions
 JAVA_OPTS="-Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=n"
 
 mvn package && \
