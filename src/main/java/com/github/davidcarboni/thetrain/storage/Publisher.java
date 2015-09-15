@@ -3,18 +3,22 @@ package com.github.davidcarboni.thetrain.storage;
 import com.github.davidcarboni.thetrain.helpers.Hash.ShaInputStream;
 import com.github.davidcarboni.thetrain.helpers.Hash.ShaOutputStream;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
+import com.github.davidcarboni.thetrain.helpers.UnionInputStream;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.json.UriInfo;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -32,17 +36,61 @@ public class Publisher {
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public static boolean addFiles(Transaction transaction, String uri, ZipInputStream zip) throws IOException {
+    public static boolean addFiles(final Transaction transaction, String uri, final ZipInputStream zip) throws IOException {
         boolean result = true;
         ZipEntry entry;
-        Date startDate;
-        while ((entry = zip.getNextEntry()) != null && !entry.isDirectory()) {
-            startDate = new Date();
-            String targetUri = PathUtils.stripTrailingSlash(uri) + PathUtils.setLeadingSlash(entry.getName());
-            System.out.println("Unzipping: " + targetUri);
-            result &= addFile(transaction, targetUri, zip, startDate);
-            zip.closeEntry();
+
+        // Small files are written asynchronously from byte array buffers:
+        List<Future<Boolean>> smallFileWrites = new ArrayList<>();
+        int big = 0;
+        int small = 0;
+        ExecutorService pool = null;
+        try {
+
+            while ((entry = zip.getNextEntry()) != null && !entry.isDirectory()) {
+
+                final Date startDate = new Date();
+                final String targetUri = PathUtils.stripTrailingSlash(uri) + PathUtils.setLeadingSlash(entry.getName());
+
+                // Read small files into a buffer and write them asynchronously
+                // NB the size can be -1 if it is unknown, so we read into a buffer to see how much data we're dealing with.
+                byte[] buffer = new byte[8192];
+                int read = zip.read(buffer);
+                final InputStream data = new ByteArrayInputStream(buffer, 0, read);
+
+                // If entry data fit into the buffer, go asynchronous:
+                if (read < buffer.length) {
+                    if (pool==null) pool = Executors.newFixedThreadPool(100);
+                    smallFileWrites.add(pool.submit(new Callable<Boolean>() {
+                        @Override
+                        public Boolean call() throws IOException {
+                            return Boolean.valueOf(addFile(transaction, targetUri, data, startDate));
+                        }
+                    }));
+                    small++;
+                } else {
+                    // Large file, so read from (data + "more from the zip")
+                    result &= addFile(transaction, targetUri, new UnionInputStream(data, zip), startDate);
+                    big++;
+                }
+
+                zip.closeEntry();
+            }
+
+        } finally {
+            if (pool!=null) pool.shutdown();
         }
+
+        // Process results of any asynchronous writes
+        for (Future<Boolean> smallFileWrite : smallFileWrites) {
+            try {
+                result &= smallFileWrite.get().booleanValue();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new IOException("Error completing small file write", e);
+            }
+        }
+
+        System.out.println("Unzip results: " + big + " large files (synchronous), " + small + " small files (asynchronous).");
         return result;
     }
 
