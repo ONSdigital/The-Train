@@ -12,7 +12,7 @@ import java.io.InputStream;
 
 
 /**
- * Created by david on 15/09/2015.
+ * Tests for {@link UnionInputStream}.
  */
 public class UnionInputStreamTest {
 
@@ -31,7 +31,7 @@ public class UnionInputStreamTest {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         int r;
         byte[] buffer = new byte[10];
-        while ((r=input.read(buffer, 0, 10))>0) {
+        while ((r = input.read(buffer, 0, 10)) > 0) {
             output.write(buffer, 0, r);
         }
 
@@ -54,7 +54,7 @@ public class UnionInputStreamTest {
         // We union the streams (unbuffered read)
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         int r;
-        while ((r=input.read())!=-1) {
+        while ((r = input.read()) != -1) {
             output.write(r);
         }
 
