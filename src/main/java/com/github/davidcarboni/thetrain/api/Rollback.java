@@ -76,7 +76,7 @@ public class Rollback {
             message = ExceptionUtils.getStackTrace(e);
         }
 
-        System.out.println(DateConverter.toString(new Date()) + " " + message + (transaction != null ? " (" + transaction.id() + ")" : ""));
+        System.out.println(DateConverter.toString(new Date()) + " " + message + (transaction != null ? " (transaction " + transaction.id() + ")" : ""));
         return new Result(message, error, transaction);
     }
 }

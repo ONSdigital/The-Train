@@ -1,6 +1,7 @@
 package com.github.davidcarboni.thetrain.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
+import com.github.davidcarboni.thetrain.helpers.DateConverter;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.storage.Transactions;
 import org.apache.commons.fileupload.FileUploadException;
@@ -12,6 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import java.io.IOException;
+import java.util.Date;
 
 /**
  * API to query the details of an existing {@link com.github.davidcarboni.thetrain.json.Transaction Transaction}.
@@ -38,17 +40,20 @@ public class Transaction {
             }
 
             // Transaction object
-            String encryptionPassword = request.getParameter("encryptionPassword");
-            transaction = Transactions.get(transactionId, encryptionPassword);
-            if (transaction == null) {
-                response.setStatus(HttpStatus.BAD_REQUEST_400);
-                error = true;
-                message = "Unknown transaction " + transactionId;
-            } else {
-                message = "Details for transaction";
-                Transactions.listFiles(transaction);
-                System.out.println(message + " (" + transaction.id() + ")");
+            if (!error) {
+                String encryptionPassword = request.getParameter("encryptionPassword");
+                transaction = Transactions.get(transactionId, encryptionPassword);
+                if (transaction == null) {
+                    response.setStatus(HttpStatus.BAD_REQUEST_400);
+                    error = true;
+                    message = "Unknown transaction " + transactionId;
+                } else {
+                    message = "Details for transaction " + transaction.id();
+                    Transactions.listFiles(transaction);
+                }
             }
+
+            System.out.println(message);
 
         } catch (Exception e) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
@@ -56,6 +61,7 @@ public class Transaction {
             message = ExceptionUtils.getStackTrace(e);
         }
 
+        System.out.println(DateConverter.toString(new Date()) + " " + message);
         return new Result(message, error, transaction);
     }
 }
