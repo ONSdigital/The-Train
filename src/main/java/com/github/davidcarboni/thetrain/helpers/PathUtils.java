@@ -12,9 +12,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.github.davidcarboni.thetrain.helpers.Hash.ShaInputStream;
-import static com.github.davidcarboni.thetrain.helpers.Hash.ShaOutputStream;
-
 /**
  * Utility methods for dealing with paths and converting to/from URI strings.
  */

@@ -88,7 +88,7 @@ public class Publish {
                         try (ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))) {
                             published = Publisher.addFiles(transaction, uri, input);
                         }
-                    }else {
+                    } else {
                         try (InputStream input = new BufferedInputStream(data)) {
                             published = Publisher.addFile(transaction, uri, input, startDate);
                         }
