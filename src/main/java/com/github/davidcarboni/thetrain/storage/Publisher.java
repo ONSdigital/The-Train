@@ -1,8 +1,10 @@
 package com.github.davidcarboni.thetrain.storage;
 
-import com.github.davidcarboni.thetrain.helpers.Hash.ShaInputStream;
-import com.github.davidcarboni.thetrain.helpers.Hash.ShaOutputStream;
+import com.github.davidcarboni.cryptolite.Keys;
+import com.github.davidcarboni.cryptolite.Random;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
+import com.github.davidcarboni.thetrain.helpers.ShaInputStream;
+import com.github.davidcarboni.thetrain.helpers.ShaOutputStream;
 import com.github.davidcarboni.thetrain.helpers.UnionInputStream;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.json.UriInfo;
@@ -60,7 +62,7 @@ public class Publisher {
 
                 // If entry data fit into the buffer, go asynchronous:
                 if (read < buffer.length) {
-                    if (pool==null) pool = Executors.newFixedThreadPool(100);
+                    if (pool == null) pool = Executors.newFixedThreadPool(100);
                     smallFileWrites.add(pool.submit(new Callable<Boolean>() {
                         @Override
                         public Boolean call() throws IOException {
@@ -78,7 +80,7 @@ public class Publisher {
             }
 
         } finally {
-            if (pool!=null) pool.shutdown();
+            if (pool != null) pool.shutdown();
         }
 
         // Process results of any asynchronous writes
@@ -315,6 +317,37 @@ public class Publisher {
 
         // We didn't find the requested URI:
         return new UriInfo(uri);
+    }
+
+    public static void main(String[] args) throws IOException {
+
+        for (int i = 0; i < 8193; i++) {
+
+            ShaInputStream input = new ShaInputStream(Random.inputStream(i));
+
+            byte[] buffer = new byte[8192];
+            int read = input.read(buffer);
+            final InputStream data = new ByteArrayInputStream(buffer, 0, read);
+
+            // If entry data fit into the buffer, go asynchronous:
+            if (read < buffer.length) {
+
+                try (ShaOutputStream output = PathUtils.encryptingStream(Files.createTempFile("s", "a"), Keys.newSecretKey())) {
+                    IOUtils.copy(input, output);
+                    String inputSha = input.sha();
+                    long inputSize = input.size();
+                    String outputSha = output.sha();
+                    long outputSize = output.size();
+                    if (inputSize != outputSize || !StringUtils.equals(inputSha, outputSha)) {
+                        System.out.println("Size   : " + i);
+                        System.out.println("Input  : " + inputSize + "/" + input.sha());
+                        System.out.println("Output : " + outputSize + "/" + output.sha());
+                    }
+
+                }
+            }
+        }
+
     }
 
 }

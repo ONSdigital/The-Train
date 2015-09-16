@@ -53,7 +53,7 @@ public class Commit {
             }
 
             // Check the transaction state
-            if (transaction !=null && !transaction.isOpen()) {
+            if (transaction != null && !transaction.isOpen()) {
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 error = true;
                 message = "This transaction is closed.";
@@ -92,7 +92,7 @@ public class Commit {
             message = ExceptionUtils.getStackTrace(e);
         }
 
-        System.out.println(DateConverter.toString(new Date()) + " " + message + (transaction!=null?" (" + transaction.id() + ")":""));
+        System.out.println(DateConverter.toString(new Date()) + " " + message + (transaction != null ? " (" + transaction.id() + ")" : ""));
         return new Result(message, error, transaction);
     }
 }
