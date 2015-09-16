@@ -3,6 +3,7 @@ package com.github.davidcarboni.thetrain.api;
 import com.github.davidcarboni.encryptedfileupload.EncryptedFileItemFactory;
 import com.github.davidcarboni.restolino.framework.Api;
 import com.github.davidcarboni.thetrain.helpers.DateConverter;
+import com.github.davidcarboni.thetrain.helpers.ShaInputStream;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.storage.Publisher;
@@ -89,7 +90,7 @@ public class Publish {
                             published = Publisher.addFiles(transaction, uri, input);
                         }
                     } else {
-                        try (InputStream input = new BufferedInputStream(data)) {
+                        try (ShaInputStream input = new ShaInputStream(new BufferedInputStream(data))) {
                             published = Publisher.addFile(transaction, uri, input, startDate);
                         }
                     }

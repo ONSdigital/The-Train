@@ -57,22 +57,28 @@ public class Publisher {
                 // Read small files into a buffer and write them asynchronously
                 // NB the size can be -1 if it is unknown, so we read into a buffer to see how much data we're dealing with.
                 byte[] buffer = new byte[8192];
-                int read = zip.read(buffer);
-                final InputStream data = new ByteArrayInputStream(buffer, 0, read);
+                int read;
+                int count = 0;
+                do {
+                    read = zip.read(buffer, count, buffer.length - count);
+                    if (read != -1) count += read;
+                } while (read != -1 && count < 8192);
+                final InputStream data = new ByteArrayInputStream(buffer, 0, count);
 
                 // If entry data fit into the buffer, go asynchronous:
-                if (read < buffer.length) {
+                if (count < buffer.length) {
                     if (pool == null) pool = Executors.newFixedThreadPool(100);
                     smallFileWrites.add(pool.submit(new Callable<Boolean>() {
                         @Override
                         public Boolean call() throws IOException {
-                            return Boolean.valueOf(addFile(transaction, targetUri, data, startDate));
+                            return Boolean.valueOf(addFile(transaction, targetUri, new ShaInputStream(data), startDate));
                         }
                     }));
                     small++;
                 } else {
                     // Large file, so read from (data + "more from the zip")
-                    result &= addFile(transaction, targetUri, new UnionInputStream(data, zip), startDate);
+                    ShaInputStream input = new ShaInputStream(new UnionInputStream(data, zip));
+                    result &= addFile(transaction, targetUri, input, startDate);
                     big++;
                 }
 
@@ -92,7 +98,7 @@ public class Publisher {
             }
         }
 
-        System.out.println("Unzip results: " + big + " large files (synchronous), " + small + " small files (asynchronous).");
+        System.out.println("Unzip results: " + big + " large files (synchronous), " + small + " small files (asynchronous). Total: " + (big + small));
         return result;
     }
 
@@ -106,7 +112,7 @@ public class Publisher {
      * @throws IOException If a filesystem error occurs.
      */
     public static boolean addFile(Transaction transaction, String uri, InputStream input) throws IOException {
-        return addFile(transaction, uri, input, new Date());
+        return addFile(transaction, uri, new ShaInputStream(input), new Date());
     }
 
     /**
@@ -119,9 +125,13 @@ public class Publisher {
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public static boolean addFile(Transaction transaction, String uri, InputStream input, Date startDate) throws IOException {
-        String sha = null;
-        long size = 0;
+    public static boolean addFile(Transaction transaction, String uri, ShaInputStream input, Date startDate) throws IOException {
+        boolean result = false;
+
+        String shaInput = null;
+        long sizeInput = 0;
+        String shaOutput = null;
+        long sizeOutput = 0;
 
         // Add the file
         Path content = Transactions.content(transaction);
@@ -131,18 +141,27 @@ public class Publisher {
             Files.createDirectories(target.getParent());
             try (ShaOutputStream output = PathUtils.encryptingStream(target, transaction.key())) {
                 IOUtils.copy(input, output);
-                sha = output.sha();
-                size = output.size();
+                shaInput = input.sha();
+                sizeInput = input.size();
+                shaOutput = output.sha();
+                sizeOutput = output.size();
+                if (StringUtils.equals(shaInput, shaOutput) && sizeInput == sizeOutput) {
+                    result = true;
+                } else {
+                    System.out.println("SHA/size mismatch for: " + uri +
+                            " input: " + sizeInput + "/" + shaInput +
+                            ", output: " + sizeOutput + "/" + shaOutput);
+                }
             }
         }
 
         // Update the transaction
         UriInfo uriInfo = new UriInfo(uri, startDate);
-        uriInfo.stop(sha, size);
+        uriInfo.stop(shaOutput, sizeOutput);
         transaction.addUri(uriInfo);
         Transactions.tryUpdateAsync(transaction.id());
 
-        return StringUtils.isNotBlank(sha);
+        return result;
     }
 
     public static Path getFile(Transaction transaction, String uri) throws IOException {
