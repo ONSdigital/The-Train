@@ -29,6 +29,8 @@ import java.util.zip.ZipInputStream;
  */
 public class Publisher {
 
+    private static final int bufferSize = 16384;
+
     /**
      * Adds a set of files contained in a zip to the given transaction. The start date for each file transfer is the instant when each {@link ZipEntry} is accessed.
      *
@@ -56,13 +58,13 @@ public class Publisher {
 
                 // Read small files into a buffer and write them asynchronously
                 // NB the size can be -1 if it is unknown, so we read into a buffer to see how much data we're dealing with.
-                byte[] buffer = new byte[8192];
+                byte[] buffer = new byte[bufferSize];
                 int read;
                 int count = 0;
                 do {
                     read = zip.read(buffer, count, buffer.length - count);
                     if (read != -1) count += read;
-                } while (read != -1 && count < 8192);
+                } while (read != -1 && count < bufferSize);
                 final InputStream data = new ByteArrayInputStream(buffer, 0, count);
 
                 // If entry data fit into the buffer, go asynchronous:
