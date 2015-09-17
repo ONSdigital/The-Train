@@ -29,7 +29,7 @@ import java.util.zip.ZipInputStream;
  */
 public class Publisher {
 
-    private static final int bufferSize = 16384;
+    private static final int bufferSize = 100 * 1024;
 
     /**
      * Adds a set of files contained in a zip to the given transaction. The start date for each file transfer is the instant when each {@link ZipEntry} is accessed.
