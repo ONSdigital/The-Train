@@ -72,13 +72,13 @@ public class Transactions {
      * @param transaction
      */
     public static void end(Transaction transaction) {
-        if (transactionMap.containsKey(transaction.id())) {
-            transactionMap.remove(transaction.id());
+        if (transactionExecutorMap.containsKey(transaction.id())) {
+            transactionExecutorMap.get(transaction.id()).shutdown();
+            transactionExecutorMap.remove(transaction.id());
         }
 
-        if (transactionExecutorMap.containsKey(transaction.id())) {
-            transactionExecutorMap.get(transaction.id()).shutdownNow();
-            transactionExecutorMap.remove(transaction.id());
+        if (transactionMap.containsKey(transaction.id())) {
+            transactionMap.remove(transaction.id());
         }
     }
 
@@ -151,9 +151,9 @@ public class Transactions {
                     Boolean result = false;
 
                     try {
-                        //System.out.print("X");
                         if (transactionExecutorMap.containsKey(transactionId)
                                 && transactionMap.containsKey(transactionId)) {
+                            //System.out.print("X");
                             // The transaction passed in should always be an instance from the map
                             // otherwise there's potential to lose updates.
                             // NB the unit of synchronization is always a Transaction object.
@@ -162,6 +162,7 @@ public class Transactions {
                                 Path transactionPath = path(transactionId);
                                 if (transactionPath != null && Files.exists(transactionPath)) {
                                     final Path json = transactionPath.resolve(JSON);
+
                                     try (OutputStream output = Files.newOutputStream(json)) {
                                         Serialiser.serialise(output, read);
                                     }
