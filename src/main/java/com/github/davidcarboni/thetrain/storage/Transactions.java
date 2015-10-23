@@ -289,7 +289,7 @@ public class Transactions {
             if (transactionStore == null) {
                 transactionStore = Files.createTempDirectory(Transactions.class.getSimpleName());
                 System.out.println("Temporary transaction store created at: " + transactionStore);
-                System.out.println("Please configure a  " + Configuration.TRANSACTION_STORE + " variable to configure this directory in production.");
+                System.out.println("Please configure a " + Configuration.TRANSACTION_STORE + " variable to configure this directory in production.");
             }
 
         }
