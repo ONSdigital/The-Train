@@ -60,6 +60,7 @@ public class Transaction {
                 wrappedKey = new KeyWrapper(password, salt).wrapSecretKey(key);
             } else {
                 // Unwrap the existing key
+                System.out.println("Password is: " + password);
                 key = new KeyWrapper(password, salt).unwrapSecretKey(wrappedKey);
             }
         }
