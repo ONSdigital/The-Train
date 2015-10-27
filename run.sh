@@ -9,7 +9,7 @@ java $JAVA_OPTS \
           -Dthetrain.transactions=target/transactions \
           -DPORT=8084 \
           -Drestolino.packageprefix=com.github.davidcarboni.thetrain.api \
-          -jar target/the-train-destination-0.0.1-SNAPSHOT-jar-with-dependencies.jar
+          -jar target/the-train-0.0.1-SNAPSHOT-jar-with-dependencies.jar
 
 ## Reloadable
 #java $JAVA_OPTS \
