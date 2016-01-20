@@ -27,7 +27,7 @@ import java.util.Date;
 public class Verify {
 
     @GET
-    public FileHash beginTransaction(HttpServletRequest request,
+    public FileHash verify(HttpServletRequest request,
                                    HttpServletResponse response) throws IOException, FileUploadException {
 
         FileHash result = new FileHash();
