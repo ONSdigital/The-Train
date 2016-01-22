@@ -35,6 +35,7 @@ public class Publish {
     public Result addFile(HttpServletRequest request,
                           HttpServletResponse response) throws IOException, FileUploadException {
 
+        System.out.println(DateConverter.toString(new Date()) + " Start Publish");
         Transaction transaction = null;
         String message = null;
         boolean error = false;
@@ -86,13 +87,17 @@ public class Publish {
                     // Publish
                     boolean published;
                     if (zipped) {
+                        System.out.println(DateConverter.toString(new Date()) + " Zipped File: Unzipping...");
                         try (ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))) {
                             published = Publisher.addFiles(transaction, uri, input);
                         }
+                        System.out.println(DateConverter.toString(new Date()) + " Finished Unzipping.");
                     } else {
+                        System.out.println(DateConverter.toString(new Date()) + " Adding normal file");
                         try (ShaInputStream input = new ShaInputStream(new BufferedInputStream(data))) {
                             published = Publisher.addFile(transaction, uri, input, startDate);
                         }
+                        System.out.println(DateConverter.toString(new Date()) + " Finished adding normal file");
                     }
 
                     if (published) {
