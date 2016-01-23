@@ -107,6 +107,8 @@ public class Publish {
                         error = true;
                         message = "Sadly " + uri + " was not published.";
                     }
+
+                    Transactions.tryUpdateAsync(transaction.id());
                 }
 
             }
