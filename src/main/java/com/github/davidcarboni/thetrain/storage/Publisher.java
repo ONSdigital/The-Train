@@ -199,7 +199,7 @@ public class Publisher {
         }
 
         transaction.commit(result);
-        Transactions.update(transaction);
+        //Transactions.update(transaction);
 
         if (result) {
             Transactions.end(transaction);
@@ -274,7 +274,7 @@ public class Publisher {
         }
 
         // If this fails, we have a serious issue, so let it fail the entire request:
-        Transactions.tryUpdateAsync(transaction.id());
+        //Transactions.tryUpdateAsync(transaction.id());
 
         return result;
     }

@@ -201,6 +201,7 @@ public class Transactions {
             synchronized (read) {
                 Path transactionPath = path(transaction.id());
                 if (transactionPath != null && Files.exists(transactionPath)) {
+                    System.out.println("Writing transaction file.");
                     final Path json = transactionPath.resolve(JSON);
                     try (OutputStream output = Files.newOutputStream(json)) {
                         Serialiser.serialise(output, read);
