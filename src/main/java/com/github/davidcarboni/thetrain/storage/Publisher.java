@@ -161,7 +161,7 @@ public class Publisher {
         UriInfo uriInfo = new UriInfo(uri, startDate);
         uriInfo.stop(shaOutput, sizeOutput);
         transaction.addUri(uriInfo);
-        Transactions.tryUpdateAsync(transaction.id());
+        //Transactions.tryUpdateAsync(transaction.id());
 
         return result;
     }

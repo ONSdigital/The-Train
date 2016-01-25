@@ -24,10 +24,10 @@ import java.util.Date;
  * API to start a new {@link Transaction}.
  */
 @Api
-public class HashCheck {
+public class Verify {
 
     @GET
-    public FileHash beginTransaction(HttpServletRequest request,
+    public FileHash verify(HttpServletRequest request,
                                    HttpServletResponse response) throws IOException, FileUploadException {
 
         FileHash result = new FileHash();
