@@ -193,9 +193,25 @@ public class Publisher {
     public static boolean commit(Transaction transaction, Path website) throws IOException {
         boolean result = true;
 
-        List<String> uris = listUris(transaction);
-        for (String uri : uris) {
-            result &= commitFile(uri, transaction, website);
+        List<Future<Boolean>> futures = new ArrayList<>();
+
+        ExecutorService pool = Executors.newFixedThreadPool(8);
+        try {
+            List<String> uris = listUris(transaction);
+            for (String uri : uris) {
+                futures.add(pool.submit(() -> commitFile(uri, transaction, website)));
+            }
+        } finally {
+            if (pool != null) pool.shutdown();
+        }
+
+        // Process results of any asynchronous writes
+        for (Future<Boolean> future : futures) {
+            try {
+                result &= future.get().booleanValue();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new IOException("Error on commit of file", e);
+            }
         }
 
         transaction.commit(result);
