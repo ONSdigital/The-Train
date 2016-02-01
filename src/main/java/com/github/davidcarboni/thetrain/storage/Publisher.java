@@ -338,9 +338,6 @@ public class Publisher {
             }
         }
 
-        // If this fails, we have a serious issue, so let it fail the entire request:
-        Transactions.tryUpdateAsync(transaction.id());
-
         return result;
     }
 
