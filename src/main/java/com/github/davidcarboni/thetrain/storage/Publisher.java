@@ -8,11 +8,14 @@ import com.github.davidcarboni.thetrain.helpers.ShaOutputStream;
 import com.github.davidcarboni.thetrain.helpers.UnionInputStream;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.json.UriInfo;
+import com.github.davidcarboni.thetrain.json.request.Manifest;
+import com.github.davidcarboni.thetrain.json.request.MoveDetail;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -161,10 +164,67 @@ public class Publisher {
         UriInfo uriInfo = new UriInfo(uri, startDate);
         uriInfo.stop(shaOutput, sizeOutput);
         transaction.addUri(uriInfo);
-        //Transactions.tryUpdateAsync(transaction.id());
-
         return result;
     }
+
+    public static int moveFiles(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
+
+        int filesMoved = 0;
+        List<Future<Boolean>> futures = new ArrayList<>();
+        ExecutorService pool = Executors.newFixedThreadPool(8);
+
+        try {
+            for (MoveDetail move : manifest.moves) {
+                futures.add(pool.submit(() -> moveFile(transaction, move.source, move.target, websitePath)));
+            }
+        } finally {
+            if (pool != null) pool.shutdown();
+        }
+
+        // Process results of any asynchronous writes
+        for (Future<Boolean> future : futures) {
+            try {
+                if (future.get().booleanValue()) {
+                    filesMoved++;
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                throw new IOException("Error on commit of file", e);
+            }
+        }
+
+        return filesMoved;
+    }
+
+    static boolean moveFile(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
+
+        boolean moved = false;
+
+        Path source = PathUtils.toPath(sourceUri, websitePath);
+        Path target = PathUtils.toPath(targetUri, Transactions.content(transaction));
+        String shaOutput = null;
+        long sizeOutput = 0;
+
+        if (!Files.exists(source))
+            return false;
+
+        if (target != null) {
+            Files.createDirectories(target.getParent());
+            try (InputStream input = new FileInputStream(source.toString());
+                 ShaOutputStream output = PathUtils.encryptingStream(target, transaction.key())) {
+                IOUtils.copy(input, output);
+                shaOutput = output.sha();
+                sizeOutput = output.size();
+                moved = true;
+            }
+        }
+
+        // Update the transaction
+        UriInfo uriInfo = new UriInfo(targetUri, new Date());
+        uriInfo.stop(shaOutput, sizeOutput);
+        transaction.addUri(uriInfo);
+        return moved;
+    }
+
 
     public static Path getFile(Transaction transaction, String uri) throws IOException {
         Path result = null;
@@ -194,8 +254,8 @@ public class Publisher {
         boolean result = true;
 
         List<Future<Boolean>> futures = new ArrayList<>();
-
         ExecutorService pool = Executors.newFixedThreadPool(8);
+
         try {
             List<String> uris = listUris(transaction);
             for (String uri : uris) {
@@ -215,7 +275,6 @@ public class Publisher {
         }
 
         transaction.commit(result);
-        //Transactions.update(transaction);
 
         if (result) {
             Transactions.end(transaction);
@@ -288,9 +347,6 @@ public class Publisher {
                 transaction.addError(error);
             }
         }
-
-        // If this fails, we have a serious issue, so let it fail the entire request:
-        //Transactions.tryUpdateAsync(transaction.id());
 
         return result;
     }
@@ -381,7 +437,6 @@ public class Publisher {
                 }
             }
         }
-
     }
 
 }
