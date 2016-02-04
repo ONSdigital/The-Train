@@ -175,7 +175,7 @@ public class Publisher {
 
         try {
             for (FileCopy move : manifest.filesToCopy) {
-                futures.add(pool.submit(() -> moveFile(transaction, move.source, move.target, websitePath)));
+                futures.add(pool.submit(() -> copyFileIntoTransaction(transaction, move.source, move.target, websitePath)));
             }
         } finally {
             if (pool != null) pool.shutdown();
@@ -195,7 +195,16 @@ public class Publisher {
         return filesMoved;
     }
 
-    static boolean moveFile(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
+    /**
+     * Copy an existing file from the website into the given transaction.
+     * @param transaction
+     * @param sourceUri
+     * @param targetUri
+     * @param websitePath
+     * @return
+     * @throws IOException
+     */
+    static boolean copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
 
         boolean moved = false;
 

@@ -87,7 +87,7 @@ public class PublisherTest {
 
         // When
         // Files being published
-        Publisher.moveFile(transaction, source, target, website);
+        Publisher.copyFileIntoTransaction(transaction, source, target, website);
 
         // Then
         // The moved files should be in the transaction in the target location.
