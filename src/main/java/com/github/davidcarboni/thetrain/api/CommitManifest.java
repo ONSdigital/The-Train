@@ -31,7 +31,7 @@ public class CommitManifest {
             Manifest manifest
     ) throws IOException, FileUploadException {
 
-        System.out.println(DateConverter.toString(new Date()) + " Start move");
+        System.out.println(DateConverter.toString(new Date()) + " Start processing manifest");
 
         com.github.davidcarboni.thetrain.json.Transaction transaction = null;
         String message = null;
@@ -68,7 +68,7 @@ public class CommitManifest {
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
 
                 error = true;
-                message = "No move manifest found for in this request.";
+                message = "No manifest found for in this request.";
             }
 
             // Get the website Path to publish to
@@ -80,11 +80,10 @@ public class CommitManifest {
             }
 
             if (!error) {
-                int moved = Publisher.moveFiles(transaction, manifest, websitePath);
-                message = "Moved " + moved + " files.";
+                int copied = Publisher.copyFiles(transaction, manifest, websitePath);
+                message = "Copied " + copied + " files.";
 
-                if (moved != manifest.moves.size()) {
-
+                if (copied != manifest.filesToCopy.size()) {
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     error = true;
                     message = "Move failed.";

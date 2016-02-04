@@ -9,7 +9,7 @@ import com.github.davidcarboni.thetrain.helpers.UnionInputStream;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.json.UriInfo;
 import com.github.davidcarboni.thetrain.json.request.Manifest;
-import com.github.davidcarboni.thetrain.json.request.MoveDetail;
+import com.github.davidcarboni.thetrain.json.request.FileCopy;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -167,14 +167,14 @@ public class Publisher {
         return result;
     }
 
-    public static int moveFiles(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
+    public static int copyFiles(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
 
         int filesMoved = 0;
         List<Future<Boolean>> futures = new ArrayList<>();
         ExecutorService pool = Executors.newFixedThreadPool(8);
 
         try {
-            for (MoveDetail move : manifest.moves) {
+            for (FileCopy move : manifest.filesToCopy) {
                 futures.add(pool.submit(() -> moveFile(transaction, move.source, move.target, websitePath)));
             }
         } finally {
