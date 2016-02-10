@@ -29,6 +29,8 @@ public class Commit {
     public Result commit(HttpServletRequest request,
                          HttpServletResponse response) throws IOException, FileUploadException {
 
+        System.out.println(DateConverter.toString(new Date()) + " Start Commit");
+
         Transaction transaction = null;
         String message = null;
         boolean error = false;
@@ -90,6 +92,9 @@ public class Commit {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             error = true;
             message = ExceptionUtils.getStackTrace(e);
+        }
+        finally {
+            Transactions.update(transaction);
         }
 
         System.out.println(DateConverter.toString(new Date()) + " " + message + (transaction != null ? " (transaction " + transaction.id() + ")" : ""));

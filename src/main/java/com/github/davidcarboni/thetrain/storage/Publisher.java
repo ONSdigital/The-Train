@@ -161,7 +161,7 @@ public class Publisher {
         UriInfo uriInfo = new UriInfo(uri, startDate);
         uriInfo.stop(shaOutput, sizeOutput);
         transaction.addUri(uriInfo);
-        Transactions.tryUpdateAsync(transaction.id());
+        //Transactions.tryUpdateAsync(transaction.id());
 
         return result;
     }
@@ -199,7 +199,7 @@ public class Publisher {
         }
 
         transaction.commit(result);
-        Transactions.update(transaction);
+        //Transactions.update(transaction);
 
         if (result) {
             Transactions.end(transaction);
@@ -242,7 +242,7 @@ public class Publisher {
             // any existing copy will already have been moved.
             Files.createDirectories(target.getParent());
             // NB We're using copy rather than move for two reasons:
-            // - To be able to review a transaction after the fac and see all the files that were published
+            // - To be able to review a transaction after the fact and see all the files that were published
             // - If we use encryption we need to copy through a cipher stream to handle decryption
             String uploadedSha = uriInfo.sha();
             long uploadedSize = uriInfo.size();
@@ -274,7 +274,7 @@ public class Publisher {
         }
 
         // If this fails, we have a serious issue, so let it fail the entire request:
-        Transactions.tryUpdateAsync(transaction.id());
+        //Transactions.tryUpdateAsync(transaction.id());
 
         return result;
     }
