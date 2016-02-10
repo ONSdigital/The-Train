@@ -3,9 +3,10 @@ package com.github.davidcarboni.thetrain.api;
 import com.github.davidcarboni.restolino.framework.Api;
 import com.github.davidcarboni.thetrain.helpers.DateConverter;
 import com.github.davidcarboni.thetrain.json.Result;
-import com.github.davidcarboni.thetrain.json.Transaction;
+import com.github.davidcarboni.thetrain.json.request.Manifest;
 import com.github.davidcarboni.thetrain.storage.Publisher;
 import com.github.davidcarboni.thetrain.storage.Transactions;
+import com.github.davidcarboni.thetrain.storage.Website;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -15,34 +16,40 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.POST;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Date;
 
 /**
- * API to roll back an existing {@link Transaction}.
+ * API to move files within an existing {@link com.github.davidcarboni.thetrain.json.Transaction}.
  */
 @Api
-public class Rollback {
-
+public class CommitManifest {
     @POST
-    public Result rollback(HttpServletRequest request,
-                           HttpServletResponse response) throws IOException, FileUploadException {
+    public Result commitManifest(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Manifest manifest
+    ) throws IOException, FileUploadException {
 
-        Transaction transaction = null;
+        System.out.println(DateConverter.toString(new Date()) + " Start processing manifest");
+
+        com.github.davidcarboni.thetrain.json.Transaction transaction = null;
         String message = null;
         boolean error = false;
 
         try {
-
-            // Transaction ID
+            // Now get the parameters:
             String transactionId = request.getParameter("transactionId");
+            String encryptionPassword = request.getParameter("encryptionPassword");
+
+            // Validate parameters
             if (StringUtils.isBlank(transactionId)) {
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 error = true;
-                message = "Please provide a transactionId parameter.";
+                message = "Please provide transactionId and uri parameters.";
             }
 
-            // Transaction object
-            String encryptionPassword = request.getParameter("encryptionPassword");
+            // Get the transaction
             transaction = Transactions.get(transactionId, encryptionPassword);
             if (transaction == null) {
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
@@ -57,25 +64,38 @@ public class Rollback {
                 message = "This transaction is closed.";
             }
 
-            // Roll back
+            if (manifest == null) {
+                response.setStatus(HttpStatus.BAD_REQUEST_400);
+
+                error = true;
+                message = "No manifest found for in this request.";
+            }
+
+            // Get the website Path to publish to
+            Path websitePath = Website.path();
+            if (websitePath == null) {
+                response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+                error = true;
+                message = "Website folder could not be used: " + websitePath;
+            }
+
             if (!error) {
-                boolean result = Publisher.rollback(transaction);
-                if (!result) {
+                int copied = Publisher.copyFiles(transaction, manifest, websitePath);
+                message = "Copied " + copied + " files.";
+
+                if (copied != manifest.filesToCopy.size()) {
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     error = true;
-                    message = "Errors were detected in rolling back the transaction.";
-                } else {
-                    message = "Transaction rolled back.";
-                    Transactions.listFiles(transaction);
+                    message = "Move failed.";
                 }
             }
+
 
         } catch (Exception e) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             error = true;
             message = ExceptionUtils.getStackTrace(e);
-        }
-        finally {
+        } finally {
             Transactions.update(transaction);
         }
 

@@ -48,12 +48,10 @@ public class PublisherTest {
         assertNotNull(path);
     }
 
-
     @Test
     public void shouldPublishFileEncrypted() throws IOException {
 
         // Given
-
         // Content to publish
         Path file = tempFile();
         String sha = Hash.sha(file);
@@ -64,11 +62,9 @@ public class PublisherTest {
         // An encrypted transaction
         Transaction transaction = Transactions.create(Random.password(8));
 
-
         // When
         // We publish the file
         Publisher.addFile(transaction, uri, Files.newInputStream(file));
-
 
         // Then
         // The published file should not have the same hash as the original
@@ -77,6 +73,29 @@ public class PublisherTest {
         assertFalse(transaction.hasErrors());
     }
 
+    @Test
+    public void shouldMoveFile() throws IOException {
+        // Given
+        // A transaction
+        Transaction transaction = Transactions.create(null);
+        Path website = Website.path();
+
+        // An existing file on the website
+        String source = "/move-" + Random.id() + ".txt";
+        String target = "/moved/move-" + Random.id() + ".txt";
+        Files.move(tempFile(), PathUtils.toPath(source, website));
+
+        // When
+        // Files being published
+        Publisher.copyFileIntoTransaction(transaction, source, target, website);
+
+        // Then
+        // The moved files should be in the transaction in the target location.
+        Path path = Publisher.getFile(transaction, target);
+        assertNotNull(path);
+        assertTrue(Files.exists(path));
+        assertFalse(transaction.hasErrors());
+    }
 
     @Test
     public void shouldComputeHash() throws IOException {
