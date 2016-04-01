@@ -1,5 +1,6 @@
 package com.github.davidcarboni.thetrain.helpers;
 
+import com.github.davidcarboni.cryptolite.Keys;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -9,6 +10,17 @@ public class Configuration {
 
     public static final String TRANSACTION_STORE = "thetrain.transactions";
     public static final String WEBSITE = "thetrain.website";
+
+    // Commented out as part of temporary fix
+    static {
+        if (Keys.canUseStrongKeys()) {
+            System.out.println("This system is able to use strong AES encryption. " + Keys.SYMMETRIC_KEY_SIZE_UNLIMITED + "-bit keys will be used.");
+            // Keys.setSymmetricKeySize(Keys.SYMMETRIC_KEY_SIZE_UNLIMITED);
+        } else {
+            System.out.println("This system is restricted to standard AES encryption. " + Keys.SYMMETRIC_KEY_SIZE_STANDARD + "-bit keys will be used.");
+        }
+        System.out.println("Symmetric key size has been set to: " + Keys.getSymmetricKeySize());
+    }
 
     /**
      * Gets a configuration value from {@link System#getProperty(String)}, falling back to {@link System#getenv()}

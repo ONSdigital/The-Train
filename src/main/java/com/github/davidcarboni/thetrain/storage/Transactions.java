@@ -1,6 +1,8 @@
 package com.github.davidcarboni.thetrain.storage;
 
-import com.github.davidcarboni.restolino.json.Serialiser;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.davidcarboni.thetrain.helpers.Configuration;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.json.Transaction;
@@ -52,7 +54,7 @@ public class Transactions {
         Files.createDirectory(path);
         Path json = path.resolve(JSON);
         try (OutputStream output = Files.newOutputStream(json)) {
-            Serialiser.serialise(output, transaction);
+            objectMapper().writeValue(output, transaction);
             Files.createDirectory(path.resolve(CONTENT));
             Files.createDirectory(path.resolve(BACKUP));
 
@@ -101,7 +103,7 @@ public class Transactions {
                 if (transactionPath != null && Files.exists(transactionPath)) {
                     final Path json = transactionPath.resolve(JSON);
                     try (InputStream input = Files.newInputStream(json)) {
-                        result = Serialiser.deserialise(input, Transaction.class);
+                        result = objectMapper().readValue(input, Transaction.class);
                     }
                 }
             } else {
@@ -164,7 +166,7 @@ public class Transactions {
                                     final Path json = transactionPath.resolve(JSON);
 
                                     try (OutputStream output = Files.newOutputStream(json)) {
-                                        Serialiser.serialise(output, read);
+                                        objectMapper().writeValue(output, read);
                                     }
                                 }
                                 result = true;
@@ -201,9 +203,10 @@ public class Transactions {
             synchronized (read) {
                 Path transactionPath = path(transaction.id());
                 if (transactionPath != null && Files.exists(transactionPath)) {
+                    System.out.println("Writing transaction file.");
                     final Path json = transactionPath.resolve(JSON);
                     try (OutputStream output = Files.newOutputStream(json)) {
-                        Serialiser.serialise(output, read);
+                        objectMapper().writeValue(output, read);
                     }
                 }
             }
@@ -289,10 +292,17 @@ public class Transactions {
             if (transactionStore == null) {
                 transactionStore = Files.createTempDirectory(Transactions.class.getSimpleName());
                 System.out.println("Temporary transaction store created at: " + transactionStore);
-                System.out.println("Please configure a  " + Configuration.TRANSACTION_STORE + " variable to configure this directory in production.");
+                System.out.println("Please configure a " + Configuration.TRANSACTION_STORE + " variable to configure this directory in production.");
             }
 
         }
         return transactionStore;
+    }
+
+    private static ObjectMapper objectMapper() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE);
+        objectMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+        return objectMapper;
     }
 }

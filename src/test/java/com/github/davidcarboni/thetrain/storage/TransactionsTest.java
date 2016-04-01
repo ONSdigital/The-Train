@@ -109,12 +109,12 @@ public class TransactionsTest {
         synchronized (Transactions.transactionMap) {
             // So we can run tests in parallel
             Transactions.transactionMap.clear();
+            Transaction read = Transactions.get(transaction.id(), null);
+            assertEquals(1, read.errors().size());
+            assertEquals(1, read.uris().size());
+            assertTrue(read.errors().contains(error));
+            assertTrue(read.uris().contains(uriInfo));
         }
-        Transaction read = Transactions.get(transaction.id(), null);
-        assertEquals(1, read.errors().size());
-        assertEquals(1, read.uris().size());
-        assertTrue(read.errors().contains(error));
-        assertTrue(read.uris().contains(uriInfo));
     }
 
     /**
