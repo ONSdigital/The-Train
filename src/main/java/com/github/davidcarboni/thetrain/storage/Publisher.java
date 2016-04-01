@@ -210,7 +210,7 @@ public class Publisher {
 
         Path source = PathUtils.toPath(sourceUri, websitePath);
         Path target = PathUtils.toPath(targetUri, Transactions.content(transaction));
-        Path finalWebsiteTarget = PathUtils.toPath(targetUri, Transactions.content(transaction));
+        Path finalWebsiteTarget = PathUtils.toPath(targetUri, websitePath);
 
         String shaOutput = null;
         long sizeOutput = 0;
