@@ -210,10 +210,17 @@ public class Publisher {
 
         Path source = PathUtils.toPath(sourceUri, websitePath);
         Path target = PathUtils.toPath(targetUri, Transactions.content(transaction));
+        Path finalWebsiteTarget = PathUtils.toPath(targetUri, websitePath);
+
         String shaOutput = null;
         long sizeOutput = 0;
 
         if (!Files.exists(source))
+            return false;
+
+        // if the file already exists it has already been copied so ignore it.
+        // doing this allows the publish to be reattempted if it fails without trying to copy files over existing files.
+        if (Files.exists(finalWebsiteTarget))
             return false;
 
         if (target != null) {
