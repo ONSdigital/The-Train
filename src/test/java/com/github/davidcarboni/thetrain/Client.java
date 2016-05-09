@@ -73,6 +73,6 @@
 //        } else if (response.body.transaction.hasErrors()) {
 //            throw new RuntimeException(Serialiser.serialise(response.body.transaction));
 //        }
-//        System.out.println(response.body.message);
+//        System.out.println(response.body.debug);
 //    }
 //}

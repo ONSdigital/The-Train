@@ -1,6 +1,7 @@
 package com.github.davidcarboni.thetrain.storage;
 
 import com.github.davidcarboni.thetrain.helpers.Configuration;
+import com.github.davidcarboni.thetrain.logging.Log;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -31,18 +32,18 @@ public class Website {
             String websitePath = Configuration.get(Configuration.WEBSITE);
             if (StringUtils.isNotBlank(websitePath)) {
                 path = Paths.get(websitePath);
-                System.out.println(Configuration.WEBSITE + " configured as: " + path);
+                Log.debug(Configuration.WEBSITE + " configured as: " + path);
             } else {
                 path = Files.createTempDirectory("website");
-                System.out.println("Simulating website for development using a temp folder at: " + path);
-                System.out.println("Please configure a " + Configuration.WEBSITE + " variable to configure this directory in production.");
+                Log.debug("Simulating website for development using a temp folder at: " + path);
+                Log.debug("Please configure a " + Configuration.WEBSITE + " variable to configure this directory in production.");
             }
         }
 
         if (Files.isDirectory(path)) {
             result = path;
         } else {
-            System.out.println("The configured website path is not a directory: " + path);
+            Log.debug("The configured website path is not a directory: " + path);
         }
 
         return result;
