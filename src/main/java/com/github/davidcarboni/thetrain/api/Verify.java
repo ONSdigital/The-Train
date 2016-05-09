@@ -1,11 +1,11 @@
 package com.github.davidcarboni.thetrain.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
-import com.github.davidcarboni.thetrain.helpers.DateConverter;
 import com.github.davidcarboni.thetrain.helpers.Hash;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.json.FileHash;
 import com.github.davidcarboni.thetrain.json.Transaction;
+import com.github.davidcarboni.thetrain.logging.Log;
 import com.github.davidcarboni.thetrain.storage.Website;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.lang3.StringUtils;
@@ -18,7 +18,6 @@ import javax.ws.rs.GET;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Date;
 
 /**
  * API to start a new {@link Transaction}.
@@ -63,7 +62,7 @@ public class Verify {
             result.message = ExceptionUtils.getStackTrace(e);
         }
 
-        System.out.println(DateConverter.toString(new Date()) + " " + result.message);
+        Log.debug(result.message);
         return result;
     }
 }
