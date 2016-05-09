@@ -215,13 +215,18 @@ public class Publisher {
         String shaOutput = null;
         long sizeOutput = 0;
 
-        if (!Files.exists(source))
+        if (!Files.exists(source)) {
+            System.out.println("Could not move file because it does not exist: " + source);
             return false;
+        }
+
 
         // if the file already exists it has already been copied so ignore it.
         // doing this allows the publish to be reattempted if it fails without trying to copy files over existing files.
-        if (Files.exists(finalWebsiteTarget))
+        if (Files.exists(finalWebsiteTarget)) {
+            System.out.println("Could not move the file - it already exists: " + finalWebsiteTarget);
             return false;
+        }
 
         if (target != null) {
             Files.createDirectories(target.getParent());

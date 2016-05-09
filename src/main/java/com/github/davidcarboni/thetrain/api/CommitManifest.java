@@ -86,7 +86,7 @@ public class CommitManifest {
                 if (copied != manifest.filesToCopy.size()) {
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     error = true;
-                    message = "Move failed.";
+                    message = "Move failed. Copied " + copied + " of " + manifest.filesToCopy.size();
                 }
             }
 
