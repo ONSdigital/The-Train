@@ -1,9 +1,9 @@
 package com.github.davidcarboni.thetrain.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
-import com.github.davidcarboni.thetrain.helpers.DateConverter;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.request.Manifest;
+import com.github.davidcarboni.thetrain.logging.Log;
 import com.github.davidcarboni.thetrain.storage.Publisher;
 import com.github.davidcarboni.thetrain.storage.Transactions;
 import com.github.davidcarboni.thetrain.storage.Website;
@@ -17,7 +17,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.POST;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Date;
 
 /**
  * API to move files within an existing {@link com.github.davidcarboni.thetrain.json.Transaction}.
@@ -31,7 +30,7 @@ public class CommitManifest {
             Manifest manifest
     ) throws IOException, FileUploadException {
 
-        System.out.println(DateConverter.toString(new Date()) + " Start processing manifest");
+        Log.debug("Start processing manifest");
 
         com.github.davidcarboni.thetrain.json.Transaction transaction = null;
         String message = null;
@@ -86,7 +85,7 @@ public class CommitManifest {
                 if (copied != manifest.filesToCopy.size()) {
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     error = true;
-                    message = "Move failed.";
+                    message = "Move failed. Copied " + copied + " of " + manifest.filesToCopy.size();
                 }
             }
 
@@ -99,7 +98,7 @@ public class CommitManifest {
             Transactions.update(transaction);
         }
 
-        System.out.println(DateConverter.toString(new Date()) + " " + message + (transaction != null ? " (transaction " + transaction.id() + ")" : ""));
+        Log.debug(transaction, message);
         return new Result(message, error, transaction);
     }
 }

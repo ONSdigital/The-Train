@@ -124,7 +124,7 @@ public class UriInfo {
     }
 
     /**
-     * @param error An error message to set for this Uri.
+     * @param error An error debug to set for this Uri.
      */
     public void fail(String error) {
         status = COMMIT_FAILED;

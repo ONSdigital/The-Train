@@ -1,9 +1,9 @@
 package com.github.davidcarboni.thetrain.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
-import com.github.davidcarboni.thetrain.helpers.DateConverter;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
+import com.github.davidcarboni.thetrain.logging.Log;
 import com.github.davidcarboni.thetrain.storage.Publisher;
 import com.github.davidcarboni.thetrain.storage.Transactions;
 import com.github.davidcarboni.thetrain.storage.Website;
@@ -17,7 +17,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.POST;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Date;
 
 /**
  * API to commit an existing {@link Transaction}.
@@ -29,8 +28,7 @@ public class Commit {
     public Result commit(HttpServletRequest request,
                          HttpServletResponse response) throws IOException, FileUploadException {
 
-        System.out.println(DateConverter.toString(new Date()) + " Start Commit");
-
+        Log.debug("Start Commit");
         Transaction transaction = null;
         String message = null;
         boolean error = false;
@@ -97,7 +95,7 @@ public class Commit {
             Transactions.update(transaction);
         }
 
-        System.out.println(DateConverter.toString(new Date()) + " " + message + (transaction != null ? " (transaction " + transaction.id() + ")" : ""));
+        Log.debug(transaction, message);
         return new Result(message, error, transaction);
     }
 }
