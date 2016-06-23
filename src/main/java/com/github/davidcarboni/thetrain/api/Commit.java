@@ -28,7 +28,7 @@ public class Commit {
     public Result commit(HttpServletRequest request,
                          HttpServletResponse response) throws IOException, FileUploadException {
 
-        Log.debug("Start Commit");
+        Log.info("Start Commit");
         Transaction transaction = null;
         String message = null;
         boolean error = false;
@@ -95,7 +95,7 @@ public class Commit {
             Transactions.update(transaction);
         }
 
-        Log.debug(transaction, message);
+        Log.info(transaction, message);
         return new Result(message, error, transaction);
     }
 }

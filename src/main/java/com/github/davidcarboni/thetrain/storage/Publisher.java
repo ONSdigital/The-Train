@@ -104,7 +104,7 @@ public class Publisher {
             }
         }
 
-        Log.debug("Unzip results: " + big + " large files (synchronous), " + small + " small files (asynchronous). Total: " + (big + small));
+        Log.info("Unzip results: " + big + " large files (synchronous), " + small + " small files (asynchronous). Total: " + (big + small));
         return result;
     }
 
@@ -154,7 +154,7 @@ public class Publisher {
                 if (StringUtils.equals(shaInput, shaOutput) && sizeInput == sizeOutput) {
                     result = true;
                 } else {
-                    Log.debug("SHA/size mismatch for: " + uri +
+                    Log.info("SHA/size mismatch for: " + uri +
                             " input: " + sizeInput + "/" + shaInput +
                             ", output: " + sizeOutput + "/" + shaOutput);
                 }
@@ -217,7 +217,7 @@ public class Publisher {
         long sizeOutput = 0;
 
         if (!Files.exists(source)) {
-            Log.debug("Could not move file because it does not exist: " + source);
+            Log.info("Could not move file because it does not exist: " + source);
             return false;
         }
 
@@ -225,7 +225,7 @@ public class Publisher {
         // if the file already exists it has already been copied so ignore it.
         // doing this allows the publish to be reattempted if it fails without trying to copy files over existing files.
         if (Files.exists(finalWebsiteTarget)) {
-            Log.debug("Could not move the file - it already exists: " + finalWebsiteTarget);
+            Log.info("Could not move the file - it already exists: " + finalWebsiteTarget);
             return false;
         }
 
@@ -451,9 +451,9 @@ public class Publisher {
                     String outputSha = output.sha();
                     long outputSize = output.size();
                     if (inputSize != outputSize || !StringUtils.equals(inputSha, outputSha)) {
-                        Log.debug("Size   : " + i);
-                        Log.debug("Input  : " + inputSize + "/" + input.sha());
-                        Log.debug("Output : " + outputSize + "/" + output.sha());
+                        Log.info("Size   : " + i);
+                        Log.info("Input  : " + inputSize + "/" + input.sha());
+                        Log.info("Output : " + outputSize + "/" + output.sha());
                     }
 
                 }

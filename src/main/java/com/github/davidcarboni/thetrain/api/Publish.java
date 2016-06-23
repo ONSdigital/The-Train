@@ -35,7 +35,7 @@ public class Publish {
     public Result addFile(HttpServletRequest request,
                           HttpServletResponse response) throws IOException, FileUploadException {
 
-        Log.debug("Start Publish");
+        Log.info("Start Publish");
 
         Transaction transaction = null;
         String message = null;
@@ -88,17 +88,17 @@ public class Publish {
                     // Publish
                     boolean published;
                     if (zipped) {
-                        Log.debug("Zipped File: Unzipping...");
+                        Log.info("Zipped File: Unzipping...");
                         try (ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))) {
                             published = Publisher.addFiles(transaction, uri, input);
                         }
-                        Log.debug("Finished Unzipping.");
+                        Log.info("Finished Unzipping.");
                     } else {
-                        Log.debug("Adding normal file");
+                        Log.info("Adding normal file");
                         try (ShaInputStream input = new ShaInputStream(new BufferedInputStream(data))) {
                             published = Publisher.addFile(transaction, uri, input, startDate);
                         }
-                        Log.debug("Finished adding normal file");
+                        Log.info("Finished adding normal file");
                     }
 
                     if (published) {
@@ -119,7 +119,7 @@ public class Publish {
             message = ExceptionUtils.getStackTrace(e);
         }
 
-        Log.debug(transaction, message);
+        Log.info(transaction, message);
         return new Result(message, error, transaction);
     }
 

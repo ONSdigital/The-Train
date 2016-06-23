@@ -201,7 +201,7 @@ public class Transactions {
             synchronized (read) {
                 Path transactionPath = path(transaction.id());
                 if (transactionPath != null && Files.exists(transactionPath)) {
-                    Log.debug("Writing transaction file.");
+                    Log.info("Writing transaction file.");
                     final Path json = transactionPath.resolve(JSON);
                     try (OutputStream output = Files.newOutputStream(json)) {
                         objectMapper().writeValue(output, read);
@@ -226,7 +226,7 @@ public class Transactions {
             if (Files.exists(path)) {
                 result = path;
             } else {
-                Log.debug(transaction, "Content path does not exist: " + path);
+                Log.info(transaction, "Content path does not exist: " + path);
             }
         }
         return result;
@@ -280,17 +280,17 @@ public class Transactions {
                 Path path = Paths.get(transactionStorePath);
                 if (Files.isDirectory(path)) {
                     transactionStore = path;
-                    Log.debug(Configuration.TRANSACTION_STORE + " configured as: " + path);
+                    Log.info(Configuration.TRANSACTION_STORE + " configured as: " + path);
                 } else {
-                    Log.debug("Not a valid transaction store directory: " + path);
+                    Log.info("Not a valid transaction store directory: " + path);
                 }
             }
 
             // Development fallback
             if (transactionStore == null) {
                 transactionStore = Files.createTempDirectory(Transactions.class.getSimpleName());
-                Log.debug("Temporary transaction store created at: " + transactionStore);
-                Log.debug("Please configure a " + Configuration.TRANSACTION_STORE + " variable to configure this directory in production.");
+                Log.info("Temporary transaction store created at: " + transactionStore);
+                Log.info("Please configure a " + Configuration.TRANSACTION_STORE + " variable to configure this directory in production.");
             }
 
         }

@@ -78,7 +78,7 @@ public class Rollback {
             Transactions.update(transaction);
         }
 
-        Log.debug(transaction, message);
+        Log.info(transaction, message);
         return new Result(message, error, transaction);
     }
 }
