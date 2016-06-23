@@ -57,7 +57,7 @@ public class Transaction {
             message = ExceptionUtils.getStackTrace(e);
         }
 
-        Log.debug(message);
+        Log.info(message);
         return new Result(message, error, transaction);
     }
 }
