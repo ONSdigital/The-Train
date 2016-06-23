@@ -23,9 +23,8 @@
         </encoder>
     </appender>
 
-
-    <logger name="com.github.onsdigital.logging" level="info" additivity="false">
-        <appender-ref ref="JSON"/>
+    <logger name="com.github.onsdigital" level="info" additivity="false">
+        <appender-ref ref="PLAIN_TEXT"/>
     </logger>
 
     <root level="info">

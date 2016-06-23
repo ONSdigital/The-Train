@@ -62,7 +62,7 @@ public class Verify {
             result.message = ExceptionUtils.getStackTrace(e);
         }
 
-        Log.debug(result.message);
+        Log.info(result.message);
         return result;
     }
 }

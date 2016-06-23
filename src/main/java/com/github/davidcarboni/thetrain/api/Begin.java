@@ -40,7 +40,7 @@ public class Begin {
             message = ExceptionUtils.getStackTrace(e);
         }
 
-        Log.debug(message + (transaction != null ? " (transaction " + transaction.id() + ")" : ""));
+        Log.info(message + (transaction != null ? " (transaction " + transaction.id() + ")" : ""));
         return new Result(message, error, transaction);
     }
 }

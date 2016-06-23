@@ -30,7 +30,7 @@ public class CommitManifest {
             Manifest manifest
     ) throws IOException, FileUploadException {
 
-        Log.debug("Start processing manifest");
+        Log.info("Start processing manifest");
 
         com.github.davidcarboni.thetrain.json.Transaction transaction = null;
         String message = null;
@@ -98,7 +98,7 @@ public class CommitManifest {
             Transactions.update(transaction);
         }
 
-        Log.debug(transaction, message);
+        Log.info(transaction, message);
         return new Result(message, error, transaction);
     }
 }

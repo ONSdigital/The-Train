@@ -32,18 +32,18 @@ public class Website {
             String websitePath = Configuration.get(Configuration.WEBSITE);
             if (StringUtils.isNotBlank(websitePath)) {
                 path = Paths.get(websitePath);
-                Log.debug(Configuration.WEBSITE + " configured as: " + path);
+                Log.info(Configuration.WEBSITE + " configured as: " + path);
             } else {
                 path = Files.createTempDirectory("website");
-                Log.debug("Simulating website for development using a temp folder at: " + path);
-                Log.debug("Please configure a " + Configuration.WEBSITE + " variable to configure this directory in production.");
+                Log.info("Simulating website for development using a temp folder at: " + path);
+                Log.info("Please configure a " + Configuration.WEBSITE + " variable to configure this directory in production.");
             }
         }
 
         if (Files.isDirectory(path)) {
             result = path;
         } else {
-            Log.debug("The configured website path is not a directory: " + path);
+            Log.info("The configured website path is not a directory: " + path);
         }
 
         return result;
