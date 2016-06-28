@@ -3,7 +3,7 @@
 ECR_REPOSITORY_URI=
 GIT_COMMIT=
 
-docker run -d --name the-train-$GIT_COMMIT         \
+docker run -d --name the-train                     \
     --volume=/var/babbage/publishing:/transactions \
     --volume=/var/babbage/site:/content            \
     --volume=/var/babbage/tmp:/tmp                 \
