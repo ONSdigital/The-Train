@@ -31,7 +31,7 @@ node {
         docker.build(registry['image']).push(registry['tag'])
     })
 
-    if (branch != 'develop') return
+    if (branch != 'feature%2Fcodedeploy') return
 
     stage 'Bundle'
     sh sprintf('sed -i -e %s -e %s -e %s -e %s appspec.yml scripts/codedeploy/*', [
