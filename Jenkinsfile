@@ -30,7 +30,7 @@ node {
         docker.build(registry['image']).push(registry['tag'])
     })
 
-    if (env.JOB_NAME != 'feature/codedeploy') return
+    echo env.JOB_NAME
 
     stage 'Bundle'
     sh sprintf('sed -i -e %s -e %s -e %s -e %s appspec.yml scripts/codedeploy/*', [
