@@ -9,6 +9,7 @@ node {
     sh 'git rev-parse --short HEAD > git_commit_id'
 
     stage 'Image'
+    def branch   = env.JOB_NAME.replaceFirst('.+/', '')
     def revision = readFile('git_commit_id').trim()
     def registry = [
         'hub': [
@@ -23,14 +24,14 @@ node {
             'tag': revision,
             'uri': "https://${env.ECR_REPOSITORY_URI}",
         ],
-    ][env.JOB_NAME == 'live' ? 'hub' : 'ecr']
+    ][branch == 'live' ? 'hub' : 'ecr']
 
     docker.withRegistry(registry['uri'], { ->
         sh registry['login']
         docker.build(registry['image']).push(registry['tag'])
     })
 
-    echo env.JOB_NAME
+    if (branch != 'feature%2Fcodedeploy') return
 
     stage 'Bundle'
     sh sprintf('sed -i -e %s -e %s -e %s -e %s appspec.yml scripts/codedeploy/*', [
