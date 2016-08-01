@@ -134,14 +134,26 @@ public class Publisher {
     public static boolean addFile(Transaction transaction, String uri, ShaInputStream input, Date startDate) throws IOException {
         boolean result = false;
 
-        String shaInput = null;
-        long sizeInput = 0;
+        String shaInput;
+        long sizeInput;
         String shaOutput = null;
         long sizeOutput = 0;
 
         // Add the file
         Path content = Transactions.content(transaction);
         Path target = PathUtils.toPath(uri, content);
+
+        Path backup;
+        // Back up the existing file, if present
+        String action = UriInfo.CREATE;
+        if (Files.exists(target)) {
+            backup = PathUtils.toPath(uri, Transactions.backup(transaction));
+            Files.createDirectories(backup.getParent());
+            Files.move(target, backup);
+            action = UriInfo.UPDATE;
+        }
+
+
         if (target != null) {
             // Encrypt if a key was provided, then delete the original
             Files.createDirectories(target.getParent());
@@ -164,6 +176,7 @@ public class Publisher {
         // Update the transaction
         UriInfo uriInfo = new UriInfo(uri, startDate);
         uriInfo.stop(shaOutput, sizeOutput);
+        uriInfo.setAction(action);
         transaction.addUri(uriInfo);
         return result;
     }
@@ -213,6 +226,16 @@ public class Publisher {
         Path target = PathUtils.toPath(targetUri, Transactions.content(transaction));
         Path finalWebsiteTarget = PathUtils.toPath(targetUri, websitePath);
 
+        Path backup;
+        // Back up the existing file, if present
+        String action = UriInfo.CREATE;
+        if (Files.exists(target)) {
+            backup = PathUtils.toPath(targetUri, Transactions.backup(transaction));
+            Files.createDirectories(backup.getParent());
+            Files.move(target, backup);
+            action = UriInfo.UPDATE;
+        }
+
         String shaOutput = null;
         long sizeOutput = 0;
 
@@ -220,7 +243,6 @@ public class Publisher {
             Log.info("Could not move file because it does not exist: " + source);
             return false;
         }
-
 
         // if the file already exists it has already been copied so ignore it.
         // doing this allows the publish to be reattempted if it fails without trying to copy files over existing files.
@@ -243,6 +265,7 @@ public class Publisher {
         // Update the transaction
         UriInfo uriInfo = new UriInfo(targetUri, new Date());
         uriInfo.stop(shaOutput, sizeOutput);
+        uriInfo.setAction(action);
         transaction.addUri(uriInfo);
         return moved;
     }
@@ -319,20 +342,10 @@ public class Publisher {
         UriInfo uriInfo = findUri(uri, transaction);
         Path source = PathUtils.toPath(uri, Transactions.content(transaction));
         Path target = PathUtils.toPath(uri, website);
-        Path backup = null;
 
         // We use a very broad exception catch clause to
         // ensure any and all commit errors are trapped
         try {
-
-            // Back up the existing file, if present
-            String action = UriInfo.CREATE;
-            if (Files.exists(target)) {
-                backup = PathUtils.toPath(uri, Transactions.backup(transaction));
-                Files.createDirectories(backup.getParent());
-                Files.move(target, backup);
-                action = UriInfo.UPDATE;
-            }
 
             // Publish the file
             // NB we don't need to worry about overwriting because
@@ -351,7 +364,7 @@ public class Publisher {
                 committedSize = output.size();
             }
             if (StringUtils.equals(uploadedSha, committedSha) && uploadedSize == committedSize) {
-                uriInfo.commit(action);
+                uriInfo.commit();
                 result = true;
             } else {
                 uriInfo.fail("Published file mismatch. Uploaded: " + uploadedSize + " bytes (" + uploadedSha + ") Committed: " + committedSize + " bytes (" + committedSha + ")");
@@ -361,7 +374,6 @@ public class Publisher {
 
             // Record the error
             String error = "Error committing '" + source + "' to '" + target + "'.\n";
-            if (backup != null) error += "\nBackup file is '" + backup + "'.\n";
             error += ExceptionUtils.getStackTrace(t);
             if (uriInfo != null) {
                 uriInfo.fail(error);

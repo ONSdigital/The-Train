@@ -41,11 +41,17 @@ public class PublisherTest {
         // When
         // We publish the file
         Publisher.addFile(transaction, uri, Random.inputStream(5000));
+        Path website = Website.path();
 
         // Then
         // The transaction should exist and be populated with values
         Path path = Publisher.getFile(transaction, uri);
         assertNotNull(path);
+
+        Path backup = Transactions.backup(transaction);
+        assertTrue(Files.exists(PathUtils.toPath(uri, backup)));
+        assertNotEquals(Hash.sha(PathUtils.toPath(uri, backup)),
+                Hash.sha(PathUtils.toPath(uri, website)));
     }
 
     @Test
@@ -95,6 +101,11 @@ public class PublisherTest {
         assertNotNull(path);
         assertTrue(Files.exists(path));
         assertFalse(transaction.hasErrors());
+
+        // Only the replaced file should be backed up - and we should see that the backed up content is different
+        Path backup = Transactions.backup(transaction);
+        assertTrue(Files.exists(PathUtils.toPath(target, backup)));
+        assertNotEquals(Hash.sha(PathUtils.toPath(target, backup)), Hash.sha(PathUtils.toPath(target, website)));
     }
 
     @Test
@@ -189,7 +200,6 @@ public class PublisherTest {
         // A transaction
         Transaction transaction = Transactions.create(null);
         Path content = Transactions.content(transaction);
-        Path backup = Transactions.backup(transaction);
         Path website = Website.path();
 
         // Files being published
@@ -215,12 +225,6 @@ public class PublisherTest {
         assertEquals(Hash.sha(PathUtils.toPath(create, content)),
                 Hash.sha(PathUtils.toPath(create, website)));
         assertEquals(Hash.sha(PathUtils.toPath(update, content)),
-                Hash.sha(PathUtils.toPath(update, website)));
-
-        // Only the replaced file should be backed up - and we should see that the backed up content is different
-        assertFalse(Files.exists(PathUtils.toPath(create, backup)));
-        assertTrue(Files.exists(PathUtils.toPath(update, backup)));
-        assertNotEquals(Hash.sha(PathUtils.toPath(update, backup)),
                 Hash.sha(PathUtils.toPath(update, website)));
 
         // Check the transaction details
