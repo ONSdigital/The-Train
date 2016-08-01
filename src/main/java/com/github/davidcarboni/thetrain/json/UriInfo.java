@@ -133,11 +133,16 @@ public class UriInfo {
 
     /**
      * Sets the status of this instance to {@value #COMMITTED}.
-     *
-     * @param action {@value #CREATE} or {@value #UPDATE}.
      */
-    public void commit(String action) {
+    public void commit() {
         status = COMMITTED;
+    }
+
+    /**
+     * Set the action type
+     * @param action
+     */
+    public void setAction(String action) {
         this.action = action;
     }
 
