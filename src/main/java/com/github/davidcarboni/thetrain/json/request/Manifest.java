@@ -4,4 +4,5 @@ import java.util.List;
 
 public class Manifest {
     public List<FileCopy> filesToCopy;
+    public List<String> urisToDelete;
 }
