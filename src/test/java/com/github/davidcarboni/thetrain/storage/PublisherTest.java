@@ -232,26 +232,27 @@ public class PublisherTest {
         // Files being published
         String create = "/create-" + Random.id() + ".txt";
         String update = "/update-" + Random.id() + ".txt";
-        Publisher.addFile(transaction, create, data());
-        Publisher.addFile(transaction, update, data());
 
         // An existing file on the website
-        Files.move(tempFile(), PathUtils.toPath(update, website));
+        Path originalSource = tempFile();
+        Files.copy(originalSource, PathUtils.toPath(update, website));
 
+        Publisher.addFile(transaction, create, data());
+        Publisher.addFile(transaction, update, data());
 
         // When
         // We commit the transaction
         Publisher.commit(transaction, website);
 
-
         // Then
-
         // The published files should be on the website
         assertTrue(Files.exists(PathUtils.toPath(create, website)));
         assertTrue(Files.exists(PathUtils.toPath(update, website)));
         assertEquals(Hash.sha(PathUtils.toPath(create, content)),
                 Hash.sha(PathUtils.toPath(create, website)));
         assertEquals(Hash.sha(PathUtils.toPath(update, content)),
+                Hash.sha(PathUtils.toPath(update, website)));
+        assertNotEquals(Hash.sha(originalSource),
                 Hash.sha(PathUtils.toPath(update, website)));
 
         // Check the transaction details
