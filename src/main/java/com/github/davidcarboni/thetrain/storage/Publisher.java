@@ -74,12 +74,7 @@ public class Publisher {
                 // If entry data fit into the buffer, go asynchronous:
                 if (count < buffer.length) {
                     if (pool == null) pool = Executors.newFixedThreadPool(100);
-                    smallFileWrites.add(pool.submit(new Callable<Boolean>() {
-                        @Override
-                        public Boolean call() throws IOException {
-                            return Boolean.valueOf(addFile(transaction, targetUri, new ShaInputStream(data), startDate));
-                        }
-                    }));
+                    smallFileWrites.add(pool.submit(() -> Boolean.valueOf(addFile(transaction, targetUri, new ShaInputStream(data), startDate))));
                     small++;
                 } else {
                     // Large file, so read from (data + "more from the zip")
@@ -143,16 +138,7 @@ public class Publisher {
         Path content = Transactions.content(transaction);
         Path target = PathUtils.toPath(uri, content);
 
-        Path backup;
-        // Back up the existing file, if present
-        String action = UriInfo.CREATE;
-        if (Files.exists(target)) {
-            backup = PathUtils.toPath(uri, Transactions.backup(transaction));
-            Files.createDirectories(backup.getParent());
-            Files.move(target, backup);
-            action = UriInfo.UPDATE;
-        }
-
+        String action = backupExistingFile(transaction, uri);
 
         if (target != null) {
             // Encrypt if a key was provided, then delete the original
@@ -179,6 +165,27 @@ public class Publisher {
         uriInfo.setAction(action);
         transaction.addUri(uriInfo);
         return result;
+    }
+
+    /**
+     * When making a change to a file on the website, we copy the existing file into a backup
+     * @param transaction
+     * @param uri
+     * @return
+     * @throws IOException
+     */
+    private static String backupExistingFile(Transaction transaction, String uri) throws IOException {
+        // Back up the existing file, if present
+        String action = UriInfo.CREATE;
+        Path website = Website.path();
+        Path target = PathUtils.toPath(uri, website);
+        if (Files.exists(target)) {
+            Path backup = PathUtils.toPath(uri, Transactions.backup(transaction));
+            Files.createDirectories(backup.getParent());
+            Files.copy(target, backup);
+            action = UriInfo.UPDATE;
+        }
+        return action;
     }
 
     public static int copyFiles(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
@@ -226,15 +233,7 @@ public class Publisher {
         Path target = PathUtils.toPath(targetUri, Transactions.content(transaction));
         Path finalWebsiteTarget = PathUtils.toPath(targetUri, websitePath);
 
-        Path backup;
-        // Back up the existing file, if present
-        String action = UriInfo.CREATE;
-        if (Files.exists(target)) {
-            backup = PathUtils.toPath(targetUri, Transactions.backup(transaction));
-            Files.createDirectories(backup.getParent());
-            Files.move(target, backup);
-            action = UriInfo.UPDATE;
-        }
+        String action = backupExistingFile(transaction, targetUri);
 
         String shaOutput = null;
         long sizeOutput = 0;

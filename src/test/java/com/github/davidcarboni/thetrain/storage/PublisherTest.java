@@ -35,22 +35,24 @@ public class PublisherTest {
     public void shouldPublishFile() throws IOException {
 
         // Given
-        // A URI to copy to
+        // A URI to copy to with an existing published file.
         String uri = "/test.txt";
+        Path website = Website.path();
+        Files.move(tempFile(), PathUtils.toPath(uri, website)); // create published file in website directory
 
         // When
         // We publish the file
         Publisher.addFile(transaction, uri, Random.inputStream(5000));
-        Path website = Website.path();
 
         // Then
         // The transaction should exist and be populated with values
         Path path = Publisher.getFile(transaction, uri);
         assertNotNull(path);
 
+        // there is a file in the backup directory that is the same as the website file
         Path backup = Transactions.backup(transaction);
         assertTrue(Files.exists(PathUtils.toPath(uri, backup)));
-        assertNotEquals(Hash.sha(PathUtils.toPath(uri, backup)),
+        assertEquals(Hash.sha(PathUtils.toPath(uri, backup)),
                 Hash.sha(PathUtils.toPath(uri, website)));
     }
 
@@ -89,6 +91,9 @@ public class PublisherTest {
         // An existing file on the website
         String source = "/move-" + Random.id() + ".txt";
         String target = "/moved/move-" + Random.id() + ".txt";
+
+        Path websiteTarget = PathUtils.toPath(target, website);
+        Files.createDirectories(websiteTarget.getParent());
         Files.move(tempFile(), PathUtils.toPath(source, website));
 
         // When
@@ -101,12 +106,34 @@ public class PublisherTest {
         assertNotNull(path);
         assertTrue(Files.exists(path));
         assertFalse(transaction.hasErrors());
-
-        // Only the replaced file should be backed up - and we should see that the backed up content is different
-        Path backup = Transactions.backup(transaction);
-        assertTrue(Files.exists(PathUtils.toPath(target, backup)));
-        assertNotEquals(Hash.sha(PathUtils.toPath(target, backup)), Hash.sha(PathUtils.toPath(target, website)));
     }
+
+    @Test
+    public void shouldNotMoveFileIfItAlreadyExists() throws IOException {
+        // Given
+        // A transaction
+        Transaction transaction = Transactions.create(null);
+        Path website = Website.path();
+
+        // An existing file on the website
+        String source = "/move-" + Random.id() + ".txt";
+        String target = "/moved/move-" + Random.id() + ".txt";
+
+        Path websiteTarget = PathUtils.toPath(target, website);
+        Files.createDirectories(websiteTarget.getParent());
+        Files.move(tempFile(), websiteTarget);
+        Files.move(tempFile(), PathUtils.toPath(source, website));
+
+        // When
+        // Files being published
+        Publisher.copyFileIntoTransaction(transaction, source, target, website);
+
+        // Then
+        // The moved files should be in the transaction in the target location.
+        Path path = Publisher.getFile(transaction, target);
+        assertNull(path);
+    }
+
 
     @Test
     public void shouldComputeHash() throws IOException {
