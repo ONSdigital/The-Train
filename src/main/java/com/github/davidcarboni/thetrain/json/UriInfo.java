@@ -20,6 +20,7 @@ public class UriInfo {
 
     public static final String CREATE = "created";
     public static final String UPDATE = "updated";
+    public static final String DELETE = "deleted";
 
     /**
      * This is a String rather than an enum to make deserialisation lenient.

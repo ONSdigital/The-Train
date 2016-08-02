@@ -5,6 +5,7 @@ import com.github.davidcarboni.thetrain.helpers.Hash;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.json.UriInfo;
+import com.github.davidcarboni.thetrain.json.request.Manifest;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
@@ -15,6 +16,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 
 import static org.junit.Assert.*;
 
@@ -327,6 +329,30 @@ public class PublisherTest {
         for (UriInfo uriInfo : transaction.uris()) {
             assertEquals(UriInfo.ROLLED_BACK, uriInfo.status());
         }
+    }
+
+    @Test
+    public void shouldAddFilesToDelete() throws IOException {
+
+        // Given a manifest with two files to delete.
+        Manifest manifest = new Manifest();
+        manifest.addUriToDelete("/some/uri");
+        manifest.addUriToDelete("/some/other/uri");
+
+        // When we add files to delete to the transaction.
+        int filesToDelete = Publisher.addFilesToDelete(this.transaction, manifest);
+
+        // Then the returned number of deletes is as expected
+        assertEquals(manifest.urisToDelete.size(), filesToDelete);
+
+        // and the transaction contains a uriInfo instance for each delete added.
+        ArrayList<UriInfo> uriInfos = new ArrayList<>(this.transaction.urisToDelete());
+        assertEquals(manifest.urisToDelete.size(), uriInfos.size());
+
+        for (UriInfo uriInfo : uriInfos) {
+            assertTrue(manifest.urisToDelete.contains(uriInfo.uri()));
+        }
+
     }
 
     private static InputStream data() throws IOException {

@@ -103,6 +103,13 @@ public class Transaction {
     }
 
     /**
+     * @return An unmodifiable set of the URIs to delete in this transaction.
+     */
+    public Set<UriInfo> urisToDelete() {
+        return Collections.unmodifiableSet(uriDeletes);
+    }
+
+    /**
      * @param uriInfo The URI to add to the set of URIs.
      */
     public void addUri(UriInfo uriInfo) {

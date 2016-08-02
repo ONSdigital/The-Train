@@ -217,6 +217,26 @@ public class Publisher {
     }
 
     /**
+     * Read the list of URI's to delete from the manifest and add them to the transaction.
+     * @param transaction
+     * @param manifest
+     * @return
+     */
+    public static int addFilesToDelete(Transaction transaction, Manifest manifest) {
+
+        int filesToDelete = 0;
+
+        for (String uri : manifest.urisToDelete) {
+            UriInfo uriInfo = new UriInfo(uri, new Date());
+            uriInfo.setAction(UriInfo.DELETE);
+            transaction.addUriDelete(uriInfo);
+            filesToDelete++;
+        }
+
+        return filesToDelete;
+    }
+
+    /**
      * Copy an existing file from the website into the given transaction.
      * @param transaction
      * @param sourceUri
@@ -471,5 +491,4 @@ public class Publisher {
             }
         }
     }
-
 }
