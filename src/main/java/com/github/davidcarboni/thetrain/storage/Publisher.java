@@ -11,6 +11,7 @@ import com.github.davidcarboni.thetrain.json.UriInfo;
 import com.github.davidcarboni.thetrain.json.request.Manifest;
 import com.github.davidcarboni.thetrain.json.request.FileCopy;
 import com.github.davidcarboni.thetrain.logging.Log;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -222,7 +223,7 @@ public class Publisher {
      * @param manifest
      * @return
      */
-    public static int addFilesToDelete(Transaction transaction, Manifest manifest) {
+    public static int addFilesToDelete(Transaction transaction, Manifest manifest) throws IOException {
 
         int filesToDelete = 0;
 
@@ -230,6 +231,15 @@ public class Publisher {
             UriInfo uriInfo = new UriInfo(uri, new Date());
             uriInfo.setAction(UriInfo.DELETE);
             transaction.addUriDelete(uriInfo);
+
+            Path website = Website.path();
+            Path target = PathUtils.toPath(uri, website);
+            Path targetDirectory = target.getParent();
+            if (Files.exists(targetDirectory)) {
+                Path backupDirectory = PathUtils.toPath(uri, Transactions.backup(transaction)).getParent();
+                FileUtils.copyDirectory(targetDirectory.toFile(), backupDirectory.toFile());
+            }
+
             filesToDelete++;
         }
 

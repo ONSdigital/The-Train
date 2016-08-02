@@ -352,6 +352,40 @@ public class PublisherTest {
         for (UriInfo uriInfo : uriInfos) {
             assertTrue(manifest.urisToDelete.contains(uriInfo.uri()));
         }
+    }
+
+    @Test
+    public void shouldBackupFilesWhenAddingFilesToDelete() throws IOException {
+
+        // Given a manifest with two files to delete.
+        Manifest manifest = new Manifest();
+        String uri = "/some/uri/data.txt";
+        manifest.addUriToDelete(uri);
+
+        Path website = Website.path();
+        Path target = PathUtils.toPath(uri, website);
+        Files.createDirectories(target.getParent());
+        Files.move(tempFile(), target); // create published file in website directory
+
+        // When we add files to delete to the transaction.
+        int filesToDelete = Publisher.addFilesToDelete(this.transaction, manifest);
+
+        // Then the returned number of deletes is as expected
+        assertEquals(manifest.urisToDelete.size(), filesToDelete);
+
+        // and the transaction contains a uriInfo instance for each delete added.
+        ArrayList<UriInfo> uriInfos = new ArrayList<>(this.transaction.urisToDelete());
+        assertEquals(manifest.urisToDelete.size(), uriInfos.size());
+
+        for (UriInfo uriInfo : uriInfos) {
+            assertTrue(manifest.urisToDelete.contains(uriInfo.uri()));
+        }
+
+        // there is a file in the backup directory that is the same as the website file
+        Path backup = Transactions.backup(transaction);
+        assertTrue(Files.exists(PathUtils.toPath(uri, backup)));
+        assertEquals(Hash.sha(PathUtils.toPath(uri, backup)),
+                Hash.sha(PathUtils.toPath(uri, website)));
 
     }
 
