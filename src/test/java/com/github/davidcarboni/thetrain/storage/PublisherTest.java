@@ -269,6 +269,34 @@ public class PublisherTest {
         }
     }
 
+    @Test
+    public void shouldCommitDeletesInTransaction() throws IOException {
+
+        // Given a transaction with deletes defined
+        Transaction transaction = Transactions.create(null);
+        String uri = "/some/uri/data.json";
+        String uriForAssociatedFile = "/some/uri/12345.json";
+
+        // create the published file
+        Path website = Website.path();
+        Path targetPath = PathUtils.toPath(uri, website);
+        Path targetPathForAssociatedFile = PathUtils.toPath(uriForAssociatedFile, website);
+        Files.createDirectories(targetPath.getParent());
+        Files.copy(tempFile(), targetPath);
+        Files.copy(tempFile(), targetPathForAssociatedFile);
+
+        Manifest manifest = new Manifest();
+        manifest.addUriToDelete(uri);
+        Publisher.addFilesToDelete(transaction, manifest);
+
+        // When we commit the transaction
+        Publisher.commit(transaction, website);
+
+        // Then the file is deleted from the website
+        assertFalse(Files.exists(targetPath));
+        assertFalse(Files.exists(targetPathForAssociatedFile));
+        assertFalse(Files.exists(targetPath.getParent()));
+    }
 
     @Test
     public void shouldCommitTransactionWithEncryption() throws IOException {

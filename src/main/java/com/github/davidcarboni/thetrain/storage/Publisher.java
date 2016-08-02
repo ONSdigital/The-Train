@@ -327,6 +327,15 @@ public class Publisher {
     public static boolean commit(Transaction transaction, Path website) throws IOException {
         boolean result = true;
 
+        // Apply any deletes that are defined in the transaction first to ensure we do not delete updated files.
+        for (UriInfo uriInfo : transaction.urisToDelete()) {
+            String uri = uriInfo.uri();
+            Path target = PathUtils.toPath(uri, website);
+            Path targetDirectory = target.getParent();
+            FileUtils.deleteDirectory(targetDirectory.toFile());
+        }
+
+        // Then move file updates from the transaction to the website.
         List<Future<Boolean>> futures = new ArrayList<>();
         ExecutorService pool = Executors.newFixedThreadPool(8);
 
