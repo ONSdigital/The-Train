@@ -274,13 +274,13 @@ public class PublisherTest {
 
         // Given a transaction with deletes defined
         Transaction transaction = Transactions.create(null);
-        String uri = "/some/uri/data.json";
-        String uriForAssociatedFile = "/some/uri/12345.json";
+        String uri = "/some/uri";
+        String uriForAssociatedFile = "/some/uri";
 
         // create the published file
         Path website = Website.path();
-        Path targetPath = PathUtils.toPath(uri, website);
-        Path targetPathForAssociatedFile = PathUtils.toPath(uriForAssociatedFile, website);
+        Path targetPath = PathUtils.toPath(uri + "/data.json", website);
+        Path targetPathForAssociatedFile = PathUtils.toPath(uriForAssociatedFile + "/12345.json", website);
         Files.createDirectories(targetPath.getParent());
         Files.copy(tempFile(), targetPath);
         Files.copy(tempFile(), targetPathForAssociatedFile);

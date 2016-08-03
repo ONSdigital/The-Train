@@ -331,8 +331,8 @@ public class Publisher {
         for (UriInfo uriInfo : transaction.urisToDelete()) {
             String uri = uriInfo.uri();
             Path target = PathUtils.toPath(uri, website);
-            Path targetDirectory = target.getParent();
-            FileUtils.deleteDirectory(targetDirectory.toFile());
+            Log.info("Deleting directory: " + target.toString());
+            FileUtils.deleteDirectory(target.toFile());
         }
 
         // Then move file updates from the transaction to the website.
