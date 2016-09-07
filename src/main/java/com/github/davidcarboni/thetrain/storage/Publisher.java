@@ -227,20 +227,22 @@ public class Publisher {
 
         int filesToDelete = 0;
 
-        for (String uri : manifest.urisToDelete) {
-            UriInfo uriInfo = new UriInfo(uri, new Date());
-            uriInfo.setAction(UriInfo.DELETE);
-            transaction.addUriDelete(uriInfo);
+        if (manifest.urisToDelete != null) {
+            for (String uri : manifest.urisToDelete) {
+                UriInfo uriInfo = new UriInfo(uri, new Date());
+                uriInfo.setAction(UriInfo.DELETE);
+                transaction.addUriDelete(uriInfo);
 
-            Path website = Website.path();
-            Path target = PathUtils.toPath(uri, website);
-            Path targetDirectory = target.getParent();
-            if (Files.exists(targetDirectory)) {
-                Path backupDirectory = PathUtils.toPath(uri, Transactions.backup(transaction)).getParent();
-                FileUtils.copyDirectory(targetDirectory.toFile(), backupDirectory.toFile());
+                Path website = Website.path();
+                Path target = PathUtils.toPath(uri, website);
+                Path targetDirectory = target.getParent();
+                if (Files.exists(targetDirectory)) {
+                    Path backupDirectory = PathUtils.toPath(uri, Transactions.backup(transaction)).getParent();
+                    FileUtils.copyDirectory(targetDirectory.toFile(), backupDirectory.toFile());
+                }
+
+                filesToDelete++;
             }
-
-            filesToDelete++;
         }
 
         return filesToDelete;
