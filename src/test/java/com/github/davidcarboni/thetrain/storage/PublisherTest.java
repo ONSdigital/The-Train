@@ -299,6 +299,19 @@ public class PublisherTest {
     }
 
     @Test
+    public void shouldReturnZeroFilesToDeleteForNullCollection() throws IOException {
+
+        // Given a manifest with the filesToDelete set to null.
+        Manifest manifest = new Manifest();
+
+        // When we attempt to add the files to delete to the transaction.
+        int filesToDelete = Publisher.addFilesToDelete(transaction, manifest);
+
+        // Then the return value is zero and no exception is thrown.
+        assertEquals(0, filesToDelete);
+    }
+
+    @Test
     public void shouldCommitTransactionWithEncryption() throws IOException {
 
         // Given
