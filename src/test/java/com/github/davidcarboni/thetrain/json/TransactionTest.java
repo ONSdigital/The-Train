@@ -110,7 +110,7 @@ public class TransactionTest {
     public void shouldAddError() {
 
         // Given
-        // A transaction and an error message
+        // A transaction and an error debug
         Transaction transaction = new Transaction();
         String error = "test";
 

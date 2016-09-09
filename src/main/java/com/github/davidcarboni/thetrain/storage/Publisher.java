@@ -10,6 +10,7 @@ import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.json.UriInfo;
 import com.github.davidcarboni.thetrain.json.request.Manifest;
 import com.github.davidcarboni.thetrain.json.request.FileCopy;
+import com.github.davidcarboni.thetrain.logging.Log;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -103,7 +104,7 @@ public class Publisher {
             }
         }
 
-        System.out.println("Unzip results: " + big + " large files (synchronous), " + small + " small files (asynchronous). Total: " + (big + small));
+        Log.info("Unzip results: " + big + " large files (synchronous), " + small + " small files (asynchronous). Total: " + (big + small));
         return result;
     }
 
@@ -153,7 +154,7 @@ public class Publisher {
                 if (StringUtils.equals(shaInput, shaOutput) && sizeInput == sizeOutput) {
                     result = true;
                 } else {
-                    System.out.println("SHA/size mismatch for: " + uri +
+                    Log.info("SHA/size mismatch for: " + uri +
                             " input: " + sizeInput + "/" + shaInput +
                             ", output: " + sizeOutput + "/" + shaOutput);
                 }
@@ -210,11 +211,23 @@ public class Publisher {
 
         Path source = PathUtils.toPath(sourceUri, websitePath);
         Path target = PathUtils.toPath(targetUri, Transactions.content(transaction));
+        Path finalWebsiteTarget = PathUtils.toPath(targetUri, websitePath);
+
         String shaOutput = null;
         long sizeOutput = 0;
 
-        if (!Files.exists(source))
+        if (!Files.exists(source)) {
+            Log.info("Could not move file because it does not exist: " + source);
             return false;
+        }
+
+
+        // if the file already exists it has already been copied so ignore it.
+        // doing this allows the publish to be reattempted if it fails without trying to copy files over existing files.
+        if (Files.exists(finalWebsiteTarget)) {
+            Log.info("Could not move the file - it already exists: " + finalWebsiteTarget);
+            return false;
+        }
 
         if (target != null) {
             Files.createDirectories(target.getParent());
@@ -438,9 +451,9 @@ public class Publisher {
                     String outputSha = output.sha();
                     long outputSize = output.size();
                     if (inputSize != outputSize || !StringUtils.equals(inputSha, outputSha)) {
-                        System.out.println("Size   : " + i);
-                        System.out.println("Input  : " + inputSize + "/" + input.sha());
-                        System.out.println("Output : " + outputSize + "/" + output.sha());
+                        Log.info("Size   : " + i);
+                        Log.info("Input  : " + inputSize + "/" + input.sha());
+                        Log.info("Output : " + outputSize + "/" + output.sha());
                     }
 
                 }

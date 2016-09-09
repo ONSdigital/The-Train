@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.davidcarboni.thetrain.helpers.Configuration;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.json.Transaction;
-import org.apache.commons.lang.exception.ExceptionUtils;
+import com.github.davidcarboni.thetrain.logging.Log;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -155,7 +155,6 @@ public class Transactions {
                     try {
                         if (transactionExecutorMap.containsKey(transactionId)
                                 && transactionMap.containsKey(transactionId)) {
-                            //System.out.print("X");
                             // The transaction passed in should always be an instance from the map
                             // otherwise there's potential to lose updates.
                             // NB the unit of synchronization is always a Transaction object.
@@ -172,11 +171,10 @@ public class Transactions {
                                 result = true;
                             }
                         } else {
-                            //System.out.print("O");
+                            // do nothing
                         }
                     } catch (IOException exception) {
-                        System.out.println("Exception updating transaction: " + exception.getMessage());
-                        ExceptionUtils.printRootCauseStackTrace(exception);
+                        Log.error(exception);
                     }
 
                     return result;
@@ -203,7 +201,7 @@ public class Transactions {
             synchronized (read) {
                 Path transactionPath = path(transaction.id());
                 if (transactionPath != null && Files.exists(transactionPath)) {
-                    System.out.println("Writing transaction file.");
+                    Log.info("Writing transaction file.");
                     final Path json = transactionPath.resolve(JSON);
                     try (OutputStream output = Files.newOutputStream(json)) {
                         objectMapper().writeValue(output, read);
@@ -228,7 +226,7 @@ public class Transactions {
             if (Files.exists(path)) {
                 result = path;
             } else {
-                System.out.println("Content path for " + transaction.id() + " does not exist: " + path);
+                Log.info(transaction, "Content path does not exist: " + path);
             }
         }
         return result;
@@ -282,17 +280,17 @@ public class Transactions {
                 Path path = Paths.get(transactionStorePath);
                 if (Files.isDirectory(path)) {
                     transactionStore = path;
-                    System.out.println(Configuration.TRANSACTION_STORE + " configured as: " + path);
+                    Log.info(Configuration.TRANSACTION_STORE + " configured as: " + path);
                 } else {
-                    System.out.println("Not a valid transaction store directory: " + path);
+                    Log.info("Not a valid transaction store directory: " + path);
                 }
             }
 
             // Development fallback
             if (transactionStore == null) {
                 transactionStore = Files.createTempDirectory(Transactions.class.getSimpleName());
-                System.out.println("Temporary transaction store created at: " + transactionStore);
-                System.out.println("Please configure a " + Configuration.TRANSACTION_STORE + " variable to configure this directory in production.");
+                Log.info("Temporary transaction store created at: " + transactionStore);
+                Log.info("Please configure a " + Configuration.TRANSACTION_STORE + " variable to configure this directory in production.");
             }
 
         }

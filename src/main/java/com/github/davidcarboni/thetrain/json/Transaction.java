@@ -140,7 +140,7 @@ public class Transaction {
     }
 
     /**
-     * @param error An error message to be added to this transaction.
+     * @param error An error debug to be added to this transaction.
      */
     public void addError(String error) {
         synchronized (this) {

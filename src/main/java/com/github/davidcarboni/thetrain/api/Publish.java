@@ -2,10 +2,10 @@ package com.github.davidcarboni.thetrain.api;
 
 import com.github.davidcarboni.encryptedfileupload.EncryptedFileItemFactory;
 import com.github.davidcarboni.restolino.framework.Api;
-import com.github.davidcarboni.thetrain.helpers.DateConverter;
 import com.github.davidcarboni.thetrain.helpers.ShaInputStream;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
+import com.github.davidcarboni.thetrain.logging.Log;
 import com.github.davidcarboni.thetrain.storage.Publisher;
 import com.github.davidcarboni.thetrain.storage.Transactions;
 import org.apache.commons.fileupload.FileItem;
@@ -35,7 +35,8 @@ public class Publish {
     public Result addFile(HttpServletRequest request,
                           HttpServletResponse response) throws IOException, FileUploadException {
 
-        System.out.println(DateConverter.toString(new Date()) + " Start Publish");
+        Log.info("Start Publish");
+
         Transaction transaction = null;
         String message = null;
         boolean error = false;
@@ -87,17 +88,17 @@ public class Publish {
                     // Publish
                     boolean published;
                     if (zipped) {
-                        System.out.println(DateConverter.toString(new Date()) + " Zipped File: Unzipping...");
+                        Log.info("Zipped File: Unzipping...");
                         try (ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))) {
                             published = Publisher.addFiles(transaction, uri, input);
                         }
-                        System.out.println(DateConverter.toString(new Date()) + " Finished Unzipping.");
+                        Log.info("Finished Unzipping.");
                     } else {
-                        System.out.println(DateConverter.toString(new Date()) + " Adding normal file");
+                        Log.info("Adding normal file");
                         try (ShaInputStream input = new ShaInputStream(new BufferedInputStream(data))) {
                             published = Publisher.addFile(transaction, uri, input, startDate);
                         }
-                        System.out.println(DateConverter.toString(new Date()) + " Finished adding normal file");
+                        Log.info("Finished adding normal file");
                     }
 
                     if (published) {
@@ -118,7 +119,7 @@ public class Publish {
             message = ExceptionUtils.getStackTrace(e);
         }
 
-        System.out.println(DateConverter.toString(new Date()) + " " + message + (transaction != null ? " (transaction " + transaction.id() + ")" : ""));
+        Log.info(transaction, message);
         return new Result(message, error, transaction);
     }
 

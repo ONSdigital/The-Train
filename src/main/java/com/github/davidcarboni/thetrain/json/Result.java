@@ -1,7 +1,7 @@
 package com.github.davidcarboni.thetrain.json;
 
 /**
- * Json message returned by API endpoints.
+ * Json debug returned by API endpoints.
  */
 public class Result {
     public String message;
@@ -9,10 +9,10 @@ public class Result {
     public Transaction transaction;
 
     /**
-     * The response message returned from the endpoints in this class.
+     * The response debug returned from the endpoints in this class.
      *
-     * @param message     An informational message.
-     * @param error       If this message represents an application error, true (rather than a general server or network error).
+     * @param message     An informational debug.
+     * @param error       If this debug represents an application error, true (rather than a general server or network error).
      * @param transaction The details of the current transaction.
      */
     public Result(String message, boolean error, Transaction transaction) {
