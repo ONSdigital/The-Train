@@ -20,6 +20,7 @@ public class UriInfo {
 
     public static final String CREATE = "created";
     public static final String UPDATE = "updated";
+    public static final String DELETE = "deleted";
 
     /**
      * This is a String rather than an enum to make deserialisation lenient.
@@ -133,11 +134,16 @@ public class UriInfo {
 
     /**
      * Sets the status of this instance to {@value #COMMITTED}.
-     *
-     * @param action {@value #CREATE} or {@value #UPDATE}.
      */
-    public void commit(String action) {
+    public void commit() {
         status = COMMITTED;
+    }
+
+    /**
+     * Set the action type
+     * @param action
+     */
+    public void setAction(String action) {
         this.action = action;
     }
 
