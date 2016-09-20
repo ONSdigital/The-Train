@@ -70,10 +70,22 @@ public class UriInfoTest {
         UriInfo uriInfo = new UriInfo("uri");
 
         // When
-        uriInfo.commit(UriInfo.UPDATE);
+        uriInfo.commit();
 
         // Then
         Assert.assertEquals(UriInfo.COMMITTED, uriInfo.status);
+    }
+
+    @Test
+    public void shouldSetAction() throws InterruptedException {
+
+        // Given
+        UriInfo uriInfo = new UriInfo("uri");
+
+        // When
+        uriInfo.setAction(UriInfo.UPDATE);
+
+        // Then
         Assert.assertEquals(UriInfo.UPDATE, uriInfo.action);
     }
 

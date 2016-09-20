@@ -5,6 +5,7 @@ import com.github.davidcarboni.thetrain.helpers.Hash;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.json.UriInfo;
+import com.github.davidcarboni.thetrain.json.request.Manifest;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
@@ -15,6 +16,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 
 import static org.junit.Assert.*;
 
@@ -35,8 +37,10 @@ public class PublisherTest {
     public void shouldPublishFile() throws IOException {
 
         // Given
-        // A URI to copy to
+        // A URI to copy to with an existing published file.
         String uri = "/test.txt";
+        Path website = Website.path();
+        Files.move(tempFile(), PathUtils.toPath(uri, website)); // create published file in website directory
 
         // When
         // We publish the file
@@ -46,6 +50,12 @@ public class PublisherTest {
         // The transaction should exist and be populated with values
         Path path = Publisher.getFile(transaction, uri);
         assertNotNull(path);
+
+        // there is a file in the backup directory that is the same as the website file
+        Path backup = Transactions.backup(transaction);
+        assertTrue(Files.exists(PathUtils.toPath(uri, backup)));
+        assertEquals(Hash.sha(PathUtils.toPath(uri, backup)),
+                Hash.sha(PathUtils.toPath(uri, website)));
     }
 
     @Test
@@ -83,6 +93,9 @@ public class PublisherTest {
         // An existing file on the website
         String source = "/move-" + Random.id() + ".txt";
         String target = "/moved/move-" + Random.id() + ".txt";
+
+        Path websiteTarget = PathUtils.toPath(target, website);
+        Files.createDirectories(websiteTarget.getParent());
         Files.move(tempFile(), PathUtils.toPath(source, website));
 
         // When
@@ -96,6 +109,33 @@ public class PublisherTest {
         assertTrue(Files.exists(path));
         assertFalse(transaction.hasErrors());
     }
+
+    @Test
+    public void shouldNotMoveFileIfItAlreadyExists() throws IOException {
+        // Given
+        // A transaction
+        Transaction transaction = Transactions.create(null);
+        Path website = Website.path();
+
+        // An existing file on the website
+        String source = "/move-" + Random.id() + ".txt";
+        String target = "/moved/move-" + Random.id() + ".txt";
+
+        Path websiteTarget = PathUtils.toPath(target, website);
+        Files.createDirectories(websiteTarget.getParent());
+        Files.move(tempFile(), websiteTarget);
+        Files.move(tempFile(), PathUtils.toPath(source, website));
+
+        // When
+        // Files being published
+        Publisher.copyFileIntoTransaction(transaction, source, target, website);
+
+        // Then
+        // The moved files should be in the transaction in the target location.
+        Path path = Publisher.getFile(transaction, target);
+        assertNull(path);
+    }
+
 
     @Test
     public void shouldComputeHash() throws IOException {
@@ -189,26 +229,24 @@ public class PublisherTest {
         // A transaction
         Transaction transaction = Transactions.create(null);
         Path content = Transactions.content(transaction);
-        Path backup = Transactions.backup(transaction);
         Path website = Website.path();
 
         // Files being published
         String create = "/create-" + Random.id() + ".txt";
         String update = "/update-" + Random.id() + ".txt";
-        Publisher.addFile(transaction, create, data());
-        Publisher.addFile(transaction, update, data());
 
         // An existing file on the website
-        Files.move(tempFile(), PathUtils.toPath(update, website));
+        Path originalSource = tempFile();
+        Files.copy(originalSource, PathUtils.toPath(update, website));
 
+        Publisher.addFile(transaction, create, data());
+        Publisher.addFile(transaction, update, data());
 
         // When
         // We commit the transaction
         Publisher.commit(transaction, website);
 
-
         // Then
-
         // The published files should be on the website
         assertTrue(Files.exists(PathUtils.toPath(create, website)));
         assertTrue(Files.exists(PathUtils.toPath(update, website)));
@@ -216,11 +254,7 @@ public class PublisherTest {
                 Hash.sha(PathUtils.toPath(create, website)));
         assertEquals(Hash.sha(PathUtils.toPath(update, content)),
                 Hash.sha(PathUtils.toPath(update, website)));
-
-        // Only the replaced file should be backed up - and we should see that the backed up content is different
-        assertFalse(Files.exists(PathUtils.toPath(create, backup)));
-        assertTrue(Files.exists(PathUtils.toPath(update, backup)));
-        assertNotEquals(Hash.sha(PathUtils.toPath(update, backup)),
+        assertNotEquals(Hash.sha(originalSource),
                 Hash.sha(PathUtils.toPath(update, website)));
 
         // Check the transaction details
@@ -235,6 +269,47 @@ public class PublisherTest {
         }
     }
 
+    @Test
+    public void shouldCommitDeletesInTransaction() throws IOException {
+
+        // Given a transaction with deletes defined
+        Transaction transaction = Transactions.create(null);
+        String uri = "/some/uri";
+        String uriForAssociatedFile = "/some/uri";
+
+        // create the published file
+        Path website = Website.path();
+        Path targetPath = PathUtils.toPath(uri + "/data.json", website);
+        Path targetPathForAssociatedFile = PathUtils.toPath(uriForAssociatedFile + "/12345.json", website);
+        Files.createDirectories(targetPath.getParent());
+        Files.copy(tempFile(), targetPath);
+        Files.copy(tempFile(), targetPathForAssociatedFile);
+
+        Manifest manifest = new Manifest();
+        manifest.addUriToDelete(uri);
+        Publisher.addFilesToDelete(transaction, manifest);
+
+        // When we commit the transaction
+        Publisher.commit(transaction, website);
+
+        // Then the file is deleted from the website
+        assertFalse(Files.exists(targetPath));
+        assertFalse(Files.exists(targetPathForAssociatedFile));
+        assertFalse(Files.exists(targetPath.getParent()));
+    }
+
+    @Test
+    public void shouldReturnZeroFilesToDeleteForNullCollection() throws IOException {
+
+        // Given a manifest with the filesToDelete set to null.
+        Manifest manifest = new Manifest();
+
+        // When we attempt to add the files to delete to the transaction.
+        int filesToDelete = Publisher.addFilesToDelete(transaction, manifest);
+
+        // Then the return value is zero and no exception is thrown.
+        assertEquals(0, filesToDelete);
+    }
 
     @Test
     public void shouldCommitTransactionWithEncryption() throws IOException {
@@ -295,6 +370,64 @@ public class PublisherTest {
         for (UriInfo uriInfo : transaction.uris()) {
             assertEquals(UriInfo.ROLLED_BACK, uriInfo.status());
         }
+    }
+
+    @Test
+    public void shouldAddFilesToDelete() throws IOException {
+
+        // Given a manifest with two files to delete.
+        Manifest manifest = new Manifest();
+        manifest.addUriToDelete("/some/uri");
+        manifest.addUriToDelete("/some/other/uri");
+
+        // When we add files to delete to the transaction.
+        int filesToDelete = Publisher.addFilesToDelete(this.transaction, manifest);
+
+        // Then the returned number of deletes is as expected
+        assertEquals(manifest.urisToDelete.size(), filesToDelete);
+
+        // and the transaction contains a uriInfo instance for each delete added.
+        ArrayList<UriInfo> uriInfos = new ArrayList<>(this.transaction.urisToDelete());
+        assertEquals(manifest.urisToDelete.size(), uriInfos.size());
+
+        for (UriInfo uriInfo : uriInfos) {
+            assertTrue(manifest.urisToDelete.contains(uriInfo.uri()));
+        }
+    }
+
+    @Test
+    public void shouldBackupFilesWhenAddingFilesToDelete() throws IOException {
+
+        // Given a manifest with two files to delete.
+        Manifest manifest = new Manifest();
+        String uri = "/some/uri/data.txt";
+        manifest.addUriToDelete(uri);
+
+        Path website = Website.path();
+        Path target = PathUtils.toPath(uri, website);
+        Files.createDirectories(target.getParent());
+        Files.move(tempFile(), target); // create published file in website directory
+
+        // When we add files to delete to the transaction.
+        int filesToDelete = Publisher.addFilesToDelete(this.transaction, manifest);
+
+        // Then the returned number of deletes is as expected
+        assertEquals(manifest.urisToDelete.size(), filesToDelete);
+
+        // and the transaction contains a uriInfo instance for each delete added.
+        ArrayList<UriInfo> uriInfos = new ArrayList<>(this.transaction.urisToDelete());
+        assertEquals(manifest.urisToDelete.size(), uriInfos.size());
+
+        for (UriInfo uriInfo : uriInfos) {
+            assertTrue(manifest.urisToDelete.contains(uriInfo.uri()));
+        }
+
+        // there is a file in the backup directory that is the same as the website file
+        Path backup = Transactions.backup(transaction);
+        assertTrue(Files.exists(PathUtils.toPath(uri, backup)));
+        assertEquals(Hash.sha(PathUtils.toPath(uri, backup)),
+                Hash.sha(PathUtils.toPath(uri, website)));
+
     }
 
     private static InputStream data() throws IOException {
