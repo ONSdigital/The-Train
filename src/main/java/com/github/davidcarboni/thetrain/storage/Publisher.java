@@ -11,6 +11,7 @@ import com.github.davidcarboni.thetrain.json.UriInfo;
 import com.github.davidcarboni.thetrain.json.request.Manifest;
 import com.github.davidcarboni.thetrain.json.request.FileCopy;
 import com.github.davidcarboni.thetrain.logging.Log;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -74,12 +75,7 @@ public class Publisher {
                 // If entry data fit into the buffer, go asynchronous:
                 if (count < buffer.length) {
                     if (pool == null) pool = Executors.newFixedThreadPool(100);
-                    smallFileWrites.add(pool.submit(new Callable<Boolean>() {
-                        @Override
-                        public Boolean call() throws IOException {
-                            return Boolean.valueOf(addFile(transaction, targetUri, new ShaInputStream(data), startDate));
-                        }
-                    }));
+                    smallFileWrites.add(pool.submit(() -> Boolean.valueOf(addFile(transaction, targetUri, new ShaInputStream(data), startDate))));
                     small++;
                 } else {
                     // Large file, so read from (data + "more from the zip")
@@ -134,14 +130,17 @@ public class Publisher {
     public static boolean addFile(Transaction transaction, String uri, ShaInputStream input, Date startDate) throws IOException {
         boolean result = false;
 
-        String shaInput = null;
-        long sizeInput = 0;
+        String shaInput;
+        long sizeInput;
         String shaOutput = null;
         long sizeOutput = 0;
 
         // Add the file
         Path content = Transactions.content(transaction);
         Path target = PathUtils.toPath(uri, content);
+
+        String action = backupExistingFile(transaction, uri);
+
         if (target != null) {
             // Encrypt if a key was provided, then delete the original
             Files.createDirectories(target.getParent());
@@ -164,8 +163,30 @@ public class Publisher {
         // Update the transaction
         UriInfo uriInfo = new UriInfo(uri, startDate);
         uriInfo.stop(shaOutput, sizeOutput);
+        uriInfo.setAction(action);
         transaction.addUri(uriInfo);
         return result;
+    }
+
+    /**
+     * When making a change to a file on the website, we copy the existing file into a backup
+     * @param transaction
+     * @param uri
+     * @return
+     * @throws IOException
+     */
+    private static String backupExistingFile(Transaction transaction, String uri) throws IOException {
+        // Back up the existing file, if present
+        String action = UriInfo.CREATE;
+        Path website = Website.path();
+        Path target = PathUtils.toPath(uri, website);
+        if (Files.exists(target)) {
+            Path backup = PathUtils.toPath(uri, Transactions.backup(transaction));
+            Files.createDirectories(backup.getParent());
+            Files.copy(target, backup);
+            action = UriInfo.UPDATE;
+        }
+        return action;
     }
 
     public static int copyFiles(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
@@ -197,6 +218,37 @@ public class Publisher {
     }
 
     /**
+     * Read the list of URI's to delete from the manifest and add them to the transaction.
+     * @param transaction
+     * @param manifest
+     * @return
+     */
+    public static int addFilesToDelete(Transaction transaction, Manifest manifest) throws IOException {
+
+        int filesToDelete = 0;
+
+        if (manifest.urisToDelete != null) {
+            for (String uri : manifest.urisToDelete) {
+                UriInfo uriInfo = new UriInfo(uri, new Date());
+                uriInfo.setAction(UriInfo.DELETE);
+                transaction.addUriDelete(uriInfo);
+
+                Path website = Website.path();
+                Path target = PathUtils.toPath(uri, website);
+                Path targetDirectory = target.getParent();
+                if (Files.exists(targetDirectory)) {
+                    Path backupDirectory = PathUtils.toPath(uri, Transactions.backup(transaction)).getParent();
+                    FileUtils.copyDirectory(targetDirectory.toFile(), backupDirectory.toFile());
+                }
+
+                filesToDelete++;
+            }
+        }
+
+        return filesToDelete;
+    }
+
+    /**
      * Copy an existing file from the website into the given transaction.
      * @param transaction
      * @param sourceUri
@@ -213,6 +265,8 @@ public class Publisher {
         Path target = PathUtils.toPath(targetUri, Transactions.content(transaction));
         Path finalWebsiteTarget = PathUtils.toPath(targetUri, websitePath);
 
+        String action = backupExistingFile(transaction, targetUri);
+
         String shaOutput = null;
         long sizeOutput = 0;
 
@@ -220,7 +274,6 @@ public class Publisher {
             Log.info("Could not move file because it does not exist: " + source);
             return false;
         }
-
 
         // if the file already exists it has already been copied so ignore it.
         // doing this allows the publish to be reattempted if it fails without trying to copy files over existing files.
@@ -243,6 +296,7 @@ public class Publisher {
         // Update the transaction
         UriInfo uriInfo = new UriInfo(targetUri, new Date());
         uriInfo.stop(shaOutput, sizeOutput);
+        uriInfo.setAction(action);
         transaction.addUri(uriInfo);
         return moved;
     }
@@ -275,6 +329,15 @@ public class Publisher {
     public static boolean commit(Transaction transaction, Path website) throws IOException {
         boolean result = true;
 
+        // Apply any deletes that are defined in the transaction first to ensure we do not delete updated files.
+        for (UriInfo uriInfo : transaction.urisToDelete()) {
+            String uri = uriInfo.uri();
+            Path target = PathUtils.toPath(uri, website);
+            Log.info("Deleting directory: " + target.toString());
+            FileUtils.deleteDirectory(target.toFile());
+        }
+
+        // Then move file updates from the transaction to the website.
         List<Future<Boolean>> futures = new ArrayList<>();
         ExecutorService pool = Executors.newFixedThreadPool(8);
 
@@ -319,20 +382,10 @@ public class Publisher {
         UriInfo uriInfo = findUri(uri, transaction);
         Path source = PathUtils.toPath(uri, Transactions.content(transaction));
         Path target = PathUtils.toPath(uri, website);
-        Path backup = null;
 
         // We use a very broad exception catch clause to
         // ensure any and all commit errors are trapped
         try {
-
-            // Back up the existing file, if present
-            String action = UriInfo.CREATE;
-            if (Files.exists(target)) {
-                backup = PathUtils.toPath(uri, Transactions.backup(transaction));
-                Files.createDirectories(backup.getParent());
-                Files.move(target, backup);
-                action = UriInfo.UPDATE;
-            }
 
             // Publish the file
             // NB we don't need to worry about overwriting because
@@ -351,7 +404,7 @@ public class Publisher {
                 committedSize = output.size();
             }
             if (StringUtils.equals(uploadedSha, committedSha) && uploadedSize == committedSize) {
-                uriInfo.commit(action);
+                uriInfo.commit();
                 result = true;
             } else {
                 uriInfo.fail("Published file mismatch. Uploaded: " + uploadedSize + " bytes (" + uploadedSha + ") Committed: " + committedSize + " bytes (" + committedSha + ")");
@@ -361,7 +414,6 @@ public class Publisher {
 
             // Record the error
             String error = "Error committing '" + source + "' to '" + target + "'.\n";
-            if (backup != null) error += "\nBackup file is '" + backup + "'.\n";
             error += ExceptionUtils.getStackTrace(t);
             if (uriInfo != null) {
                 uriInfo.fail(error);
@@ -460,5 +512,4 @@ public class Publisher {
             }
         }
     }
-
 }

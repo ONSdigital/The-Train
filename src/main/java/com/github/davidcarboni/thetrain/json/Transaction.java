@@ -35,6 +35,8 @@ public class Transaction {
     transient SecretKey key;
 
     Set<UriInfo> uriInfos = new HashSet<>();
+    Set<UriInfo> uriDeletes = new HashSet<>();
+
     List<String> errors = new ArrayList<>();
 
     /**
@@ -101,6 +103,13 @@ public class Transaction {
     }
 
     /**
+     * @return An unmodifiable set of the URIs to delete in this transaction.
+     */
+    public Set<UriInfo> urisToDelete() {
+        return Collections.unmodifiableSet(uriDeletes);
+    }
+
+    /**
      * @param uriInfo The URI to add to the set of URIs.
      */
     public void addUri(UriInfo uriInfo) {
@@ -108,6 +117,19 @@ public class Transaction {
             Set<UriInfo> uriInfos = new HashSet<>(this.uriInfos);
             uriInfos.add(uriInfo);
             this.uriInfos = uriInfos;
+            status = PUBLISHING;
+        }
+    }
+
+    /**
+     * Add a delete command to the transaction.
+     * @param uriInfo
+     */
+    public void addUriDelete(UriInfo uriInfo) {
+        synchronized (this) {
+            Set<UriInfo> uriDeletes = new HashSet<>(this.uriDeletes);
+            uriDeletes.add(uriInfo);
+            this.uriDeletes = uriDeletes;
             status = PUBLISHING;
         }
     }

@@ -80,7 +80,9 @@ public class CommitManifest {
 
             if (!error) {
                 int copied = Publisher.copyFiles(transaction, manifest, websitePath);
+                int deleted = Publisher.addFilesToDelete(transaction, manifest);
                 message = "Copied " + copied + " files.";
+                message += " Deleted " + deleted + " files.";
 
                 if (copied != manifest.filesToCopy.size()) {
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
