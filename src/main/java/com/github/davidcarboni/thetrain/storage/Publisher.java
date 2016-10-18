@@ -237,7 +237,7 @@ public class Publisher {
                 Path target = PathUtils.toPath(uri, website);
                 Path targetDirectory = target.getParent();
                 if (Files.exists(targetDirectory)) {
-                    Path backupDirectory = PathUtils.toPath(uri, Transactions.backup(transaction)).getParent();
+                    Path backupDirectory = PathUtils.toPath(uri, Transactions.backup(transaction));
                     FileUtils.copyDirectory(targetDirectory.toFile(), backupDirectory.toFile());
                 }
 
