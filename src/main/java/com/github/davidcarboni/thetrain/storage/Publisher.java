@@ -238,7 +238,10 @@ public class Publisher {
                 Path targetDirectory = target;
                 if (Files.exists(targetDirectory)) {
                     Path backupDirectory = PathUtils.toPath(uri, Transactions.backup(transaction));
+                    Log.info("Backing up directory before deletion: " + target);
                     FileUtils.copyDirectory(targetDirectory.toFile(), backupDirectory.toFile());
+                } else {
+                    Log.info("The directory " + target + "does not exist. Skipping the backup of it.");
                 }
 
                 filesToDelete++;
