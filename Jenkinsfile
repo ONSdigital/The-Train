@@ -32,16 +32,34 @@ node {
         sh "aws s3 cp the-train-${revision}.tar.gz s3://${env.S3_REVISIONS_BUCKET}/the-train-${revision}.tar.gz"
     }
 
-    if (branch != 'develop') return
+    def deploymentGroups = deploymentGroupsFor(env.JOB_NAME.replaceFirst('.+/', ''))
+    if (deploymentGroups.size() < 1) return
 
     stage('Deploy') {
-        sh sprintf('aws deploy create-deployment %s %s %s,bundleType=tgz,key=%s', [
-            '--application-name the-train',
-            "--deployment-group-name ${env.CODEDEPLOY_FRONTEND_DEPLOYMENT_GROUP}",
-            "--s3-location bucket=${env.S3_REVISIONS_BUCKET}",
-            "the-train-${revision}.tar.gz",
-        ])
+        def appName = 'the-train'
+        for (group in deploymentGroupsFor(branch)) {
+            sh sprintf('aws deploy create-deployment %s %s %s,bundleType=tgz,key=%s', [
+                    "--application-name ${appName}",
+                    "--deployment-group-name ${group}",
+                    "--s3-location bucket=${env.S3_REVISIONS_BUCKET}",
+                    "${appName}-${revision}.tar.gz",
+            ])
+        }
     }
+}
+
+def deploymentGroupsFor(branch) {
+
+    if (branch == 'develop') {
+        return [env.CODEDEPLOY_FRONTEND_DEPLOYMENT_GROUP]
+    }
+    if (branch == 'dd-develop') {
+        return [env.CODEDEPLOY_DISCOVERY_FRONTEND_DEPLOYMENT_GROUP]
+    }
+    if (branch == 'dd-master') {
+        return [env.CODEDEPLOY_DISCOVERY_ALPHA_FRONTEND_DEPLOYMENT_GROUP]
+    }
+    return []
 }
 
 @NonCPS
