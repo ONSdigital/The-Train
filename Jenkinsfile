@@ -10,16 +10,14 @@ node {
 
     def branch   = env.JOB_NAME.replaceFirst('.+/', '')
     def revision = revisionFrom(readFile('git-tag').trim(), readFile('git-commit').trim())
-    def registry = registry(branch, revision)
 
     stage('Build') {
         sh "${tool 'm3'}/bin/mvn clean package dependency:copy-dependencies"
     }
 
     stage('Image') {
-        docker.withRegistry(registry['uri'], { ->
-            if (registry.containsKey('login')) sh registry['login']
-            docker.build(registry['image']).push(registry['tag'])
+        docker.withRegistry("https://${env.ECR_REPOSITORY_URI}", { ->
+            docker.build('the-train').push(revision)
         })
     }
 
@@ -44,22 +42,6 @@ node {
             "the-train-${revision}.tar.gz",
         ])
     }
-}
-
-def registry(branch, tag) {
-    [
-        hub: [
-            login: 'docker --config .dockerhub login --username=$DOCKERHUB_USER --password=$DOCKERHUB_PASS',
-            image: "${env.DOCKERHUB_REPOSITORY}/the-train",
-            tag: 'live',
-            uri: "https://${env.DOCKERHUB_REPOSITORY_URI}",
-        ],
-        ecr: [
-            image: 'the-train',
-            tag: tag,
-            uri: "https://${env.ECR_REPOSITORY_URI}",
-        ],
-    ][branch == 'live' ? 'hub' : 'ecr']
 }
 
 @NonCPS
