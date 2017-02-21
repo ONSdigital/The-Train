@@ -400,11 +400,12 @@ public class PublisherTest {
 
         // Given a manifest with two files to delete.
         Manifest manifest = new Manifest();
-        String uri = "/some/uri/data.txt";
+        String uri = "/some/uri";
         manifest.addUriToDelete(uri);
 
         Path website = Website.path();
-        Path target = PathUtils.toPath(uri, website);
+        final String fileUri = uri + "/data.json";
+        Path target = PathUtils.toPath(fileUri, website);
         Files.createDirectories(target.getParent());
         Files.move(tempFile(), target); // create published file in website directory
 
@@ -425,8 +426,8 @@ public class PublisherTest {
         // there is a file in the backup directory that is the same as the website file
         Path backup = Transactions.backup(transaction);
         assertTrue(Files.exists(PathUtils.toPath(uri, backup)));
-        assertEquals(Hash.sha(PathUtils.toPath(uri, backup)),
-                Hash.sha(PathUtils.toPath(uri, website)));
+        assertEquals(Hash.sha(PathUtils.toPath(fileUri, backup)),
+                Hash.sha(PathUtils.toPath(fileUri, website)));
 
     }
 
