@@ -275,12 +275,12 @@ public class Transactions {
         if (transactionStore == null) {
 
             // Production configuration
-            String transactionStorePath = Configuration.get(Configuration.TRANSACTION_STORE);
+            String transactionStorePath = Configuration.transactionStore();
             if (StringUtils.isNotBlank(transactionStorePath)) {
                 Path path = Paths.get(transactionStorePath);
                 if (Files.isDirectory(path)) {
                     transactionStore = path;
-                    Log.info(Configuration.TRANSACTION_STORE + " configured as: " + path);
+                    Log.info("TRANSACTION_STORE configured as: " + path);
                 } else {
                     Log.info("Not a valid transaction store directory: " + path);
                 }
@@ -290,7 +290,7 @@ public class Transactions {
             if (transactionStore == null) {
                 transactionStore = Files.createTempDirectory(Transactions.class.getSimpleName());
                 Log.info("Temporary transaction store created at: " + transactionStore);
-                Log.info("Please configure a " + Configuration.TRANSACTION_STORE + " variable to configure this directory in production.");
+                Log.info("Please configure a TRANSACTION_STORE variable to configure this directory in production.");
             }
 
         }

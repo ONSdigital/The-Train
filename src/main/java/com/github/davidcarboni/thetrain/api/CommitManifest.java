@@ -75,7 +75,7 @@ public class CommitManifest {
             if (websitePath == null) {
                 response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                 error = true;
-                message = "Website folder could not be used: " + websitePath;
+                message = "website folder could not be used: " + websitePath;
             }
 
             if (!error) {

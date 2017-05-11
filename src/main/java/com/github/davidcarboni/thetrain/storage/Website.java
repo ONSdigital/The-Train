@@ -29,14 +29,14 @@ public class Website {
 
         // Get the Path to the website folder we're going to publish to
         if (path == null) {
-            String websitePath = Configuration.get(Configuration.WEBSITE);
+            String websitePath = Configuration.website();
             if (StringUtils.isNotBlank(websitePath)) {
                 path = Paths.get(websitePath);
-                Log.info(Configuration.WEBSITE + " configured as: " + path);
+                Log.info("WEBSITE configured as: " + path);
             } else {
                 path = Files.createTempDirectory("website");
                 Log.info("Simulating website for development using a temp folder at: " + path);
-                Log.info("Please configure a " + Configuration.WEBSITE + " variable to configure this directory in production.");
+                Log.info("Please configure a WEBSITE variable to configure this directory in production.");
             }
         }
 

@@ -71,7 +71,7 @@ public class Commit {
             if (website == null) {
                 response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                 error = true;
-                message = "Website folder could not be used: " + website;
+                message = "website folder could not be used: " + website;
             }
 
             // Commit

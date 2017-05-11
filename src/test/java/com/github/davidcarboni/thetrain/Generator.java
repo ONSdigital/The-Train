@@ -113,7 +113,7 @@ public class Generator {
         System.out.println("Moved to: " + Transactions.content(transaction));
 
         // Simulate the content already being on the website
-        //Files.delete(Website.path());
+        //Files.delete(website.path());
         FileUtils.copyDirectory(Transactions.content(transaction).toFile(), Website.path().toFile());
 
         // Attempt to commit
@@ -123,7 +123,7 @@ public class Generator {
         // Print out
         System.out.println();
         System.out.println("Content : " + Transactions.content(transaction));
-        System.out.println("Website : " + Website.path());
+        System.out.println("website : " + Website.path());
         System.out.println("Backup  : " + Transactions.backup(transaction));
     }
 }
