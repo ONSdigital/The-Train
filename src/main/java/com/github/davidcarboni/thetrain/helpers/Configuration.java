@@ -36,11 +36,11 @@ public class Configuration {
         return StringUtils.defaultIfBlank(System.getProperty(key), System.getenv(key));
     }
 
-    public static String Website() {
+    public static String website() {
         return StringUtils.defaultIfBlank(System.getenv(WEBSITE), get(WEBSITE_LEGACY));
     }
 
-    public static String TransactionStore() {
+    public static String transactionStore() {
         return StringUtils.defaultIfBlank(System.getenv(TRANSACTION_STORE), get(TRANSACTION_STORE_LEGACY));
     }
 

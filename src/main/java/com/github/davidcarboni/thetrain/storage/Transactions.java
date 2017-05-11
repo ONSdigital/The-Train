@@ -275,7 +275,7 @@ public class Transactions {
         if (transactionStore == null) {
 
             // Production configuration
-            String transactionStorePath = Configuration.TransactionStore();
+            String transactionStorePath = Configuration.transactionStore();
             if (StringUtils.isNotBlank(transactionStorePath)) {
                 Path path = Paths.get(transactionStorePath);
                 if (Files.isDirectory(path)) {

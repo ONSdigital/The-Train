@@ -29,7 +29,7 @@ public class Website {
 
         // Get the Path to the website folder we're going to publish to
         if (path == null) {
-            String websitePath = Configuration.Website();
+            String websitePath = Configuration.website();
             if (StringUtils.isNotBlank(websitePath)) {
                 path = Paths.get(websitePath);
                 Log.info("WEBSITE configured as: " + path);
