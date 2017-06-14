@@ -1,7 +1,6 @@
 #!/bin/bash -eux
 
 pushd the-train
-  mvn clean package dependency:copy-dependencies -DskipTests=true
+  mvn -DskipTests=true clean package dependency:copy-dependencies
+  cp -r Dockerfile.concourse target/* ../build/
 popd
-
-cp -r the-train/target/* target/
