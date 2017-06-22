@@ -1,0 +1,10 @@
+FROM onsdigital/java-component
+
+WORKDIR /usr/src
+
+ADD *-jar-with-dependencies.jar target/
+
+CMD java -Xmx4094m                                                 \
+    -Drestolino.packageprefix=com.github.davidcarboni.thetrain.api \
+    -Drestolino.files="target/web"                                 \
+    -jar target/*-jar-with-dependencies.jar
