@@ -57,8 +57,8 @@ job "the-train" {
       }
 
       resources {
-        cpu    = "{{PUBLISHING_RESOURCE_CPU}}"
-        memory = "{{PUBLISHING_RESOURCE_MEM}}"
+        cpu    = "{{WEB_RESOURCE_CPU}}"
+        memory = "{{WEB_RESOURCE_MEM}}"
 
         network {
           port "http" {}
