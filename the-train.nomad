@@ -9,7 +9,7 @@ job "the-train" {
   }
 
   group "web" {
-    count = 2
+    count = "{{WEB_TASK_COUNT}}"
 
     constraint {
       distinct_hosts = true
@@ -57,8 +57,8 @@ job "the-train" {
       }
 
       resources {
-        cpu    = 1500
-        memory = 4096
+        cpu    = "{{PUBLISHING_RESOURCE_CPU}}"
+        memory = "{{PUBLISHING_RESOURCE_MEM}}"
 
         network {
           port "http" {}
