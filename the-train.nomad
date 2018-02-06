@@ -37,7 +37,7 @@ job "the-train" {
 
         args = [
           "java",
-          "-Xmx4094m",
+          "-Xmx{{WEB_RESOURCE_HEAP_MEM}}m",
           "-Drestolino.files=target/web",
           "-jar target/*-jar-with-dependencies.jar",
         ]
