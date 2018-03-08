@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.davidcarboni.thetrain.helpers.Configuration;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.json.Transaction;
-import com.github.davidcarboni.thetrain.logging.Log;
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.error;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -18,7 +18,14 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.info;
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.warn;
 
 /**
  * Class for working with {@link Transaction} instances.
@@ -174,7 +181,7 @@ public class Transactions {
                             // do nothing
                         }
                     } catch (IOException exception) {
-                        Log.error(exception);
+                        error(exception, "").log();
                     }
 
                     return result;
@@ -201,8 +208,10 @@ public class Transactions {
             synchronized (read) {
                 Path transactionPath = path(transaction.id());
                 if (transactionPath != null && Files.exists(transactionPath)) {
-                    Log.info("Writing transaction file.");
                     final Path json = transactionPath.resolve(JSON);
+                    info("writing transaction file")
+                            .addParameter("path", json.toString())
+                            .log();
                     try (OutputStream output = Files.newOutputStream(json)) {
                         objectMapper().writeValue(output, read);
                     }
@@ -226,7 +235,10 @@ public class Transactions {
             if (Files.exists(path)) {
                 result = path;
             } else {
-                Log.info(transaction, "Content path does not exist: " + path);
+                warn("content path does not exist")
+                        .transactionID(transaction.id())
+                        .addParameter("path", path.toString())
+                        .log();
             }
         }
         return result;
@@ -280,17 +292,23 @@ public class Transactions {
                 Path path = Paths.get(transactionStorePath);
                 if (Files.isDirectory(path)) {
                     transactionStore = path;
-                    Log.info("TRANSACTION_STORE configured as: " + path);
+                    info("TRANSACTION_STORE configured")
+                            .addParameter("path", path.toString())
+                            .log();
                 } else {
-                    Log.info("Not a valid transaction store directory: " + path);
+                    info("transaction store directory invalid")
+                            .addParameter("path", path)
+                            .log();
                 }
             }
 
             // Development fallback
             if (transactionStore == null) {
                 transactionStore = Files.createTempDirectory(Transactions.class.getSimpleName());
-                Log.info("Temporary transaction store created at: " + transactionStore);
-                Log.info("Please configure a TRANSACTION_STORE variable to configure this directory in production.");
+                info("temporary transaction store created")
+                        .addParameter("path", transactionStore.toString())
+                        .log();
+                info("please configure a TRANSACTION_STORE variable to configure this directory in production.").log();
             }
 
         }

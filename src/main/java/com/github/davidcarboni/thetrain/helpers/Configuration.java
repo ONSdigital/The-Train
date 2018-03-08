@@ -1,8 +1,9 @@
 package com.github.davidcarboni.thetrain.helpers;
 
 import com.github.davidcarboni.cryptolite.Keys;
-import com.github.davidcarboni.thetrain.logging.Log;
 import org.apache.commons.lang3.StringUtils;
+
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.info;
 
 /**
  * Convenience class to get configuration values from {@link System#getProperty(String)} or gracefully fall back to {@link System#getenv()}.
@@ -17,12 +18,15 @@ public class Configuration {
     // Commented out as part of temporary fix
     static {
         if (Keys.canUseStrongKeys()) {
-            Log.info("This system is able to use strong AES encryption. " + Keys.SYMMETRIC_KEY_SIZE_UNLIMITED + "-bit keys will be used.");
-            // Keys.setSymmetricKeySize(Keys.SYMMETRIC_KEY_SIZE_UNLIMITED);
+            info("this system is able to use strong AES encryption")
+                    .addParameter("keyBitSize", Keys.SYMMETRIC_KEY_SIZE_UNLIMITED)
+                    .log();
         } else {
-            Log.info("This system is restricted to standard AES encryption. " + Keys.SYMMETRIC_KEY_SIZE_STANDARD + "-bit keys will be used.");
+            info("this system is restricted to standard AES encryption")
+                    .addParameter("keyBitSize", Keys.SYMMETRIC_KEY_SIZE_STANDARD)
+                    .log();
         }
-        Log.info("Symmetric key size has been set to: " + Keys.getSymmetricKeySize());
+        info("symmetric key size set").addParameter("keyBitSize", Keys.getSymmetricKeySize()).log();
     }
 
     /**

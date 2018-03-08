@@ -1,12 +1,16 @@
 #!/bin/bash
 mkdir -p target/website
 mkdir -p target/transactions
-JAVA_OPTS="-Xmx512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=n"
+export content_path="/Users/dave/Desktop/zebedee-data/content/zebedee/master"
+export transactions_path="/Users/dave/Desktop/zebedee-data/content/zebedee/transactions"
+export DP_COLOURED_LOGGING=true
+export DP_LOGGING_FORMAT=json
+JAVA_OPTS="-Xmx1024m -Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=n"
 
 mvn package && \
 java $JAVA_OPTS \
-          -Dthetrain.website=target/website \
-          -Dthetrain.transactions=target/transactions \
+          -Dthetrain.website=$content_path \
+          -Dthetrain.transactions=$transactions_path \
           -DPORT=8084 \
           -Drestolino.packageprefix=com.github.davidcarboni.thetrain.api \
           -jar target/the-train-0.0.1-SNAPSHOT-jar-with-dependencies.jar

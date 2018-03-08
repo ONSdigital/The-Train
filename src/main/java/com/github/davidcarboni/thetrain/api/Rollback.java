@@ -3,7 +3,6 @@ package com.github.davidcarboni.thetrain.api;
 import com.github.davidcarboni.restolino.framework.Api;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
-import com.github.davidcarboni.thetrain.logging.Log;
 import com.github.davidcarboni.thetrain.storage.Publisher;
 import com.github.davidcarboni.thetrain.storage.Transactions;
 import org.apache.commons.fileupload.FileUploadException;
@@ -16,6 +15,10 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.POST;
 import java.io.IOException;
 
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.error;
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.info;
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.warn;
+
 /**
  * API to roll back an existing {@link Transaction}.
  */
@@ -27,16 +30,17 @@ public class Rollback {
                            HttpServletResponse response) throws IOException, FileUploadException {
 
         Transaction transaction = null;
+        String transactionId = null;
         String message = null;
-        boolean error = false;
+        boolean isError = false;
 
         try {
-
             // Transaction ID
-            String transactionId = request.getParameter("transactionId");
+            transactionId = request.getParameter("transactionId");
             if (StringUtils.isBlank(transactionId)) {
+                warn("rollback: transactionID required but none provided").log();
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
-                error = true;
+                isError = true;
                 message = "Please provide a transactionId parameter.";
             }
 
@@ -44,41 +48,59 @@ public class Rollback {
             String encryptionPassword = request.getParameter("encryptionPassword");
             transaction = Transactions.get(transactionId, encryptionPassword);
             if (transaction == null) {
+                warn("rollback: transaction not found")
+                        .transactionID(transactionId)
+                        .log();
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
-                error = true;
+                isError = true;
                 message = "Unknown transaction " + transactionId;
             }
 
             // Check the transaction state
             if (transaction != null && !transaction.isOpen()) {
+                warn("rollback: unexpected error transaction closed")
+                        .transactionID(transactionId)
+                        .log();
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
-                error = true;
+                isError = true;
                 message = "This transaction is closed.";
             }
 
             // Roll back
-            if (!error) {
+            if (!isError) {
+                info("rollback: no errors setting up rollback, proceeding")
+                        .transactionID(transactionId)
+                        .log();
                 boolean result = Publisher.rollback(transaction);
                 if (!result) {
+                    warn("rollback: rollback failed")
+                            .transactionID(transactionId)
+                            .log();
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                    error = true;
+                    isError = true;
                     message = "Errors were detected in rolling back the transaction.";
                 } else {
+                    info("rollback: rollback completed successfully")
+                            .transactionID(transactionId)
+                            .log();
                     message = "Transaction rolled back.";
                     Transactions.listFiles(transaction);
                 }
             }
 
         } catch (Exception e) {
+            error(e, "rollback: unexpected error while attempting to rollback transaction")
+                    .transactionID(transactionId)
+                    .log();
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-            error = true;
+            isError = true;
             message = ExceptionUtils.getStackTrace(e);
-        }
-        finally {
+        } finally {
+            info("rollback: updating transaction")
+                    .transactionID(transactionId)
+                    .log();
             Transactions.update(transaction);
         }
-
-        Log.info(transaction, message);
-        return new Result(message, error, transaction);
+        return new Result(message, isError, transaction);
     }
 }
