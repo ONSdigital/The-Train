@@ -181,7 +181,7 @@ public class Transactions {
                             // do nothing
                         }
                     } catch (IOException exception) {
-                        error(exception, "").log();
+                        error(exception, "tryUpdateAsync: unexpected error encountered").log();
                     }
 
                     return result;

@@ -138,7 +138,7 @@ public class Transaction {
 
                 try {
                     key = keyWrapper.unwrapSecretKey(wrappedKey);
-                } catch (IllegalStateException e) {
+                } catch (Exception e) {
                     error(e, "transaction.enableEncryption: error while attempting to unwrap secret key")
                             .transactionID(id)
                             .addParameter("wrappedKeyEmpty", StringUtils.isEmpty(wrappedKey))

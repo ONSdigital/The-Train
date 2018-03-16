@@ -44,6 +44,7 @@ public class Publish {
 
         Transaction transaction = null;
         String transactionID = null;
+        String encryptionPassword = null;
         String uri = null;
         String message = null;
         boolean isError = false;
@@ -55,23 +56,30 @@ public class Publish {
             // Get the file first because request.getParameter will consume the body of the request:
             try (InputStream data = getFile(request)) {
 
-                // Now get the parameters:
                 transactionID = request.getParameter(TRANSACTION_ID_KEY);
-                uri = request.getParameter(URI_KEY);
-                String encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
-
-                // Validate parameters
                 if (StringUtils.isBlank(transactionID)) {
-                    warn("publish: publish requires transactionID but none way provided")
+                    warn("publish: publish requires transactionID but none provided")
                             .log();
                     response.setStatus(HttpStatus.BAD_REQUEST_400);
                     isError = true;
                     message = "Please provide transactionId and uri parameters.";
                 }
 
+                uri = request.getParameter(URI_KEY);
                 if (StringUtils.isBlank(uri)) {
-                    warn("publish: publish requires uri but none way provided")
+                    warn("publish: publish requires uri but none provided")
                             .transactionID(transactionID)
+                            .log();
+                    response.setStatus(HttpStatus.BAD_REQUEST_400);
+                    isError = true;
+                    message = "Please provide transactionId and uri parameters.";
+                }
+
+                encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
+                if (StringUtils.isBlank(encryptionPassword)) {
+                    warn("publish: publish requires encryptionPassword but none provided")
+                            .transactionID(transactionID)
+                            .uri(uri)
                             .log();
                     response.setStatus(HttpStatus.BAD_REQUEST_400);
                     isError = true;
@@ -87,6 +95,7 @@ public class Publish {
                 transaction = Transactions.get(transactionID, encryptionPassword);
                 if (transaction == null) {
                     warn("publish: transaction not fund")
+                            .uri(uri)
                             .transactionID(transactionID)
                             .log();
                     response.setStatus(HttpStatus.BAD_REQUEST_400);
@@ -97,6 +106,7 @@ public class Publish {
                 // Check the transaction state
                 if (transaction != null && !transaction.isOpen()) {
                     warn("publish: unexpected error transaction is closed")
+                            .uri(uri)
                             .transactionID(transactionID)
                             .log();
                     response.setStatus(HttpStatus.BAD_REQUEST_400);

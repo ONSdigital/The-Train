@@ -5,7 +5,7 @@ export content_path="target/website"
 export transactions_path="target/transactions"
 export DP_COLOURED_LOGGING=true
 export DP_LOGGING_FORMAT=json
-JAVA_OPTS="-Xmx1024m -Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=n"
+JAVA_OPTS="-Xmx512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=n"
 
 mvn package && \
 java $JAVA_OPTS \

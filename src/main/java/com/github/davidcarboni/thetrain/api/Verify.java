@@ -49,9 +49,9 @@ public class Verify {
                 return result;
             }
 
-            // Validate parameters
             if (StringUtils.isBlank(sha1)) {
                 warn("verify: sha1 is required but none provided")
+                        .uri(result.uri)
                         .log();
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 result.error = true;
@@ -61,7 +61,7 @@ public class Verify {
 
             Path path = PathUtils.toPath(result.uri, Website.path());
             if (!Files.exists(path)) {
-                warn("verify: file does not exist in website desitantion")
+                warn("verify: file does not exist in website destination")
                         .websitePath(Website.path())
                         .uri(path.toString())
                         .log();
@@ -77,7 +77,9 @@ public class Verify {
             }
 
         } catch (Exception e) {
-            error(e, "verify: unexpected error verifing").log();
+            error(e, "verify: unexpected error verifing")
+                    .uri(result.uri)
+                    .log();
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             result.error = true;
             result.message = ExceptionUtils.getStackTrace(e);
