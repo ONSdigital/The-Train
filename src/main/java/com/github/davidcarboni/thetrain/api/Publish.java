@@ -24,6 +24,10 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.zip.ZipInputStream;
 
+import static com.github.davidcarboni.thetrain.api.common.RequestParameters.ENCRYPTION_PASSWORD_KEY;
+import static com.github.davidcarboni.thetrain.api.common.RequestParameters.TRANSACTION_ID_KEY;
+import static com.github.davidcarboni.thetrain.api.common.RequestParameters.URI_KEY;
+import static com.github.davidcarboni.thetrain.api.common.RequestParameters.ZIP_KEY;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.error;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.info;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.warn;
@@ -52,13 +56,14 @@ public class Publish {
             try (InputStream data = getFile(request)) {
 
                 // Now get the parameters:
-                transactionID = request.getParameter("transactionId");
-                uri = request.getParameter("uri");
-                String encryptionPassword = request.getParameter("encryptionPassword");
+                transactionID = request.getParameter(TRANSACTION_ID_KEY);
+                uri = request.getParameter(URI_KEY);
+                String encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
 
                 // Validate parameters
                 if (StringUtils.isBlank(transactionID)) {
-                    warn("publish: publish requires transactionID but none way provided").log();
+                    warn("publish: publish requires transactionID but none way provided")
+                            .log();
                     response.setStatus(HttpStatus.BAD_REQUEST_400);
                     isError = true;
                     message = "Please provide transactionId and uri parameters.";
@@ -75,7 +80,7 @@ public class Publish {
 
                 info("publish: beginning publish")
                         .transactionID(transactionID)
-                        .addParameter("uri", uri)
+                        .uri(uri)
                         .log();
 
                 // Get the transaction
@@ -102,7 +107,7 @@ public class Publish {
                 if (data == null) {
                     warn("commitManifest: data is null")
                             .transactionID(transactionID)
-                            .addParameter("uri", uri)
+                            .uri(uri)
                             .log();
                     response.setStatus(HttpStatus.BAD_REQUEST_400);
 
@@ -110,37 +115,37 @@ public class Publish {
                     message = "No data found for published file.";
                 }
 
-                boolean zipped = BooleanUtils.toBoolean(request.getParameter("zip"));
+                boolean zipped = BooleanUtils.toBoolean(request.getParameter(ZIP_KEY));
 
                 if (!isError) {
                     info("publish: no errors while setting up publish transaction proceeding")
                             .transactionID(transactionID)
-                            .addParameter("uri", uri)
+                            .uri(uri)
                             .log();
 
                     boolean published;
                     if (zipped) {
                         info("publish: unzipping file")
                                 .transactionID(transactionID)
-                                .addParameter("uri", uri)
+                                .uri(uri)
                                 .log();
                         try (ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))) {
                             published = Publisher.addFiles(transaction, uri, input);
                             info("publish: unzip success")
                                     .transactionID(transactionID)
-                                    .addParameter("uri", uri)
+                                    .uri(uri)
                                     .log();
                         }
                     } else {
                         info("publish: adding file to publish transaction")
                                 .transactionID(transactionID)
-                                .addParameter("uri", uri)
+                                .uri(uri)
                                 .log();
                         try (ShaInputStream input = new ShaInputStream(new BufferedInputStream(data))) {
                             published = Publisher.addFile(transaction, uri, input, startDate);
                             info("publish: file successfully added to publish transaction")
                                     .transactionID(transactionID)
-                                    .addParameter("uri", uri)
+                                    .uri(uri)
                                     .log();
                         }
                     }
@@ -148,13 +153,13 @@ public class Publish {
                     if (published) {
                         info("publish: file successfully published")
                                 .transactionID(transactionID)
-                                .addParameter("uri", uri)
+                                .uri(uri)
                                 .log();
                         message = "Published to " + uri;
                     } else {
                         warn("publish: error while publishing file")
                                 .transactionID(transactionID)
-                                .addParameter("uri", uri)
+                                .uri(uri)
                                 .log();
                         response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                         isError = true;
@@ -168,7 +173,7 @@ public class Publish {
         } catch (Exception e) {
             error(e, "publish: error while attempting to publish file")
                     .transactionID(transactionID)
-                    .addParameter("uri", uri)
+                    .uri(uri)
                     .log();
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
             isError = true;
@@ -177,7 +182,7 @@ public class Publish {
 
         info("publish: published completed successfully")
                 .transactionID(transactionID)
-                .addParameter("uri", uri)
+                .uri(uri)
                 .log();
         return new Result(message, isError, transaction);
     }

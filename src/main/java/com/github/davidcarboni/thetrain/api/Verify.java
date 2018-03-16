@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static com.github.davidcarboni.thetrain.api.common.RequestParameters.SHA1_KEY;
+import static com.github.davidcarboni.thetrain.api.common.RequestParameters.URI_KEY;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.error;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.warn;
 
@@ -34,12 +36,13 @@ public class Verify {
 
         try {
             // Get the parameters:
-            result.uri = request.getParameter("uri");
-            String sha1 = request.getParameter("sha1");
+            result.uri = request.getParameter(URI_KEY);
+            String sha1 = request.getParameter(SHA1_KEY);
 
             // Validate parameters
             if (StringUtils.isBlank(result.uri)) {
-                warn("verify: uri is required but none provided").log();
+                warn("verify: uri is required but none provided")
+                        .log();
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 result.error = true;
                 result.message = "Please provide uri and sha1 parameters.";
@@ -48,7 +51,8 @@ public class Verify {
 
             // Validate parameters
             if (StringUtils.isBlank(sha1)) {
-                warn("verify: sha1 is required but none provided").log();
+                warn("verify: sha1 is required but none provided")
+                        .log();
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 result.error = true;
                 result.message = "Please provide uri and sha1 parameters.";
@@ -59,7 +63,7 @@ public class Verify {
             if (!Files.exists(path)) {
                 warn("verify: file does not exist in website desitantion")
                         .websitePath(Website.path())
-                        .addParameter("uri", path.toString())
+                        .uri(path.toString())
                         .log();
                 result.message = "File does not exist in the destination: " + result.uri;
                 return result;

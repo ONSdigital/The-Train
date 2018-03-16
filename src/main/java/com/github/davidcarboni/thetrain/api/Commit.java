@@ -17,6 +17,8 @@ import javax.ws.rs.POST;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import static com.github.davidcarboni.thetrain.api.common.RequestParameters.ENCRYPTION_PASSWORD_KEY;
+import static com.github.davidcarboni.thetrain.api.common.RequestParameters.TRANSACTION_ID_KEY;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.error;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.info;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.warn;
@@ -38,19 +40,29 @@ public class Commit {
         try {
 
             // Transaction ID
-            transactionId = request.getParameter("transactionId");
+            transactionId = request.getParameter(TRANSACTION_ID_KEY);
             if (StringUtils.isBlank(transactionId)) {
-                warn("commit: transactionID required but none provided").log();
+                warn("commit: transactionID required but none provided")
+                        .log();
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 isError = true;
                 message = "Please provide a transactionId parameter.";
             }
 
             // Transaction object
-            String encryptionPassword = request.getParameter("encryptionPassword");
+            String encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
+            if (StringUtils.isEmpty(encryptionPassword)) {
+                warn("commit: encryptionPassword required but none was provided")
+                        .transactionID(transactionId)
+                        .log();
+                response.setStatus(HttpStatus.BAD_REQUEST_400);
+                isError = true;
+                message = "encryptionPassword required but was empty or null " + transactionId;
+            }
+
             transaction = Transactions.get(transactionId, encryptionPassword);
             if (transaction == null) {
-                warn("commit: encryptionPassword required but none was provided")
+                warn("commit: transaction could not be found")
                         .transactionID(transactionId)
                         .log();
                 response.setStatus(HttpStatus.BAD_REQUEST_400);

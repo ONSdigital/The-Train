@@ -15,6 +15,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.POST;
 import java.io.IOException;
 
+import static com.github.davidcarboni.thetrain.api.common.RequestParameters.ENCRYPTION_PASSWORD_KEY;
+import static com.github.davidcarboni.thetrain.api.common.RequestParameters.TRANSACTION_ID_KEY;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.error;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.info;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.warn;
@@ -36,7 +38,7 @@ public class Rollback {
 
         try {
             // Transaction ID
-            transactionId = request.getParameter("transactionId");
+            transactionId = request.getParameter(TRANSACTION_ID_KEY);
             if (StringUtils.isBlank(transactionId)) {
                 warn("rollback: transactionID required but none provided").log();
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
@@ -45,7 +47,16 @@ public class Rollback {
             }
 
             // Transaction object
-            String encryptionPassword = request.getParameter("encryptionPassword");
+            String encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
+            if (StringUtils.isEmpty(encryptionPassword)) {
+                warn("rollback: rollback requires encryptionPassword but none was provided")
+                        .transactionID(transactionId)
+                        .log();
+                response.setStatus(HttpStatus.BAD_REQUEST_400);
+                isError = true;
+                message = "rollback requires encryptionPassword but none was provided";
+            }
+
             transaction = Transactions.get(transactionId, encryptionPassword);
             if (transaction == null) {
                 warn("rollback: transaction not found")

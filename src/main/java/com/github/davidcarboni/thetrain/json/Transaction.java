@@ -7,7 +7,17 @@ import com.github.davidcarboni.thetrain.helpers.DateConverter;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.crypto.SecretKey;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.error;
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.info;
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.warn;
 
 
 /**
@@ -47,12 +57,8 @@ public class Transaction {
     public Map<String, List<String>> files;
 
 
-    /**
-     * Sets encryption-related fields for this transaction.
-     *
-     * @param password If this is not blank, encryption-related fields will be initialised.
-     */
-    public void enableEncryption(String password) {
+// TODO keep this until we know 100% what the issue is.
+/*    public void enableEncryption(String password) {
 
         if (StringUtils.isNotBlank(password)) {
             if (StringUtils.isBlank(wrappedKey)) {
@@ -64,6 +70,88 @@ public class Transaction {
                 // Unwrap the existing key
                 key = new KeyWrapper(password, salt).unwrapSecretKey(wrappedKey);
             }
+        }
+    }*/
+
+    /**
+     * Sets encryption-related fields for this transaction.
+     *
+     * @param password If this is not blank, encryption-related fields will be initialised.
+     */
+    public void enableEncryption(String password) {
+        if (StringUtils.isNotBlank(password)) {
+            if (StringUtils.isBlank(wrappedKey)) {
+                warn("transaction.enableEncryption: wrappedKey is blank, a new wrappedKey will be generated")
+                        .transactionID(id)
+                        .log();
+
+                try {
+                    key = Keys.newSecretKey();
+                } catch (Exception e) {
+                    error(e, "transaction.enableEncryption: error while attempting generate new secret key for transaction")
+                            .transactionID(id)
+                            .log();
+                    throw e;
+                }
+
+
+                salt = Random.salt();
+                KeyWrapper keyWrapper = null;
+
+                try {
+                    keyWrapper = new KeyWrapper(password, salt);
+                } catch (Exception e) {
+                    error(e, "transaction.enableEncryption: error while attempting to create new KeyWrapper")
+                            .transactionID(id)
+                            .addParameter("passwordEmpty", StringUtils.isEmpty(wrappedKey))
+                            .addParameter("saltEmpty", StringUtils.isEmpty(salt))
+                            .log();
+                    throw e;
+                }
+
+                try {
+                    wrappedKey = keyWrapper.wrapSecretKey(key);
+                } catch (Exception e) {
+                    error(e, "transaction.enableEncryption: error while attempting to wrap secret key")
+                            .transactionID(id)
+                            .addParameter("keyWrapperEmpty", keyWrapper == null)
+                            .addParameter("passwordEmpty", StringUtils.isEmpty(password))
+                            .addParameter("saltEmpty", StringUtils.isEmpty(salt))
+                            .log();
+                }
+            } else {
+
+                // Unwrap the existing key
+                info("transaction.enableEncryption: wrappedKey is not blank attempting to unwrap secret key")
+                        .transactionID(id)
+                        .log();
+                KeyWrapper keyWrapper = null;
+                try {
+                    keyWrapper = new KeyWrapper(password, salt);
+                } catch (Exception e) {
+                    error(e, "transaction.enableEncryption: error while attempting to create new KeyWrapper")
+                            .transactionID(id)
+                            .addParameter("passwordEmpty", StringUtils.isEmpty(wrappedKey))
+                            .addParameter("saltEmpty", StringUtils.isEmpty(salt))
+                            .log();
+                }
+
+                try {
+                    key = keyWrapper.unwrapSecretKey(wrappedKey);
+                } catch (IllegalStateException e) {
+                    error(e, "transaction.enableEncryption: error while attempting to unwrap secret key")
+                            .transactionID(id)
+                            .addParameter("wrappedKeyEmpty", StringUtils.isEmpty(wrappedKey))
+                            .addParameter("passwordEmpty", StringUtils.isEmpty(password))
+                            .addParameter("saltEmpty", StringUtils.isEmpty(salt))
+                            .log();
+                    throw e;
+                }
+            }
+        } else {
+            warn("transaction.enableEncryption: password was blank")
+                    .transactionID(id)
+                    .log();
         }
     }
 
@@ -123,6 +211,7 @@ public class Transaction {
 
     /**
      * Add a delete command to the transaction.
+     *
      * @param uriInfo
      */
     public void addUriDelete(UriInfo uriInfo) {

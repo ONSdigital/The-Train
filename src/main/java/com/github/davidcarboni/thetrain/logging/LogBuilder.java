@@ -47,6 +47,13 @@ public class LogBuilder extends LogMessageBuilder {
         return this;
     }
 
+    public LogBuilder uri(String uri) {
+        if (!StringUtils.isEmpty(uri)) {
+            addParameter("uri", uri);
+        }
+        return this;
+    }
+
     public LogBuilder errors(List<String> errors) {
         if (errors != null && !errors.isEmpty()) {
             addParameter("transactionID", String.join(", ", errors));
@@ -59,5 +66,10 @@ public class LogBuilder extends LogMessageBuilder {
             addParameter("websitePath", websitePath.toString());
         }
         return this;
+    }
+
+    @Override
+    public LogBuilder addParameter(String key, Object value) {
+        return (LogBuilder) super.addParameter(key, value);
     }
 }

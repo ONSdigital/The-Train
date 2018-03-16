@@ -4,7 +4,7 @@ mkdir -p target/transactions
 export content_path="/Users/dave/Desktop/zebedee-data/content/zebedee/master"
 export transactions_path="/Users/dave/Desktop/zebedee-data/content/zebedee/transactions"
 export DP_COLOURED_LOGGING=true
-export DP_LOGGING_FORMAT=json
+export DP_LOGGING_FORMAT=text
 JAVA_OPTS="-Xmx1024m -Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=n"
 
 mvn package && \

@@ -33,11 +33,10 @@ public class CommitManifest {
             Manifest manifest
     ) throws IOException, FileUploadException {
 
-
         com.github.davidcarboni.thetrain.json.Transaction transaction = null;
         String transactionId = null;
         String message = null;
-        boolean error = false;
+        boolean isError = false;
 
         try {
             // Now get the parameters:
@@ -48,8 +47,17 @@ public class CommitManifest {
             if (StringUtils.isBlank(transactionId)) {
                 warn("commitManifest: transactionID is required but none was provided").log();
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
-                error = true;
+                isError = true;
                 message = "Please provide transactionId and uri parameters.";
+            }
+
+            if (StringUtils.isEmpty(encryptionPassword)) {
+                warn("commit: encryptionPassword required but none was provided")
+                        .transactionID(transactionId)
+                        .log();
+                response.setStatus(HttpStatus.BAD_REQUEST_400);
+                isError = true;
+                message = "encryptionPassword required but was empty or null " + transactionId;
             }
 
             info("start commit manifest process")
@@ -63,7 +71,7 @@ public class CommitManifest {
                         .transactionID(transactionId)
                         .log();
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
-                error = true;
+                isError = true;
                 message = "Unknown transaction " + transactionId;
             }
 
@@ -73,7 +81,7 @@ public class CommitManifest {
                         .transactionID(transactionId)
                         .log();
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
-                error = true;
+                isError = true;
                 message = "This transaction is closed.";
             }
 
@@ -83,7 +91,7 @@ public class CommitManifest {
                         .log();
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
 
-                error = true;
+                isError = true;
                 message = "No manifest found for in this request.";
             }
 
@@ -94,11 +102,11 @@ public class CommitManifest {
                         .transactionID(transactionId)
                         .log();
                 response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                error = true;
+                isError = true;
                 message = "website folder could not be used: " + websitePath;
             }
 
-            if (!error) {
+            if (!isError) {
                 info("commitManifest: copying manifest files to website and adding files to delete")
                         .transactionID(transactionId)
                         .websitePath(websitePath)
@@ -116,7 +124,7 @@ public class CommitManifest {
                             .addParameter("expected", manifest.getFilesToCopy().size())
                             .log();
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                    error = true;
+                    isError = true;
                     message = "Move failed. Copied " + copied + " of " + manifest.getFilesToCopy().size();
                 } else {
                     info("commitManifest: copying manifest files to website and adding files to delete completed successfully")
@@ -133,7 +141,7 @@ public class CommitManifest {
                     .transactionID(transactionId)
                     .log();
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-            error = true;
+            isError = true;
             message = ExceptionUtils.getStackTrace(e);
         } finally {
             info("commitManifest: updating transaction")
@@ -145,6 +153,6 @@ public class CommitManifest {
         info("commitManifest: completed successfully")
                 .transactionID(transactionId)
                 .log();
-        return new Result(message, error, transaction);
+        return new Result(message, isError, transaction);
     }
 }

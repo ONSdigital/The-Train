@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.POST;
 import java.io.IOException;
 
+import static com.github.davidcarboni.thetrain.api.common.RequestParameters.ENCRYPTION_PASSWORD_KEY;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.error;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.info;
 
@@ -21,8 +22,6 @@ import static com.github.davidcarboni.thetrain.logging.LogBuilder.info;
 @Api
 public class Begin {
 
-    private static final String ENCRYPTION_PWORD_KEY = "encryptionPassword";
-
     @POST
     public Result beginTransaction(HttpServletRequest request,
                                    HttpServletResponse response) throws IOException, FileUploadException {
@@ -30,7 +29,7 @@ public class Begin {
         info("begin: beginning publishing transaction").log();
 
         try {
-            String encryptionPassword = request.getParameter(ENCRYPTION_PWORD_KEY);
+            String encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
             transaction = Transactions.create(encryptionPassword);
             info("begin: new publishing transaction created successfully")
                     .transactionID(transaction.id())
