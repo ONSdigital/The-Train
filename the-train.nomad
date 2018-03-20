@@ -9,8 +9,11 @@ job "the-train" {
   }
 
   update {
-    stagger      = "90s"
-    max_parallel = 1
+    min_healthy_time = "30s"
+    healthy_deadline = "2m"
+    max_parallel     = 1
+    auto_revert      = true
+    stagger          = "150s"
   }
 
   group "web" {
@@ -37,6 +40,8 @@ job "the-train" {
 
         args = [
           "java",
+          "-server",
+          "-Xms{{PUBLISHING_RESOURCE_HEAP_MEM}}m",
           "-Xmx{{WEB_RESOURCE_HEAP_MEM}}m",
           "-Drestolino.files=target/web",
           "-jar target/*-jar-with-dependencies.jar",
