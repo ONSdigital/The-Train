@@ -25,7 +25,8 @@ job "the-train" {
 
     constraint {
       attribute = "${node.class}"
-      value     = "web"
+      operator  = "regexp"
+      value     = "web.*"
     }
 
     task "the-train" {
