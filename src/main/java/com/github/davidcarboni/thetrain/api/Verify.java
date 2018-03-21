@@ -1,15 +1,16 @@
 package com.github.davidcarboni.thetrain.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
+import com.github.davidcarboni.thetrain.api.common.Endpoint;
 import com.github.davidcarboni.thetrain.helpers.Hash;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.json.FileHash;
 import com.github.davidcarboni.thetrain.json.Transaction;
+import com.github.davidcarboni.thetrain.logging.Logger;
 import com.github.davidcarboni.thetrain.storage.Website;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.eclipse.jetty.http.HttpStatus;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -18,20 +19,20 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static com.github.davidcarboni.thetrain.api.common.RequestParameters.SHA1_KEY;
-import static com.github.davidcarboni.thetrain.api.common.RequestParameters.URI_KEY;
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.error;
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.warn;
+import static com.github.davidcarboni.thetrain.logging.Logger.newLogger;
+import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
+import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
 
 /**
- * API to start a new {@link Transaction}.
+ * Endpoint to start a new {@link Transaction}.
  */
 @Api
-public class Verify {
+public class Verify implements Endpoint {
 
     @GET
     public FileHash verify(HttpServletRequest request,
                            HttpServletResponse response) throws IOException, FileUploadException {
+        Logger logger = newLogger().endpoint(this);
         FileHash result = new FileHash();
 
         try {
@@ -41,19 +42,22 @@ public class Verify {
 
             // Validate parameters
             if (StringUtils.isBlank(result.uri)) {
-                warn("verify: uri is required but none provided")
-                        .log();
-                response.setStatus(HttpStatus.BAD_REQUEST_400);
+                logger.responseStatus(BAD_REQUEST_400)
+                        .warn("uri is required but none provided");
+
+                response.setStatus(BAD_REQUEST_400);
                 result.error = true;
                 result.message = "Please provide uri and sha1 parameters.";
                 return result;
             }
 
+            logger.uri(result.uri);
+
             if (StringUtils.isBlank(sha1)) {
-                warn("verify: sha1 is required but none provided")
-                        .uri(result.uri)
-                        .log();
-                response.setStatus(HttpStatus.BAD_REQUEST_400);
+                logger.responseStatus(BAD_REQUEST_400)
+                        .warn("verify: sha1 is required but none provided");
+                response.setStatus(BAD_REQUEST_400);
+
                 result.error = true;
                 result.message = "Please provide uri and sha1 parameters.";
                 return result;
@@ -61,10 +65,10 @@ public class Verify {
 
             Path path = PathUtils.toPath(result.uri, Website.path());
             if (!Files.exists(path)) {
-                warn("verify: file does not exist in website destination")
-                        .websitePath(Website.path())
-                        .uri(path.toString())
-                        .log();
+                logger.websitePath(Website.path())
+                        .responseStatus(BAD_REQUEST_400)
+                        .warn("verify: file does not exist in website destination");
+
                 result.message = "File does not exist in the destination: " + result.uri;
                 return result;
             }
@@ -77,10 +81,10 @@ public class Verify {
             }
 
         } catch (Exception e) {
-            error(e, "verify: unexpected error verifing")
-                    .uri(result.uri)
-                    .log();
-            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+            logger.responseStatus(INTERNAL_SERVER_ERROR_500)
+                    .error(e, "verify: unexpected error verifing");
+
+            response.setStatus(INTERNAL_SERVER_ERROR_500);
             result.error = true;
             result.message = ExceptionUtils.getStackTrace(e);
         }

@@ -1,15 +1,16 @@
 package com.github.davidcarboni.thetrain.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
+import com.github.davidcarboni.thetrain.api.common.Endpoint;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.request.Manifest;
+import com.github.davidcarboni.thetrain.logging.Logger;
 import com.github.davidcarboni.thetrain.storage.Publisher;
 import com.github.davidcarboni.thetrain.storage.Transactions;
 import com.github.davidcarboni.thetrain.storage.Website;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.eclipse.jetty.http.HttpStatus;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -17,15 +18,17 @@ import javax.ws.rs.POST;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.error;
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.info;
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.warn;
+import static com.github.davidcarboni.thetrain.logging.Logger.newLogger;
+import static java.lang.String.format;
+import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
+import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
+import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
 /**
- * API to move files within an existing {@link com.github.davidcarboni.thetrain.json.Transaction}.
+ * Endpoint to move files within an existing {@link com.github.davidcarboni.thetrain.json.Transaction}.
  */
 @Api
-public class CommitManifest {
+public class CommitManifest implements Endpoint {
     @POST
     public Result commitManifest(
             HttpServletRequest request,
@@ -35,124 +38,104 @@ public class CommitManifest {
 
         com.github.davidcarboni.thetrain.json.Transaction transaction = null;
         String transactionId = null;
-        String message = null;
-        boolean isError = false;
+        Logger logger = newLogger().endpoint(this);
 
         try {
             // Now get the parameters:
-            transactionId = request.getParameter("transactionId");
-            String encryptionPassword = request.getParameter("encryptionPassword");
+            transactionId = request.getParameter(TRANSACTION_ID_KEY);
+            String encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
 
             // Validate parameters
             if (StringUtils.isBlank(transactionId)) {
-                warn("commitManifest: transactionID is required but none was provided").log();
-                response.setStatus(HttpStatus.BAD_REQUEST_400);
-                isError = true;
-                message = "Please provide transactionId and uri parameters.";
+                logger.responseStatus(BAD_REQUEST_400)
+                        .warn("transactionID is required but none was provided");
+                response.setStatus(BAD_REQUEST_400);
+                return new Result("Please provide transactionId and uri parameters.", true, null);
             }
+
+            // add the transactionID to the log parameters.
+            logger.transactionID(transactionId);
 
             if (StringUtils.isEmpty(encryptionPassword)) {
-                warn("commit: encryptionPassword required but none was provided")
-                        .transactionID(transactionId)
-                        .log();
-                response.setStatus(HttpStatus.BAD_REQUEST_400);
-                isError = true;
-                message = "encryptionPassword required but was empty or null " + transactionId;
+                logger.responseStatus(BAD_REQUEST_400)
+                        .warn("encryptionPassword required but none was provided");
+                response.setStatus(BAD_REQUEST_400);
+                return new Result("encryptionPassword required but was empty or null " + transactionId, true, null);
             }
 
-            info("start commit manifest process")
-                    .transactionID(transactionId)
-                    .log();
+            logger.info("starting commit manifest for transaction");
 
             // Get the transaction
             transaction = Transactions.get(transactionId, encryptionPassword);
             if (transaction == null) {
-                warn("commitManifest: transaction not found")
-                        .transactionID(transactionId)
-                        .log();
-                response.setStatus(HttpStatus.BAD_REQUEST_400);
-                isError = true;
-                message = "Unknown transaction " + transactionId;
+                logger.responseStatus(BAD_REQUEST_400)
+                        .warn("transaction with specified id was not found");
+                response.setStatus(BAD_REQUEST_400);
+                return new Result("Unknown transaction " + transactionId, true, null);
             }
 
             // Check the transaction state
             if (transaction != null && !transaction.isOpen()) {
-                warn("commitManifest: unexpected error transaction is closed")
-                        .transactionID(transactionId)
-                        .log();
-                response.setStatus(HttpStatus.BAD_REQUEST_400);
-                isError = true;
-                message = "This transaction is closed.";
+                logger.responseStatus(BAD_REQUEST_400)
+                        .warn("could not proceed as transaction is unexpectedly closed");
+                response.setStatus(BAD_REQUEST_400);
+                return new Result("This transaction is closed.", true, transaction);
             }
 
             if (manifest == null) {
-                warn("commitManifest: manifest is empty")
-                        .transactionID(transactionId)
-                        .log();
-                response.setStatus(HttpStatus.BAD_REQUEST_400);
-
-                isError = true;
-                message = "No manifest found for in this request.";
+                logger.responseStatus(BAD_REQUEST_400)
+                        .warn("unexpected error transaction manifest is empty");
+                response.setStatus(BAD_REQUEST_400);
+                return new Result("No manifest found for in this request.", true, transaction);
             }
 
             // Get the website Path to publish to
             Path websitePath = Website.path();
             if (websitePath == null) {
-                warn("commitManifest: website path is null")
-                        .transactionID(transactionId)
-                        .log();
-                response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                isError = true;
-                message = "website folder could not be used: " + websitePath;
+                logger.responseStatus(INTERNAL_SERVER_ERROR_500)
+                        .warn("unexpected error website path is null");
+                response.setStatus(INTERNAL_SERVER_ERROR_500);
+                return new Result("website folder could not be used: " + websitePath, true, transaction);
             }
 
-            if (!isError) {
-                info("commitManifest: copying manifest files to website and adding files to delete")
-                        .transactionID(transactionId)
-                        .websitePath(websitePath)
-                        .log();
-                int copied = Publisher.copyFiles(transaction, manifest, websitePath);
-                int deleted = Publisher.addFilesToDelete(transaction, manifest);
-                message = "Copied " + copied + " files.";
-                message += " Deleted " + deleted + " files.";
 
-                if (copied != manifest.getFilesToCopy().size()) {
-                    warn("commitManifest: number of copied files does not match expected in manifest")
-                            .transactionID(transactionId)
-                            .websitePath(websitePath)
-                            .addParameter("copied", copied)
-                            .addParameter("expected", manifest.getFilesToCopy().size())
-                            .log();
-                    response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                    isError = true;
-                    message = "Move failed. Copied " + copied + " of " + manifest.getFilesToCopy().size();
-                } else {
-                    info("commitManifest: copying manifest files to website and adding files to delete completed successfully")
-                            .transactionID(transactionId)
-                            .websitePath(websitePath)
-                            .addParameter("copied", copied)
-                            .log();
-                }
+            logger.websitePath(websitePath).info("copying manifest files to website and adding files to delete");
+
+            int copied = Publisher.copyFiles(transaction, manifest, websitePath);
+            int deleted = Publisher.addFilesToDelete(transaction, manifest);
+
+            if (copied != manifest.getFilesToCopy().size()) {
+                logger.responseStatus(INTERNAL_SERVER_ERROR_500)
+                        .addParameter("actualCopies", copied)
+                        .addParameter("expectedCopies", manifest.getFilesToCopy().size())
+                        .warn("the number of copied files does not match expected in value of the manifest");
+
+                response.setStatus(INTERNAL_SERVER_ERROR_500);
+                return new Result("Move failed. Copied " + copied + " of " + manifest.getFilesToCopy().size(), true, transaction);
             }
 
+            // success
+            logger.responseStatus(OK_200)
+                    .addParameter("copied", copied)
+                    .addParameter("deleted", deleted)
+                    .info("copying manifest files to website and adding files to delete completed successfully");
+
+            response.setStatus(OK_200);
+            return new Result(format("Copied %d files. Deleted %s files.", copied, deleted), false, transaction);
 
         } catch (Exception e) {
-            error(e, "commitManifest: returned unexpected error")
-                    .transactionID(transactionId)
-                    .log();
-            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-            isError = true;
-            message = ExceptionUtils.getStackTrace(e);
+            logger.responseStatus(INTERNAL_SERVER_ERROR_500).error(e, "unexpected error");
+            response.setStatus(INTERNAL_SERVER_ERROR_500);
+            return new Result(ExceptionUtils.getStackTrace(e), true, transaction);
         } finally {
-            info("commitManifest: updating transaction")
-                    .transactionID(transactionId)
-                    .log();
-            Transactions.update(transaction);
+            logger.info("updating transaction");
+            try {
+                Transactions.update(transaction);
+            } catch (Exception e) {
+                logger.responseStatus(INTERNAL_SERVER_ERROR_500).error(e, "unexpected error while updating transaction");
+                response.setStatus(INTERNAL_SERVER_ERROR_500);
+                new Result("unexpected error while updating transaction", true, transaction);
+            }
         }
-
-        info("commitManifest: completed successfully")
-                .transactionID(transactionId)
-                .log();
-        return new Result(message, isError, transaction);
     }
 }

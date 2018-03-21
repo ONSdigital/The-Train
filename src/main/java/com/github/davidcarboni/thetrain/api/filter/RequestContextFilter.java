@@ -11,6 +11,7 @@ public class RequestContextFilter implements Filter {
 
 	@Override
 	public boolean filter(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
+		System.out.println("");
 		/**
 		 * TEMP FIX: Zebedee does not currently pass the request ID to the train so generate a new one to allow us to
 		 * tie requests together.

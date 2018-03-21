@@ -1,8 +1,10 @@
 package com.github.davidcarboni.thetrain.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
+import com.github.davidcarboni.thetrain.api.common.Endpoint;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
+import com.github.davidcarboni.thetrain.logging.Logger;
 import com.github.davidcarboni.thetrain.storage.Publisher;
 import com.github.davidcarboni.thetrain.storage.Transactions;
 import com.github.davidcarboni.thetrain.storage.Website;
@@ -17,132 +19,91 @@ import javax.ws.rs.POST;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import static com.github.davidcarboni.thetrain.api.common.RequestParameters.ENCRYPTION_PASSWORD_KEY;
-import static com.github.davidcarboni.thetrain.api.common.RequestParameters.TRANSACTION_ID_KEY;
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.error;
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.info;
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.warn;
+import static com.github.davidcarboni.thetrain.logging.Logger.newLogger;
 
 /**
- * API to commit an existing {@link Transaction}.
+ * Endpoint to commit an existing {@link Transaction}.
  */
 @Api
-public class Commit {
+public class Commit implements Endpoint {
 
     @POST
     public Result commit(HttpServletRequest request,
                          HttpServletResponse response) throws IOException, FileUploadException {
         Transaction transaction = null;
         String transactionId = null;
-        String message = null;
-        boolean isError = false;
+
+        Logger logger = newLogger().endpoint(this);
 
         try {
 
             // Transaction ID
             transactionId = request.getParameter(TRANSACTION_ID_KEY);
             if (StringUtils.isBlank(transactionId)) {
-                warn("commit: transactionID required but none provided")
-                        .log();
+                logger.warn("transactionID required but none provided");
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
-                isError = true;
-                message = "Please provide a transactionId parameter.";
+                return new Result("Please provide a transactionId parameter.", true, transaction);
             }
 
             // Transaction object
             String encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
             if (StringUtils.isEmpty(encryptionPassword)) {
-                warn("commit: encryptionPassword required but none was provided")
-                        .transactionID(transactionId)
-                        .log();
+                logger.transactionID(transactionId)
+                        .warn("encryptionPassword required but none was provided");
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
-                isError = true;
-                message = "encryptionPassword required but was empty or null " + transactionId;
+                return new Result("encryptionPassword required but was empty or null " + transactionId, true, null);
             }
 
             transaction = Transactions.get(transactionId, encryptionPassword);
             if (transaction == null) {
-                warn("commit: transaction could not be found")
-                        .transactionID(transactionId)
-                        .log();
+                logger.warn("transaction could not be found");
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
-                isError = true;
-                message = "Unknown transaction " + transactionId;
+                return new Result("Unknown transaction " + transactionId, true, null);
             }
 
             // Check the transaction state
             if (transaction != null && !transaction.isOpen()) {
-                warn("commit: unexpected error, transaction is closed")
-                        .transactionID(transactionId)
-                        .log();
+                logger.warn("unexpected error, transaction is closed");
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
-                isError = true;
-                message = "This transaction is closed.";
+                return new Result("This transaction is closed.", true, transaction);
             }
 
             // Check for errors in the transaction
             if (transaction != null && transaction.hasErrors()) {
-                warn("commit: unexpected error, transaction has errors")
-                        .transactionID(transactionId)
-                        .errors(transaction.errors())
-                        .log();
+                logger.errors(transaction.errors()).warn("unexpected error, transaction has errors");
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
-                isError = true;
-                message = "This transaction cannot be committed because errors have been reported.";
+                return new Result("This transaction cannot be committed because errors have been reported.", true, transaction);
             }
 
             // Get the website Path to publish to
             Path website = Website.path();
             if (website == null) {
-                warn("commit: transaction commit error - website path is null")
-                        .transactionID(transactionId)
-                        .log();
+                logger.warn("transaction commit error - website path is null");
                 response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                isError = true;
-                message = "website folder could not be used: " + website;
+                return new Result("website folder could not be used: " + website, true, transaction);
             }
 
-            // Commit
-            if (!isError) {
-                info("commit: no errors encountered setting up transaction for commit, proceeding")
-                        .transactionID(transactionId)
-                        .websitePath(website)
-                        .log();
-                boolean result = Publisher.commit(transaction, website);
-                if (!result) {
-                    warn("commit: commiting publish to website was unsuccessful")
-                            .transactionID(transactionId)
-                            .websitePath(website)
-                            .log();
-                    response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                    isError = true;
-                    message = "Errors were detected in committing the transaction.";
-                } else {
-                    info("commit: commiting publish to website completed successfully")
-                            .transactionID(transactionId)
-                            .websitePath(website)
-                            .log();
-                    message = "Transaction committed.";
-                }
+            logger.websitePath(website).info("no errors encountered setting up transaction for commit, proceeding");
+
+            boolean commitSuccessful = Publisher.commit(transaction, website);
+            if (!commitSuccessful) {
+                logger.warn("commiting publish to website was unsuccessful");
+                response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
+                return new Result("Errors were detected in committing the transaction.", true, transaction);
             }
+
+            // no errors return success response
+            logger.info("commiting publish to website completed successfully");
+            response.setStatus(HttpStatus.OK_200);
+            return new Result("Transaction committed.", false, transaction);
 
         } catch (Exception e) {
-            error(e, "commit: transaction returned unexpected error")
-                    .transactionID(transactionId)
-                    .log();
+            logger.error(e, "transaction returned unexpected error");
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-            isError = true;
-            message = ExceptionUtils.getStackTrace(e);
+            return new Result(ExceptionUtils.getStackTrace(e), true, transaction);
         } finally {
-            info("commit: updating transaction")
-                    .transactionID(transactionId)
-                    .log();
+            logger.info("updating transaction");
             Transactions.update(transaction);
         }
-
-        info("commit: completed successfully")
-                .transactionID(transactionId)
-                .log();
-        return new Result(message, isError, transaction);
     }
 }

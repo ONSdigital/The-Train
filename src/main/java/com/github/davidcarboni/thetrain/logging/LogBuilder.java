@@ -9,8 +9,19 @@ import java.nio.file.Path;
 import java.util.List;
 
 public class LogBuilder extends LogMessageBuilder {
+    public LogBuilder(String eventDescription) {
+        super(eventDescription);
+    }
 
-    public static LogBuilder error(Exception exception, String message) {
+    @Override
+    public String getLoggerName() {
+        return null;
+    }
+
+
+// -------
+
+/*    public static LogBuilder error(Exception exception, String message) {
         return new LogBuilder(exception, message);
     }
 
@@ -71,5 +82,5 @@ public class LogBuilder extends LogMessageBuilder {
     @Override
     public LogBuilder addParameter(String key, Object value) {
         return (LogBuilder) super.addParameter(key, value);
-    }
+    }*/
 }

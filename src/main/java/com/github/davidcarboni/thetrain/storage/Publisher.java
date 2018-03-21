@@ -10,6 +10,7 @@ import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.json.UriInfo;
 import com.github.davidcarboni.thetrain.json.request.FileCopy;
 import com.github.davidcarboni.thetrain.json.request.Manifest;
+import com.github.davidcarboni.thetrain.logging.Logger;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -31,7 +32,7 @@ import java.util.concurrent.Future;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.info;
+import static com.github.davidcarboni.thetrain.logging.Logger.newLogger;
 
 /**
  * Class for handling publishing actions.
@@ -103,11 +104,11 @@ public class Publisher {
                 throw new IOException("Error completing small file write", e);
             }
         }
-        info("unzip results")
+        newLogger()
                 .addParameter("largeFileSynchronouss", big)
                 .addParameter("smallFileAsynchronous", small)
                 .addParameter("total", small + big)
-                .log();
+                .info("unzip results");
         return result;
     }
 
@@ -160,11 +161,11 @@ public class Publisher {
                 if (StringUtils.equals(shaInput, shaOutput) && sizeInput == sizeOutput) {
                     result = true;
                 } else {
-                    info("SHA/size mismatch")
+                    newLogger()
                             .addParameter("uri", uri)
                             .addParameter("input", sizeInput + "/" + shaInput)
                             .addParameter("output", sizeOutput + "/" + shaOutput)
-                            .log();
+                            .info("SHA/size mismatch");
                 }
             }
         }
@@ -236,6 +237,7 @@ public class Publisher {
      */
     public static int addFilesToDelete(Transaction transaction, Manifest manifest) throws IOException {
 
+        Logger logger = newLogger();
         int filesToDelete = 0;
 
         if (manifest.getUrisToDelete() != null) {
@@ -249,14 +251,12 @@ public class Publisher {
                 Path targetDirectory = target;
                 if (Files.exists(targetDirectory)) {
                     Path backupDirectory = PathUtils.toPath(uri, Transactions.backup(transaction));
-                    info("backing up directory before deletion")
-                            .addParameter("directory", target.toString())
-                            .log();
+                    logger.addParameter("directory", target.toString())
+                            .info("backing up directory before deletion");
                     FileUtils.copyDirectory(targetDirectory.toFile(), backupDirectory.toFile());
                 } else {
-                    info("cannot backup directory as it does not exist, skipping")
-                            .addParameter("directory", target.toString())
-                            .log();
+                    logger.addParameter("directory", target.toString())
+                            .info("cannot backup directory as it does not exist, skipping");
                 }
                 filesToDelete++;
             }
@@ -276,6 +276,7 @@ public class Publisher {
      */
     static boolean copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
 
+        Logger logger = newLogger();
         boolean moved = false;
 
         Path source = PathUtils.toPath(sourceUri, websitePath);
@@ -288,18 +289,16 @@ public class Publisher {
         long sizeOutput = 0;
 
         if (!Files.exists(source)) {
-            info("could not move file because it does not exist")
-                    .addParameter("path", source.toString())
-                    .log();
+            logger.addParameter("path", source.toString())
+                    .info("could not move file because it does not exist");
             return false;
         }
 
         // if the file already exists it has already been copied so ignore it.
         // doing this allows the publish to be reattempted if it fails without trying to copy files over existing files.
         if (Files.exists(finalWebsiteTarget)) {
-            info("could not move file as it alreadt exists")
-                    .addParameter("path", finalWebsiteTarget.toString())
-                    .log();
+            logger.addParameter("path", finalWebsiteTarget.toString())
+                    .info("could not move file as it alreadt exists");
             return false;
         }
 
@@ -350,13 +349,15 @@ public class Publisher {
     public static boolean commit(Transaction transaction, Path website) throws IOException {
         boolean result = true;
 
+        Logger logger = newLogger();
+
         // Apply any deletes that are defined in the transaction first to ensure we do not delete updated files.
         for (UriInfo uriInfo : transaction.urisToDelete()) {
             String uri = uriInfo.uri();
             Path target = PathUtils.toPath(uri, website);
-            info("deleting directory")
-                    .addParameter("path", target.toString())
-                    .log();
+
+            logger.addParameter("path", target.toString())
+                    .info("deleting directory");
             FileUtils.deleteDirectory(target.toFile());
         }
 
@@ -507,7 +508,7 @@ public class Publisher {
     }
 
     public static void main(String[] args) throws IOException {
-
+        Logger logger = newLogger();
         for (int i = 0; i < 8193; i++) {
 
             ShaInputStream input = new ShaInputStream(Random.inputStream(i));
@@ -526,11 +527,10 @@ public class Publisher {
                     String outputSha = output.sha();
                     long outputSize = output.size();
                     if (inputSize != outputSize || !StringUtils.equals(inputSha, outputSha)) {
-                        info("info")
-                                .addParameter("size", i)
+                        logger.addParameter("size", i)
                                 .addParameter("input", inputSize + "/" + input.sha())
                                 .addParameter("output", outputSize + "/" + output.sha())
-                                .log();
+                                .info("info");
                     }
 
                 }

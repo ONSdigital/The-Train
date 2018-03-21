@@ -1,85 +1,80 @@
 package com.github.davidcarboni.thetrain.api;
 
 import com.github.davidcarboni.restolino.framework.Api;
+import com.github.davidcarboni.thetrain.api.common.Endpoint;
 import com.github.davidcarboni.thetrain.json.Result;
+import com.github.davidcarboni.thetrain.logging.Logger;
 import com.github.davidcarboni.thetrain.storage.Transactions;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.eclipse.jetty.http.HttpStatus;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import java.io.IOException;
 
-import static com.github.davidcarboni.thetrain.api.common.RequestParameters.ENCRYPTION_PASSWORD_KEY;
-import static com.github.davidcarboni.thetrain.api.common.RequestParameters.TRANSACTION_ID_KEY;
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.error;
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.info;
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.warn;
+import static com.github.davidcarboni.thetrain.logging.Logger.newLogger;
+import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
+import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
+import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
 /**
- * API to query the details of an existing {@link com.github.davidcarboni.thetrain.json.Transaction Transaction}.
+ * Endpoint to query the details of an existing {@link com.github.davidcarboni.thetrain.json.Transaction Transaction}.
  */
 @Api
-public class Transaction {
+public class Transaction implements Endpoint {
 
     @GET
     public Result getTransactionDetails(HttpServletRequest request,
                                         HttpServletResponse response) throws IOException, FileUploadException {
 
+        Logger logger = newLogger().endpoint(this);
         com.github.davidcarboni.thetrain.json.Transaction transaction = null;
-        String message = null;
-        boolean isError = false;
         String transactionID = null;
 
         try {
             // Transaction ID
             transactionID = request.getParameter(TRANSACTION_ID_KEY);
             if (StringUtils.isBlank(transactionID)) {
-                warn("transaction: transactionID required but none provided").log();
-                response.setStatus(HttpStatus.BAD_REQUEST_400);
-                isError = true;
-                message = "Please provide a transactionId parameter.";
+                logger.responseStatus(BAD_REQUEST_400)
+                        .warn("transactionID required but none provided");
+
+                response.setStatus(BAD_REQUEST_400);
+                return new Result("Please provide a transactionId parameter.", true, null);
             }
+
+            logger.transactionID(transactionID);
 
             String encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
             if (StringUtils.isEmpty(encryptionPassword)) {
-                warn("transaction: transaction requires encryptionPassword but none was provided")
-                        .transactionID(transactionID)
-                        .log();
-                response.setStatus(HttpStatus.BAD_REQUEST_400);
-                isError = true;
-                message = "transaction requires encryptionPassword but none was provided";
+                logger.responseStatus(BAD_REQUEST_400)
+                        .warn("transaction requires encryptionPassword but none was provided");
+
+                response.setStatus(BAD_REQUEST_400);
+                return new Result("transaction requires encryptionPassword but none was provided", true, null);
             }
 
-            // Transaction object
-            if (!isError) {
-                transaction = Transactions.get(transactionID, encryptionPassword);
-                if (transaction == null) {
-                    warn("transaction: transaction not found")
-                            .transactionID(transactionID)
-                            .log();
-                    response.setStatus(HttpStatus.BAD_REQUEST_400);
-                    isError = true;
-                    message = "Unknown transaction " + transactionID;
-                } else {
-                    message = "Details for transaction " + transaction.id();
-                    Transactions.listFiles(transaction);
-                }
+            transaction = Transactions.get(transactionID, encryptionPassword);
+            if (transaction == null) {
+                logger.responseStatus(BAD_REQUEST_400)
+                        .warn("transaction with specified ID not found");
+
+                response.setStatus(BAD_REQUEST_400);
+                return new Result("Unknown transaction " + transactionID, true, null);
             }
+
+            logger.responseStatus(OK_200)
+                    .info("get transaction completed successfully");
+
+            return new Result("Details for transaction " + transaction.id(), false, transaction);
+
         } catch (Exception e) {
-            error(e, "transaction: unexpected error while attempting to get transaction")
-                    .transactionID(transactionID)
-                    .log();
-            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-            isError = true;
-            message = ExceptionUtils.getStackTrace(e);
+            logger.responseStatus(INTERNAL_SERVER_ERROR_500)
+                    .error(e, "unexpected error while attempting to get transaction");
+
+            response.setStatus(INTERNAL_SERVER_ERROR_500);
+            return new Result(ExceptionUtils.getStackTrace(e), true, transaction);
         }
-        info("transaction: get transaction completed successfully")
-                .transactionID(transactionID)
-                .log();
-        return new Result(message, isError, transaction);
     }
 }
