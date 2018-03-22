@@ -5,6 +5,10 @@ import com.github.davidcarboni.thetrain.api.common.Endpoint;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.logging.Logger;
+import com.github.davidcarboni.thetrain.service.PublisherService;
+import com.github.davidcarboni.thetrain.service.PublisherServiceImpl;
+import com.github.davidcarboni.thetrain.service.TransactionsService;
+import com.github.davidcarboni.thetrain.service.TransactionsServiceImpl;
 import com.github.davidcarboni.thetrain.storage.Publisher;
 import com.github.davidcarboni.thetrain.storage.Transactions;
 import com.github.davidcarboni.thetrain.storage.Website;
@@ -26,6 +30,9 @@ import static com.github.davidcarboni.thetrain.logging.Logger.newLogger;
  */
 @Api
 public class Commit implements Endpoint {
+
+    private TransactionsService transactionsService;
+    private PublisherService publisherService;
 
     @POST
     public Result commit(HttpServletRequest request,
@@ -54,7 +61,7 @@ public class Commit implements Endpoint {
                 return new Result("encryptionPassword required but was empty or null " + transactionId, true, null);
             }
 
-            transaction = Transactions.get(transactionId, encryptionPassword);
+            transaction = getTransactionsService().get(transactionId, encryptionPassword);
             if (transaction == null) {
                 logger.warn("transaction could not be found");
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
@@ -62,21 +69,21 @@ public class Commit implements Endpoint {
             }
 
             // Check the transaction state
-            if (transaction != null && !transaction.isOpen()) {
+            if (!transaction.isOpen()) {
                 logger.warn("unexpected error, transaction is closed");
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 return new Result("This transaction is closed.", true, transaction);
             }
 
             // Check for errors in the transaction
-            if (transaction != null && transaction.hasErrors()) {
+            if (transaction.hasErrors()) {
                 logger.errors(transaction.errors()).warn("unexpected error, transaction has errors");
                 response.setStatus(HttpStatus.BAD_REQUEST_400);
                 return new Result("This transaction cannot be committed because errors have been reported.", true, transaction);
             }
 
             // Get the website Path to publish to
-            Path website = Website.path();
+            Path website = getPublisherService().websitePath();
             if (website == null) {
                 logger.warn("transaction commit error - website path is null");
                 response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
@@ -85,7 +92,7 @@ public class Commit implements Endpoint {
 
             logger.websitePath(website).info("no errors encountered setting up transaction for commit, proceeding");
 
-            boolean commitSuccessful = Publisher.commit(transaction, website);
+            boolean commitSuccessful = getPublisherService().commit(transaction, website);
             if (!commitSuccessful) {
                 logger.warn("commiting publish to website was unsuccessful");
                 response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
@@ -103,7 +110,21 @@ public class Commit implements Endpoint {
             return new Result(ExceptionUtils.getStackTrace(e), true, transaction);
         } finally {
             logger.info("updating transaction");
-            Transactions.update(transaction);
+            getTransactionsService().update(transaction);
         }
+    }
+
+    private TransactionsService getTransactionsService() {
+        if (transactionsService == null) {
+            transactionsService = new TransactionsServiceImpl();
+        }
+        return transactionsService;
+    }
+
+    private PublisherService getPublisherService() {
+        if (publisherService == null) {
+            publisherService = new PublisherServiceImpl();
+        }
+        return publisherService;
     }
 }
