@@ -27,7 +27,7 @@ import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
  * Endpoint to start a new {@link Transaction}.
  */
 @Api
-public class Verify implements Endpoint {
+public class Verify extends Endpoint {
 
     @GET
     public FileHash verify(HttpServletRequest request,

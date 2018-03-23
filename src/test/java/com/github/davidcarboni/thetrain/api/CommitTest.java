@@ -1,6 +1,5 @@
 package com.github.davidcarboni.thetrain.api;
 
-import com.github.davidcarboni.thetrain.api.common.Endpoint;
 import com.github.davidcarboni.thetrain.json.Result;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.Test;
@@ -11,6 +10,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static com.github.davidcarboni.thetrain.api.common.Endpoint.ENCRYPTION_PASSWORD_KEY;
+import static com.github.davidcarboni.thetrain.api.common.Endpoint.TRANSACTION_ID_KEY;
 import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
 import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR;
 import static org.mockito.Matchers.anyString;
@@ -20,7 +21,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-public class CommitTest extends AbstractAPITest implements Endpoint {
+public class CommitTest extends AbstractAPITest {
 
     private Commit endpoint;
 

@@ -21,4 +21,9 @@ public class TransactionsServiceImpl implements TransactionsService {
     public void update(Transaction transaction) throws IOException {
         Transactions.update(transaction);
     }
+
+    @Override
+    public void listFiles(Transaction transaction) throws IOException {
+        Transactions.listFiles(transaction);
+    }
 }

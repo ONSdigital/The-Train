@@ -28,7 +28,7 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
  * Endpoint to move files within an existing {@link com.github.davidcarboni.thetrain.json.Transaction}.
  */
 @Api
-public class CommitManifest implements Endpoint {
+public class CommitManifest extends Endpoint {
     @POST
     public Result commitManifest(
             HttpServletRequest request,

@@ -10,4 +10,6 @@ public interface PublisherService {
     Path websitePath() throws IOException;
 
     boolean commit(Transaction transaction, Path website) throws IOException;
+
+    boolean rollback(Transaction transaction) throws IOException;
 }

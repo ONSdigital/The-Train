@@ -5,8 +5,6 @@ import com.github.davidcarboni.thetrain.api.common.Endpoint;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.logging.LogBuilder;
-import com.github.davidcarboni.thetrain.service.TransactionsService;
-import com.github.davidcarboni.thetrain.service.TransactionsServiceImpl;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.lang3.StringUtils;
 
@@ -24,9 +22,7 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
  * Endpoint to start a new {@link Transaction}.
  */
 @Api
-public class Begin implements Endpoint {
-
-    private TransactionsService transactionsService;
+public class Begin extends Endpoint {
 
     @POST
     public Result beginTransaction(HttpServletRequest request,
@@ -44,7 +40,7 @@ public class Begin implements Endpoint {
             }
 
             log.info("creating new publishing transaction");
-            transaction = getTransactionService().create(encryptionPassword);
+            transaction = getTransactionsService().create(encryptionPassword);
             log.transactionID(transaction.id()).info("transaction created successfully");
 
             response.setStatus(OK_200);
@@ -55,12 +51,5 @@ public class Begin implements Endpoint {
             log.error(e, "unexpected error while attempting to create transaction");
             return new Result("beingTransaction encountered unexpected error", true, transaction);
         }
-    }
-
-    private TransactionsService getTransactionService() {
-        if (transactionsService == null) {
-            this.transactionsService = new TransactionsServiceImpl();
-        }
-        return transactionsService;
     }
 }

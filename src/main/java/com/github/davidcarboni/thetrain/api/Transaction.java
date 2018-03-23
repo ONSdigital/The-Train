@@ -24,9 +24,7 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
  * Endpoint to query the details of an existing {@link com.github.davidcarboni.thetrain.json.Transaction Transaction}.
  */
 @Api
-public class Transaction implements Endpoint {
-
-    private TransactionsService transactionsService;
+public class Transaction extends Endpoint {
 
     @GET
     public Result getTransactionDetails(HttpServletRequest request,
@@ -80,12 +78,5 @@ public class Transaction implements Endpoint {
             response.setStatus(INTERNAL_SERVER_ERROR_500);
             return new Result(ExceptionUtils.getStackTrace(e), true, transaction);
         }
-    }
-
-    private TransactionsService getTransactionsService() {
-        if (transactionsService == null) {
-            transactionsService = new TransactionsServiceImpl();
-        }
-        return transactionsService;
     }
 }

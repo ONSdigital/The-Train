@@ -34,7 +34,7 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
  * Endpoint to publish a file within an existing {@link Transaction}.
  */
 @Api
-public class Publish implements Endpoint {
+public class Publish extends Endpoint {
 
     @POST
     public Result addFile(HttpServletRequest request,

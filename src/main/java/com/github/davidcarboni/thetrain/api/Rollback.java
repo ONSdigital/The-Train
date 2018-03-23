@@ -5,8 +5,6 @@ import com.github.davidcarboni.thetrain.api.common.Endpoint;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.logging.LogBuilder;
-import com.github.davidcarboni.thetrain.storage.Publisher;
-import com.github.davidcarboni.thetrain.storage.Transactions;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -19,12 +17,13 @@ import java.io.IOException;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
 import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
 import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
+import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
 /**
  * Endpoint to roll back an existing {@link Transaction}.
  */
 @Api
-public class Rollback implements Endpoint {
+public class Rollback extends Endpoint {
 
     @POST
     public Result rollback(HttpServletRequest request,
@@ -33,8 +32,6 @@ public class Rollback implements Endpoint {
         LogBuilder log = logBuilder().endpoint(this);
         Transaction transaction = null;
         String transactionId = null;
-        String message = null;
-        boolean isError = false;
 
         try {
             // Transaction ID
@@ -58,7 +55,7 @@ public class Rollback implements Endpoint {
                 return new Result("rollback requires encryptionPassword but none was provided", true, null);
             }
 
-            transaction = Transactions.get(transactionId, encryptionPassword);
+            transaction = getTransactionsService().get(transactionId, encryptionPassword);
             if (transaction == null) {
                 log.responseStatus(BAD_REQUEST_400)
                         .warn("bad request: transaction with specified ID was not found");
@@ -68,7 +65,7 @@ public class Rollback implements Endpoint {
             }
 
             // Check the transaction state
-            if (transaction != null && !transaction.isOpen()) {
+            if (!transaction.isOpen()) {
                 log.responseStatus(BAD_REQUEST_400)
                         .warn("bad request: unexpected error transaction is closed");
 
@@ -78,7 +75,7 @@ public class Rollback implements Endpoint {
 
             log.info("request is valid, proceeding with rollback");
 
-            boolean success = Publisher.rollback(transaction);
+            boolean success = getPublisherService().rollback(transaction);
             if (!success) {
                 log.responseStatus(INTERNAL_SERVER_ERROR_500)
                         .warn("rollback was unsuccessful");
@@ -87,8 +84,10 @@ public class Rollback implements Endpoint {
                 return new Result("Errors were detected in rolling back the transaction.", true, transaction);
             }
 
-            log.info("rollback completed successfully");
-            Transactions.listFiles(transaction);
+            getTransactionsService().listFiles(transaction);
+
+            log.responseStatus(OK_200).info("rollback completed successfully");
+            response.setStatus(OK_200);
             return new Result("Transaction rolled back.", false, transaction);
 
         } catch (Exception e) {
@@ -100,7 +99,7 @@ public class Rollback implements Endpoint {
         } finally {
             log.info("updating transaction");
             try {
-                Transactions.update(transaction);
+                getTransactionsService().update(transaction);
             } catch (Exception e) {
                 log.responseStatus(INTERNAL_SERVER_ERROR_500)
                         .error(e, "unexpected error while updating transaction");

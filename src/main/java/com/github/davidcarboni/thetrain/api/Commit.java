@@ -5,10 +5,6 @@ import com.github.davidcarboni.thetrain.api.common.Endpoint;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.logging.LogBuilder;
-import com.github.davidcarboni.thetrain.service.PublisherService;
-import com.github.davidcarboni.thetrain.service.PublisherServiceImpl;
-import com.github.davidcarboni.thetrain.service.TransactionsService;
-import com.github.davidcarboni.thetrain.service.TransactionsServiceImpl;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -28,10 +24,7 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
  * Endpoint to commit an existing {@link Transaction}.
  */
 @Api
-public class Commit implements Endpoint {
-
-    private TransactionsService transactionsService;
-    private PublisherService publisherService;
+public class Commit extends Endpoint {
 
     @POST
     public Result commit(HttpServletRequest request,
@@ -123,17 +116,4 @@ public class Commit implements Endpoint {
         }
     }
 
-    private TransactionsService getTransactionsService() {
-        if (transactionsService == null) {
-            transactionsService = new TransactionsServiceImpl();
-        }
-        return transactionsService;
-    }
-
-    private PublisherService getPublisherService() {
-        if (publisherService == null) {
-            publisherService = new PublisherServiceImpl();
-        }
-        return publisherService;
-    }
 }

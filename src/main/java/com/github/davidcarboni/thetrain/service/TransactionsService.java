@@ -11,4 +11,6 @@ public interface TransactionsService {
     Transaction get(String id, String encryptionPassword) throws IOException;
 
     void update(Transaction transaction) throws IOException;
+
+    void listFiles(Transaction transaction) throws IOException;
 }

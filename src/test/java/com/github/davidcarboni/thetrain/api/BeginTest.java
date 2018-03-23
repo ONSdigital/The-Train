@@ -1,12 +1,12 @@
 package com.github.davidcarboni.thetrain.api;
 
-import com.github.davidcarboni.thetrain.api.common.Endpoint;
 import com.github.davidcarboni.thetrain.json.Result;
 import org.junit.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
 
+import static com.github.davidcarboni.thetrain.api.common.Endpoint.ENCRYPTION_PASSWORD_KEY;
 import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 import static org.mockito.Matchers.anyString;
@@ -16,7 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-public class BeginTest extends AbstractAPITest implements Endpoint {
+public class BeginTest extends AbstractAPITest {
 
     private Begin endpoint;
 
