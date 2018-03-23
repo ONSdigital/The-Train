@@ -6,7 +6,7 @@ import com.github.davidcarboni.thetrain.helpers.Hash;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.json.FileHash;
 import com.github.davidcarboni.thetrain.json.Transaction;
-import com.github.davidcarboni.thetrain.logging.Logger;
+import com.github.davidcarboni.thetrain.logging.LogBuilder;
 import com.github.davidcarboni.thetrain.storage.Website;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.lang3.StringUtils;
@@ -19,7 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static com.github.davidcarboni.thetrain.logging.Logger.newLogger;
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
 import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
 import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
 
@@ -32,7 +32,7 @@ public class Verify implements Endpoint {
     @GET
     public FileHash verify(HttpServletRequest request,
                            HttpServletResponse response) throws IOException, FileUploadException {
-        Logger logger = newLogger().endpoint(this);
+        LogBuilder log = logBuilder().endpoint(this);
         FileHash result = new FileHash();
 
         try {
@@ -42,8 +42,8 @@ public class Verify implements Endpoint {
 
             // Validate parameters
             if (StringUtils.isBlank(result.uri)) {
-                logger.responseStatus(BAD_REQUEST_400)
-                        .warn("uri is required but none provided");
+                log.responseStatus(BAD_REQUEST_400)
+                        .warn("bad request: uri is required but none provided");
 
                 response.setStatus(BAD_REQUEST_400);
                 result.error = true;
@@ -51,11 +51,11 @@ public class Verify implements Endpoint {
                 return result;
             }
 
-            logger.uri(result.uri);
+            log.uri(result.uri);
 
             if (StringUtils.isBlank(sha1)) {
-                logger.responseStatus(BAD_REQUEST_400)
-                        .warn("verify: sha1 is required but none provided");
+                log.responseStatus(BAD_REQUEST_400)
+                        .warn("bad request: verify: sha1 is required but none provided");
                 response.setStatus(BAD_REQUEST_400);
 
                 result.error = true;
@@ -65,9 +65,9 @@ public class Verify implements Endpoint {
 
             Path path = PathUtils.toPath(result.uri, Website.path());
             if (!Files.exists(path)) {
-                logger.websitePath(Website.path())
+                log.websitePath(Website.path())
                         .responseStatus(BAD_REQUEST_400)
-                        .warn("verify: file does not exist in website destination");
+                        .warn("bad request: verify: file does not exist in website destination");
 
                 result.message = "File does not exist in the destination: " + result.uri;
                 return result;
@@ -81,7 +81,7 @@ public class Verify implements Endpoint {
             }
 
         } catch (Exception e) {
-            logger.responseStatus(INTERNAL_SERVER_ERROR_500)
+            log.responseStatus(INTERNAL_SERVER_ERROR_500)
                     .error(e, "verify: unexpected error verifing");
 
             response.setStatus(INTERNAL_SERVER_ERROR_500);

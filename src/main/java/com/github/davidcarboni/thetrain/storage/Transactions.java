@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.davidcarboni.thetrain.helpers.Configuration;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.json.Transaction;
-import com.github.davidcarboni.thetrain.logging.Logger;
+import com.github.davidcarboni.thetrain.logging.LogBuilder;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -24,7 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import static com.github.davidcarboni.thetrain.logging.Logger.newLogger;
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
 
 /**
  * Class for working with {@link Transaction} instances.
@@ -51,7 +51,7 @@ public class Transactions {
     public static Transaction create(String encryptionPassword) throws IOException {
 
         Transaction transaction = new Transaction();
-        Logger logger = newLogger().transactionID(transaction.id());
+        LogBuilder log = logBuilder().transactionID(transaction.id());
 
         // Enable encryption if requested
         transaction.enableEncryption(encryptionPassword);
@@ -64,11 +64,11 @@ public class Transactions {
             objectMapper().writeValue(output, transaction);
             Files.createDirectory(path.resolve(CONTENT));
             Files.createDirectory(path.resolve(BACKUP));
-            logger.info("transaction written to disk successfully");
+            log.info("transaction written to disk successfully");
 
             transactionMap.put(transaction.id(), transaction);
 
-            logger.info("transaction added to in-memory storage");
+            log.info("transaction added to in-memory storage");
 
             if (!transactionExecutorMap.containsKey(transaction.id())) {
                 transactionExecutorMap.put(transaction.id(), Executors.newSingleThreadExecutor());
@@ -103,14 +103,14 @@ public class Transactions {
      */
 
     public static Transaction get(String id, String encryptionPassword) throws IOException {
-        Logger logger = newLogger().transactionID(id);
+        LogBuilder log = logBuilder().transactionID(id);
         Transaction result = null;
 
         try {
             if (StringUtils.isNotBlank(id)) {
 
                 if (!transactionMap.containsKey(id)) {
-                    logger.info("transaction does not exist in in-memory storage, attempting to read from file system");
+                    log.info("transaction does not exist in in-memory storage, attempting to read from file system");
                     // Generate the file structure
                     Path transactionPath = path(id);
                     if (transactionPath != null && Files.exists(transactionPath)) {
@@ -120,18 +120,18 @@ public class Transactions {
                         }
                     }
                 } else {
-                    logger.info("retrieving transaction from in-memory storage");
+                    log.info("retrieving transaction from in-memory storage");
                     result = transactionMap.get(id);
 
                     if (result != null) {
-                        logger.info("transaction retrieved from in-memory storage, enabling encryption");
+                        log.info("transaction retrieved from in-memory storage, enabling encryption");
                         result.enableEncryption(encryptionPassword);
                     }
                 }
             }
             return result;
         } catch (Exception e) {
-            logger.transactionID(id).error(e, "get transaction returned an unexpected error");
+            log.transactionID(id).error(e, "get transaction returned an unexpected error");
             throw e;
         }
     }
@@ -192,7 +192,7 @@ public class Transactions {
                             // do nothing
                         }
                     } catch (IOException exception) {
-                        newLogger().error(exception, "tryUpdateAsync: unexpected error encountered");
+                        logBuilder().error(exception, "tryUpdateAsync: unexpected error encountered");
                     }
 
                     return result;
@@ -210,7 +210,7 @@ public class Transactions {
      * @throws IOException If an error occurs in reading the transaction Json.
      */
     public static void update(Transaction transaction) throws IOException {
-        Logger logger = newLogger();
+        LogBuilder log = logBuilder();
         if (transaction != null && transactionMap.containsKey(transaction.id())) {
             // The transaction passed in should always be an instance from the map
             // otherwise there's potential to lose updates.
@@ -220,14 +220,14 @@ public class Transactions {
                 Path transactionPath = path(transaction.id());
                 if (transactionPath != null && Files.exists(transactionPath)) {
                     final Path json = transactionPath.resolve(JSON);
-                    logger.addParameter("path", json.toString())
+                    log.addParameter("path", json.toString())
                             .info("writing transaction file");
 
                     try (OutputStream output = Files.newOutputStream(json)) {
                         objectMapper().writeValue(output, read);
-                        logger.info("writing transaction file completed successfully");
+                        log.info("writing transaction file completed successfully");
                     } catch (Exception e) {
-                        logger.addParameter("path", json.toString())
+                        log.addParameter("path", json.toString())
                                 .error(e, "error while writing transaction to file");
                         throw e;
                     }
@@ -251,7 +251,7 @@ public class Transactions {
             if (Files.exists(path)) {
                 result = path;
             } else {
-                newLogger()
+                logBuilder()
                         .transactionID(transaction.id())
                         .addParameter("path", path.toString())
                         .warn("content path does not exist");
@@ -300,7 +300,7 @@ public class Transactions {
      * @throws IOException If an error occurs.
      */
     static Path store() throws IOException {
-        Logger logger = newLogger();
+        LogBuilder logBuilder = logBuilder();
 
         if (transactionStore == null) {
 
@@ -311,11 +311,11 @@ public class Transactions {
                 if (Files.isDirectory(path)) {
                     transactionStore = path;
 
-                    logger.addParameter("path", path.toString())
+                    logBuilder.addParameter("path", path.toString())
                             .info("TRANSACTION_STORE configured");
                 } else {
 
-                    logger.addParameter("path", path)
+                    logBuilder.addParameter("path", path)
                             .info("transaction store directory invalid");
                 }
             }
@@ -323,9 +323,9 @@ public class Transactions {
             // Development fallback
             if (transactionStore == null) {
                 transactionStore = Files.createTempDirectory(Transactions.class.getSimpleName());
-                logger.addParameter("path", transactionStore.toString()).info("temporary transaction store " +
+                logBuilder.addParameter("path", transactionStore.toString()).info("temporary transaction store " +
                         "created");
-                logger.info("please configure a TRANSACTION_STORE variable to configure this directory in production.");
+                logBuilder.info("please configure a TRANSACTION_STORE variable to configure this directory in production.");
             }
 
         }

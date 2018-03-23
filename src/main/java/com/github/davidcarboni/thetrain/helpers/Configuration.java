@@ -1,10 +1,10 @@
 package com.github.davidcarboni.thetrain.helpers;
 
 import com.github.davidcarboni.cryptolite.Keys;
-import com.github.davidcarboni.thetrain.logging.Logger;
+import com.github.davidcarboni.thetrain.logging.LogBuilder;
 import org.apache.commons.lang3.StringUtils;
 
-import static com.github.davidcarboni.thetrain.logging.Logger.newLogger;
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
 
 /**
  * Convenience class to get configuration values from {@link System#getProperty(String)} or gracefully fall back to {@link System#getenv()}.
@@ -18,16 +18,16 @@ public class Configuration {
 
     // Commented out as part of temporary fix
     static {
-        Logger logger = newLogger();
+        LogBuilder log = logBuilder();
         if (Keys.canUseStrongKeys()) {
-            logger.addParameter("keyBitSize", Keys.SYMMETRIC_KEY_SIZE_UNLIMITED)
+            log.addParameter("keyBitSize", Keys.SYMMETRIC_KEY_SIZE_UNLIMITED)
                     .info("this system is able to use strong AES encryption");
 
         } else {
-            logger.addParameter("keyBitSize", Keys.SYMMETRIC_KEY_SIZE_STANDARD)
+            log.addParameter("keyBitSize", Keys.SYMMETRIC_KEY_SIZE_STANDARD)
                     .info("this system is restricted to standard AES encryption");
         }
-        logger.addParameter("keyBitSize", Keys.getSymmetricKeySize())
+        log.addParameter("keyBitSize", Keys.getSymmetricKeySize())
                 //.addParameter("random", new java.util.Random().nextInt())
                 .info("symmetric key size set");
     }

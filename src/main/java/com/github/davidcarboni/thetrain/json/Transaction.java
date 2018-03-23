@@ -4,7 +4,7 @@ import com.github.davidcarboni.cryptolite.KeyWrapper;
 import com.github.davidcarboni.cryptolite.Keys;
 import com.github.davidcarboni.cryptolite.Random;
 import com.github.davidcarboni.thetrain.helpers.DateConverter;
-import com.github.davidcarboni.thetrain.logging.Logger;
+import com.github.davidcarboni.thetrain.logging.LogBuilder;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.crypto.SecretKey;
@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.github.davidcarboni.thetrain.logging.Logger.newLogger;
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
 
 
 /**
@@ -78,18 +78,18 @@ public class Transaction {
      * @param password If this is not blank, encryption-related fields will be initialised.
      */
     public void enableEncryption(String password) {
-        Logger logger = newLogger()
+        LogBuilder log = logBuilder()
                 .clazz(getClass())
                 .transactionID(id);
 
         if (StringUtils.isNotBlank(password)) {
             if (StringUtils.isBlank(wrappedKey)) {
-                logger.warn("wrappedKey is blank, a new wrappedKey will be generated");
+                log.warn("wrappedKey is blank, a new wrappedKey will be generated");
 
                 try {
                     key = Keys.newSecretKey();
                 } catch (Exception e) {
-                    logger.error(e, "error while attempting generate new secret key for transaction");
+                    log.error(e, "error while attempting generate new secret key for transaction");
                     throw e;
                 }
 
@@ -100,7 +100,7 @@ public class Transaction {
                 try {
                     keyWrapper = new KeyWrapper(password, salt);
                 } catch (Exception e) {
-                    logger.addParameter("passwordEmpty", StringUtils.isEmpty(wrappedKey))
+                    log.addParameter("passwordEmpty", StringUtils.isEmpty(wrappedKey))
                             .addParameter("saltEmpty", StringUtils.isEmpty(salt))
                             .error(e, "error while attempting to create new KeyWrapper");
                     throw e;
@@ -109,7 +109,7 @@ public class Transaction {
                 try {
                     wrappedKey = keyWrapper.wrapSecretKey(key);
                 } catch (Exception e) {
-                    logger.addParameter("keyWrapperEmpty", keyWrapper == null)
+                    log.addParameter("keyWrapperEmpty", keyWrapper == null)
                             .addParameter("passwordEmpty", StringUtils.isEmpty(password))
                             .addParameter("saltEmpty", StringUtils.isEmpty(salt))
                             .error(e, "transaction.enableEncryption: error while attempting to wrap secret key");
@@ -117,12 +117,12 @@ public class Transaction {
             } else {
 
                 // Unwrap the existing key
-                logger.info("wrappedKey is not blank attempting to unwrap secret key");
+                log.info("wrappedKey is not blank attempting to unwrap secret key");
                 KeyWrapper keyWrapper = null;
                 try {
                     keyWrapper = new KeyWrapper(password, salt);
                 } catch (Exception e) {
-                    logger.addParameter("passwordEmpty", StringUtils.isEmpty(wrappedKey))
+                    log.addParameter("passwordEmpty", StringUtils.isEmpty(wrappedKey))
                             .addParameter("saltEmpty", StringUtils.isEmpty(salt))
                             .error(e, "transaction.enableEncryption: error while attempting to create new KeyWrapper");
                 }
@@ -130,7 +130,7 @@ public class Transaction {
                 try {
                     key = keyWrapper.unwrapSecretKey(wrappedKey);
                 } catch (Exception e) {
-                    logger.addParameter("wrappedKeyEmpty", StringUtils.isEmpty(wrappedKey))
+                    log.addParameter("wrappedKeyEmpty", StringUtils.isEmpty(wrappedKey))
                             .addParameter("passwordEmpty", StringUtils.isEmpty(password))
                             .addParameter("saltEmpty", StringUtils.isEmpty(salt))
                             .error(e, "error while attempting to unwrap secret key");
@@ -138,7 +138,7 @@ public class Transaction {
                 }
             }
         } else {
-            logger.warn("password was blank");
+            log.warn("password was blank");
         }
     }
 

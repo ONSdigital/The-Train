@@ -4,7 +4,7 @@ import com.github.davidcarboni.restolino.framework.Api;
 import com.github.davidcarboni.thetrain.api.common.Endpoint;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.request.Manifest;
-import com.github.davidcarboni.thetrain.logging.Logger;
+import com.github.davidcarboni.thetrain.logging.LogBuilder;
 import com.github.davidcarboni.thetrain.storage.Publisher;
 import com.github.davidcarboni.thetrain.storage.Transactions;
 import com.github.davidcarboni.thetrain.storage.Website;
@@ -18,7 +18,7 @@ import javax.ws.rs.POST;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import static com.github.davidcarboni.thetrain.logging.Logger.newLogger;
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
 import static java.lang.String.format;
 import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
 import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
@@ -38,7 +38,7 @@ public class CommitManifest implements Endpoint {
 
         com.github.davidcarboni.thetrain.json.Transaction transaction = null;
         String transactionId = null;
-        Logger logger = newLogger().endpoint(this);
+        LogBuilder log = logBuilder().endpoint(this);
 
         try {
             // Now get the parameters:
@@ -47,44 +47,44 @@ public class CommitManifest implements Endpoint {
 
             // Validate parameters
             if (StringUtils.isBlank(transactionId)) {
-                logger.responseStatus(BAD_REQUEST_400)
-                        .warn("transactionID is required but none was provided");
+                log.responseStatus(BAD_REQUEST_400)
+                        .warn("bad request: transactionID is required but none was provided");
                 response.setStatus(BAD_REQUEST_400);
                 return new Result("Please provide transactionId and uri parameters.", true, null);
             }
 
             // add the transactionID to the log parameters.
-            logger.transactionID(transactionId);
+            log.transactionID(transactionId);
 
             if (StringUtils.isEmpty(encryptionPassword)) {
-                logger.responseStatus(BAD_REQUEST_400)
-                        .warn("encryptionPassword required but none was provided");
+                log.responseStatus(BAD_REQUEST_400)
+                        .warn("bad request: encryptionPassword required but none was provided");
                 response.setStatus(BAD_REQUEST_400);
                 return new Result("encryptionPassword required but was empty or null " + transactionId, true, null);
             }
 
-            logger.info("starting commit manifest for transaction");
+            log.info("request valid starting commit manifest for transaction");
 
             // Get the transaction
             transaction = Transactions.get(transactionId, encryptionPassword);
             if (transaction == null) {
-                logger.responseStatus(BAD_REQUEST_400)
-                        .warn("transaction with specified id was not found");
+                log.responseStatus(BAD_REQUEST_400)
+                        .warn("bad request: transaction with specified id was not found");
                 response.setStatus(BAD_REQUEST_400);
                 return new Result("Unknown transaction " + transactionId, true, null);
             }
 
             // Check the transaction state
             if (transaction != null && !transaction.isOpen()) {
-                logger.responseStatus(BAD_REQUEST_400)
-                        .warn("could not proceed as transaction is unexpectedly closed");
+                log.responseStatus(BAD_REQUEST_400)
+                        .warn("bad request: could not proceed as transaction is unexpectedly closed");
                 response.setStatus(BAD_REQUEST_400);
                 return new Result("This transaction is closed.", true, transaction);
             }
 
             if (manifest == null) {
-                logger.responseStatus(BAD_REQUEST_400)
-                        .warn("unexpected error transaction manifest is empty");
+                log.responseStatus(BAD_REQUEST_400)
+                        .warn("bad request: unexpected error transaction manifest is empty");
                 response.setStatus(BAD_REQUEST_400);
                 return new Result("No manifest found for in this request.", true, transaction);
             }
@@ -92,20 +92,20 @@ public class CommitManifest implements Endpoint {
             // Get the website Path to publish to
             Path websitePath = Website.path();
             if (websitePath == null) {
-                logger.responseStatus(INTERNAL_SERVER_ERROR_500)
+                log.responseStatus(INTERNAL_SERVER_ERROR_500)
                         .warn("unexpected error website path is null");
                 response.setStatus(INTERNAL_SERVER_ERROR_500);
                 return new Result("website folder could not be used: " + websitePath, true, transaction);
             }
 
 
-            logger.websitePath(websitePath).info("copying manifest files to website and adding files to delete");
+            log.websitePath(websitePath).info("copying manifest files to website and adding files to delete");
 
             int copied = Publisher.copyFiles(transaction, manifest, websitePath);
             int deleted = Publisher.addFilesToDelete(transaction, manifest);
 
             if (copied != manifest.getFilesToCopy().size()) {
-                logger.responseStatus(INTERNAL_SERVER_ERROR_500)
+                log.responseStatus(INTERNAL_SERVER_ERROR_500)
                         .addParameter("actualCopies", copied)
                         .addParameter("expectedCopies", manifest.getFilesToCopy().size())
                         .warn("the number of copied files does not match expected in value of the manifest");
@@ -115,7 +115,7 @@ public class CommitManifest implements Endpoint {
             }
 
             // success
-            logger.responseStatus(OK_200)
+            log.responseStatus(OK_200)
                     .addParameter("copied", copied)
                     .addParameter("deleted", deleted)
                     .info("copying manifest files to website and adding files to delete completed successfully");
@@ -124,15 +124,15 @@ public class CommitManifest implements Endpoint {
             return new Result(format("Copied %d files. Deleted %s files.", copied, deleted), false, transaction);
 
         } catch (Exception e) {
-            logger.responseStatus(INTERNAL_SERVER_ERROR_500).error(e, "unexpected error");
+            log.responseStatus(INTERNAL_SERVER_ERROR_500).error(e, "unexpected error");
             response.setStatus(INTERNAL_SERVER_ERROR_500);
             return new Result(ExceptionUtils.getStackTrace(e), true, transaction);
         } finally {
-            logger.info("updating transaction");
+            log.info("updating transaction");
             try {
                 Transactions.update(transaction);
             } catch (Exception e) {
-                logger.responseStatus(INTERNAL_SERVER_ERROR_500).error(e, "unexpected error while updating transaction");
+                log.responseStatus(INTERNAL_SERVER_ERROR_500).error(e, "unexpected error while updating transaction");
                 response.setStatus(INTERNAL_SERVER_ERROR_500);
                 new Result("unexpected error while updating transaction", true, transaction);
             }

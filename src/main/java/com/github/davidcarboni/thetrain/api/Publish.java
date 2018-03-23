@@ -6,7 +6,7 @@ import com.github.davidcarboni.thetrain.api.common.Endpoint;
 import com.github.davidcarboni.thetrain.helpers.ShaInputStream;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
-import com.github.davidcarboni.thetrain.logging.Logger;
+import com.github.davidcarboni.thetrain.logging.LogBuilder;
 import com.github.davidcarboni.thetrain.storage.Publisher;
 import com.github.davidcarboni.thetrain.storage.Transactions;
 import org.apache.commons.fileupload.FileItem;
@@ -25,7 +25,7 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.zip.ZipInputStream;
 
-import static com.github.davidcarboni.thetrain.logging.Logger.newLogger;
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
 import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
 import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
@@ -40,7 +40,7 @@ public class Publish implements Endpoint {
     public Result addFile(HttpServletRequest request,
                           HttpServletResponse response) throws IOException, FileUploadException {
 
-        Logger logger = newLogger().endpoint(this);
+        LogBuilder log = logBuilder().endpoint(this);
         Transaction transaction = null;
         String transactionID = null;
         String encryptionPassword = null;
@@ -55,30 +55,30 @@ public class Publish implements Endpoint {
 
                 transactionID = request.getParameter(TRANSACTION_ID_KEY);
                 if (StringUtils.isBlank(transactionID)) {
-                    logger.responseStatus(BAD_REQUEST_400)
-                            .warn("publish requires transactionID but none provided");
+                    log.responseStatus(BAD_REQUEST_400)
+                            .warn("bad request: publish requires transactionID but none provided");
 
                     response.setStatus(BAD_REQUEST_400);
                     return new Result("Please provide transactionId and uri parameters.", true, null);
                 }
 
-                logger.transactionID(transactionID);
+                log.transactionID(transactionID);
 
                 uri = request.getParameter(URI_KEY);
                 if (StringUtils.isBlank(uri)) {
-                    logger.responseStatus(BAD_REQUEST_400)
-                            .warn("publish requires uri but none provided");
+                    log.responseStatus(BAD_REQUEST_400)
+                            .warn("bad request: publish requires uri but none provided");
 
                     response.setStatus(BAD_REQUEST_400);
                     return new Result("Please provide transactionId and uri parameters.", true, null);
                 }
 
-                logger.uri(uri);
+                log.uri(uri);
 
                 encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
                 if (StringUtils.isBlank(encryptionPassword)) {
-                    logger.responseStatus(BAD_REQUEST_400)
-                            .warn("publish requires encryptionPassword but none provided");
+                    log.responseStatus(BAD_REQUEST_400)
+                            .warn("bad request: publish requires encryptionPassword but none provided");
 
                     response.setStatus(BAD_REQUEST_400);
                     return new Result("Please provide transactionId and uri parameters.", true, null);
@@ -87,8 +87,8 @@ public class Publish implements Endpoint {
                 // Get the transaction
                 transaction = Transactions.get(transactionID, encryptionPassword);
                 if (transaction == null) {
-                    logger.responseStatus(BAD_REQUEST_400)
-                            .warn("no transaction with specified ID was found");
+                    log.responseStatus(BAD_REQUEST_400)
+                            .warn("bad request: no transaction with specified ID was found");
 
                     response.setStatus(BAD_REQUEST_400);
                     return new Result("Unknown transaction " + transactionID, true, null);
@@ -96,51 +96,51 @@ public class Publish implements Endpoint {
 
                 // Check the transaction state
                 if (transaction != null && !transaction.isOpen()) {
-                    logger.responseStatus(BAD_REQUEST_400)
-                            .warn("unexpected error transaction is closed");
+                    log.responseStatus(BAD_REQUEST_400)
+                            .warn("bad request: unexpected error transaction is closed");
 
                     response.setStatus(BAD_REQUEST_400);
                     return new Result("This transaction is closed.", true, transaction);
                 }
 
                 if (data == null) {
-                    logger.responseStatus(BAD_REQUEST_400)
-                            .warn("unexpected error  data is null");
+                    log.responseStatus(BAD_REQUEST_400)
+                            .warn("bad request: unexpected error  data is null");
                     response.setStatus(BAD_REQUEST_400);
                     return new Result("No data found for published file.", true, transaction);
                 }
 
-                logger.info("request valid proceeding with addFile");
+                log.info("request valid proceeding with addFile");
 
                 boolean zipped = BooleanUtils.toBoolean(request.getParameter(ZIP_KEY));
                 boolean published;
 
                 if (zipped) {
-                    logger.info("unzipping file");
+                    log.info("unzipping file");
 
                     try (ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))) {
                         published = Publisher.addFiles(transaction, uri, input);
-                        logger.info("file unzupped and added successfully");
+                        log.info("file unzupped and added successfully");
                     } catch (Exception e) {
-                        logger.error(e, "unexpected error while attempting to add zipped file to publish transaction");
+                        log.error(e, "unexpected error while attempting to add zipped file to publish transaction");
                         throw e;
                     }
                 } else {
-                    logger.info("adding file to publish transaction");
+                    log.info("adding file to publish transaction");
                     try (ShaInputStream input = new ShaInputStream(new BufferedInputStream(data))) {
                         published = Publisher.addFile(transaction, uri, input, startDate);
-                        logger.info("publish: file successfully added to publish transaction");
+                        log.info("publish: file successfully added to publish transaction");
                     } catch (Exception e) {
-                        logger.error(e, "unexpected error while attempting to add file to publish transaction");
+                        log.error(e, "unexpected error while attempting to add file to publish transaction");
                         throw e;
                     }
                 }
 
                 if (published) {
-                    logger.responseStatus(OK_200).info("file added to  publish transaction successfully");
+                    log.responseStatus(OK_200).info("file added to  publish transaction successfully");
 
                 } else {
-                    logger.responseStatus(INTERNAL_SERVER_ERROR_500)
+                    log.responseStatus(INTERNAL_SERVER_ERROR_500)
                             .warn("error while adding file to publish transaction");
 
                     response.setStatus(INTERNAL_SERVER_ERROR_500);
@@ -150,7 +150,7 @@ public class Publish implements Endpoint {
                 try {
                     Transactions.tryUpdateAsync(transaction.id());
                 } catch (Exception e) {
-                    logger.responseStatus(INTERNAL_SERVER_ERROR_500)
+                    log.responseStatus(INTERNAL_SERVER_ERROR_500)
                             .error(e, "unexpected error while attempting to async update transaction");
                     return new Result("unexpected error while attempting to async update transaction", true, transaction);
                 }
@@ -160,7 +160,7 @@ public class Publish implements Endpoint {
             }
 
         } catch (Exception e) {
-            logger.responseStatus(INTERNAL_SERVER_ERROR_500)
+            log.responseStatus(INTERNAL_SERVER_ERROR_500)
                     .error(e, "error while attempting to add file to publish transaction");
             response.setStatus(INTERNAL_SERVER_ERROR_500);
             return new Result(ExceptionUtils.getStackTrace(e), true, transaction);
@@ -191,7 +191,7 @@ public class Publish implements Endpoint {
                 }
             }
         } catch (Exception e) {
-            newLogger().error(e, "error while getting item inputstream");
+            logBuilder().error(e, "error while getting item inputstream");
             // item.write throws a general Exception, so specialise it by wrapping with IOException
             throw new IOException("Error processing uploaded file", e);
         }
