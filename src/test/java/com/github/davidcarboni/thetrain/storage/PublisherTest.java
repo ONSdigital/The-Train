@@ -384,14 +384,14 @@ public class PublisherTest {
         int filesToDelete = Publisher.addFilesToDelete(this.transaction, manifest);
 
         // Then the returned number of deletes is as expected
-        assertEquals(manifest.urisToDelete.size(), filesToDelete);
+        assertEquals(manifest.getUrisToDelete().size(), filesToDelete);
 
         // and the transaction contains a uriInfo instance for each delete added.
         ArrayList<UriInfo> uriInfos = new ArrayList<>(this.transaction.urisToDelete());
-        assertEquals(manifest.urisToDelete.size(), uriInfos.size());
+        assertEquals(manifest.getUrisToDelete().size(), uriInfos.size());
 
         for (UriInfo uriInfo : uriInfos) {
-            assertTrue(manifest.urisToDelete.contains(uriInfo.uri()));
+            assertTrue(manifest.getUrisToDelete().contains(uriInfo.uri()));
         }
     }
 
@@ -413,14 +413,14 @@ public class PublisherTest {
         int filesToDelete = Publisher.addFilesToDelete(this.transaction, manifest);
 
         // Then the returned number of deletes is as expected
-        assertEquals(manifest.urisToDelete.size(), filesToDelete);
+        assertEquals(manifest.getUrisToDelete().size(), filesToDelete);
 
         // and the transaction contains a uriInfo instance for each delete added.
         ArrayList<UriInfo> uriInfos = new ArrayList<>(this.transaction.urisToDelete());
-        assertEquals(manifest.urisToDelete.size(), uriInfos.size());
+        assertEquals(manifest.getUrisToDelete().size(), uriInfos.size());
 
         for (UriInfo uriInfo : uriInfos) {
-            assertTrue(manifest.urisToDelete.contains(uriInfo.uri()));
+            assertTrue(manifest.getUrisToDelete().contains(uriInfo.uri()));
         }
 
         // there is a file in the backup directory that is the same as the website file
