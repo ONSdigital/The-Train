@@ -2,10 +2,11 @@ package com.github.davidcarboni.thetrain.api;
 
 import com.github.davidcarboni.encryptedfileupload.EncryptedFileItemFactory;
 import com.github.davidcarboni.restolino.framework.Api;
+import com.github.davidcarboni.thetrain.api.common.Endpoint;
 import com.github.davidcarboni.thetrain.helpers.ShaInputStream;
 import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
-import com.github.davidcarboni.thetrain.logging.Log;
+import com.github.davidcarboni.thetrain.logging.LogBuilder;
 import com.github.davidcarboni.thetrain.storage.Publisher;
 import com.github.davidcarboni.thetrain.storage.Transactions;
 import org.apache.commons.fileupload.FileItem;
@@ -14,7 +15,6 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.eclipse.jetty.http.HttpStatus;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -25,21 +25,26 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.zip.ZipInputStream;
 
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
+import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
+import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
+import static org.eclipse.jetty.http.HttpStatus.OK_200;
+
 /**
- * API to publish a file within an existing {@link Transaction}.
+ * Endpoint to publish a file within an existing {@link Transaction}.
  */
 @Api
-public class Publish {
+public class Publish extends Endpoint {
 
     @POST
     public Result addFile(HttpServletRequest request,
                           HttpServletResponse response) throws IOException, FileUploadException {
 
-        Log.info("Start Publish");
-
+        LogBuilder log = logBuilder().endpoint(this);
         Transaction transaction = null;
-        String message = null;
-        boolean error = false;
+        String transactionID = null;
+        String encryptionPassword = null;
+        String uri = null;
 
         try {
             // Record the start time
@@ -48,79 +53,118 @@ public class Publish {
             // Get the file first because request.getParameter will consume the body of the request:
             try (InputStream data = getFile(request)) {
 
-                // Now get the parameters:
-                String transactionId = request.getParameter("transactionId");
-                String uri = request.getParameter("uri");
-                String encryptionPassword = request.getParameter("encryptionPassword");
+                transactionID = request.getParameter(TRANSACTION_ID_KEY);
+                if (StringUtils.isBlank(transactionID)) {
+                    log.responseStatus(BAD_REQUEST_400)
+                            .warn("bad request: publish requires transactionID but none provided");
 
-                // Validate parameters
-                if (StringUtils.isBlank(transactionId) || StringUtils.isBlank(uri)) {
-                    response.setStatus(HttpStatus.BAD_REQUEST_400);
-                    error = true;
-                    message = "Please provide transactionId and uri parameters.";
+                    response.setStatus(BAD_REQUEST_400);
+                    return new Result("Please provide transactionId and uri parameters.", true, null);
+                }
+
+                log.transactionID(transactionID);
+
+                uri = request.getParameter(URI_KEY);
+                if (StringUtils.isBlank(uri)) {
+                    log.responseStatus(BAD_REQUEST_400)
+                            .warn("bad request: publish requires uri but none provided");
+
+                    response.setStatus(BAD_REQUEST_400);
+                    return new Result("Please provide transactionId and uri parameters.", true, null);
+                }
+
+                log.uri(uri);
+
+                encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
+                if (StringUtils.isBlank(encryptionPassword)) {
+                    log.responseStatus(BAD_REQUEST_400)
+                            .warn("bad request: publish requires encryptionPassword but none provided");
+
+                    response.setStatus(BAD_REQUEST_400);
+                    return new Result("Please provide transactionId and uri parameters.", true, null);
                 }
 
                 // Get the transaction
-                transaction = Transactions.get(transactionId, encryptionPassword);
+                transaction = Transactions.get(transactionID, encryptionPassword);
                 if (transaction == null) {
-                    response.setStatus(HttpStatus.BAD_REQUEST_400);
-                    error = true;
-                    message = "Unknown transaction " + transactionId;
+                    log.responseStatus(BAD_REQUEST_400)
+                            .warn("bad request: no transaction with specified ID was found");
+
+                    response.setStatus(BAD_REQUEST_400);
+                    return new Result("Unknown transaction " + transactionID, true, null);
                 }
 
                 // Check the transaction state
                 if (transaction != null && !transaction.isOpen()) {
-                    response.setStatus(HttpStatus.BAD_REQUEST_400);
-                    error = true;
-                    message = "This transaction is closed.";
+                    log.responseStatus(BAD_REQUEST_400)
+                            .warn("bad request: unexpected error transaction is closed");
+
+                    response.setStatus(BAD_REQUEST_400);
+                    return new Result("This transaction is closed.", true, transaction);
                 }
 
                 if (data == null) {
-                    response.setStatus(HttpStatus.BAD_REQUEST_400);
-
-                    error = true;
-                    message = "No data found for published file.";
+                    log.responseStatus(BAD_REQUEST_400)
+                            .warn("bad request: unexpected error  data is null");
+                    response.setStatus(BAD_REQUEST_400);
+                    return new Result("No data found for published file.", true, transaction);
                 }
 
-                boolean zipped = BooleanUtils.toBoolean(request.getParameter("zip"));
+                log.info("request valid proceeding with addFile");
 
-                if (!error) {
-                    // Publish
-                    boolean published;
-                    if (zipped) {
-                        Log.info("Zipped File: Unzipping...");
-                        try (ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))) {
-                            published = Publisher.addFiles(transaction, uri, input);
-                        }
-                        Log.info("Finished Unzipping.");
-                    } else {
-                        Log.info("Adding normal file");
-                        try (ShaInputStream input = new ShaInputStream(new BufferedInputStream(data))) {
-                            published = Publisher.addFile(transaction, uri, input, startDate);
-                        }
-                        Log.info("Finished adding normal file");
+                boolean zipped = BooleanUtils.toBoolean(request.getParameter(ZIP_KEY));
+                boolean published;
+
+                if (zipped) {
+                    log.info("unzipping file");
+
+                    try (ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))) {
+                        published = Publisher.addFiles(transaction, uri, input);
+                        log.info("file unzupped and added successfully");
+                    } catch (Exception e) {
+                        log.error(e, "unexpected error while attempting to add zipped file to publish transaction");
+                        throw e;
                     }
-
-                    if (published) {
-                        message = "Published to " + uri;
-                    } else {
-                        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-                        error = true;
-                        message = "Sadly " + uri + " was not published.";
+                } else {
+                    log.info("adding file to publish transaction");
+                    try (ShaInputStream input = new ShaInputStream(new BufferedInputStream(data))) {
+                        published = Publisher.addFile(transaction, uri, input, startDate);
+                        log.info("publish: file successfully added to publish transaction");
+                    } catch (Exception e) {
+                        log.error(e, "unexpected error while attempting to add file to publish transaction");
+                        throw e;
                     }
+                }
 
+                if (published) {
+                    log.responseStatus(OK_200).info("file added to  publish transaction successfully");
+
+                } else {
+                    log.responseStatus(INTERNAL_SERVER_ERROR_500)
+                            .warn("error while adding file to publish transaction");
+
+                    response.setStatus(INTERNAL_SERVER_ERROR_500);
+                    return new Result("Sadly " + uri + " was not published.", true, transaction);
+                }
+
+                try {
                     Transactions.tryUpdateAsync(transaction.id());
+                } catch (Exception e) {
+                    log.responseStatus(INTERNAL_SERVER_ERROR_500)
+                            .error(e, "unexpected error while attempting to async update transaction");
+                    return new Result("unexpected error while attempting to async update transaction", true, transaction);
                 }
 
+                // otherwise its a successful response/
+                return new Result("Published to " + uri, false, transaction);
             }
-        } catch (Exception e) {
-            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
-            error = true;
-            message = ExceptionUtils.getStackTrace(e);
-        }
 
-        Log.info(transaction, message);
-        return new Result(message, error, transaction);
+        } catch (Exception e) {
+            log.responseStatus(INTERNAL_SERVER_ERROR_500)
+                    .error(e, "error while attempting to add file to publish transaction");
+            response.setStatus(INTERNAL_SERVER_ERROR_500);
+            return new Result(ExceptionUtils.getStackTrace(e), true, transaction);
+        }
     }
 
 
@@ -147,6 +191,7 @@ public class Publish {
                 }
             }
         } catch (Exception e) {
+            logBuilder().error(e, "error while getting item inputstream");
             // item.write throws a general Exception, so specialise it by wrapping with IOException
             throw new IOException("Error processing uploaded file", e);
         }

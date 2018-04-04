@@ -8,9 +8,9 @@ import com.github.davidcarboni.thetrain.helpers.ShaOutputStream;
 import com.github.davidcarboni.thetrain.helpers.UnionInputStream;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.json.UriInfo;
-import com.github.davidcarboni.thetrain.json.request.Manifest;
 import com.github.davidcarboni.thetrain.json.request.FileCopy;
-import com.github.davidcarboni.thetrain.logging.Log;
+import com.github.davidcarboni.thetrain.json.request.Manifest;
+import com.github.davidcarboni.thetrain.logging.LogBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -25,9 +25,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
 
 /**
  * Class for handling publishing actions.
@@ -99,8 +104,11 @@ public class Publisher {
                 throw new IOException("Error completing small file write", e);
             }
         }
-
-        Log.info("Unzip results: " + big + " large files (synchronous), " + small + " small files (asynchronous). Total: " + (big + small));
+        logBuilder()
+                .addParameter("largeFileSynchronouss", big)
+                .addParameter("smallFileAsynchronous", small)
+                .addParameter("total", small + big)
+                .info("unzip results");
         return result;
     }
 
@@ -153,9 +161,11 @@ public class Publisher {
                 if (StringUtils.equals(shaInput, shaOutput) && sizeInput == sizeOutput) {
                     result = true;
                 } else {
-                    Log.info("SHA/size mismatch for: " + uri +
-                            " input: " + sizeInput + "/" + shaInput +
-                            ", output: " + sizeOutput + "/" + shaOutput);
+                    logBuilder()
+                            .addParameter("uri", uri)
+                            .addParameter("input", sizeInput + "/" + shaInput)
+                            .addParameter("output", sizeOutput + "/" + shaOutput)
+                            .info("SHA/size mismatch");
                 }
             }
         }
@@ -170,6 +180,7 @@ public class Publisher {
 
     /**
      * When making a change to a file on the website, we copy the existing file into a backup
+     *
      * @param transaction
      * @param uri
      * @return
@@ -196,7 +207,7 @@ public class Publisher {
         ExecutorService pool = Executors.newFixedThreadPool(8);
 
         try {
-            for (FileCopy move : manifest.filesToCopy) {
+            for (FileCopy move : manifest.getFilesToCopy()) {
                 futures.add(pool.submit(() -> copyFileIntoTransaction(transaction, move.source, move.target, websitePath)));
             }
         } finally {
@@ -219,16 +230,18 @@ public class Publisher {
 
     /**
      * Read the list of URI's to delete from the manifest and add them to the transaction.
+     *
      * @param transaction
      * @param manifest
      * @return
      */
     public static int addFilesToDelete(Transaction transaction, Manifest manifest) throws IOException {
 
+        LogBuilder logBuilder = logBuilder();
         int filesToDelete = 0;
 
-        if (manifest.urisToDelete != null) {
-            for (String uri : manifest.urisToDelete) {
+        if (manifest.getUrisToDelete() != null) {
+            for (String uri : manifest.getUrisToDelete()) {
                 UriInfo uriInfo = new UriInfo(uri, new Date());
                 uriInfo.setAction(UriInfo.DELETE);
                 transaction.addUriDelete(uriInfo);
@@ -238,21 +251,22 @@ public class Publisher {
                 Path targetDirectory = target;
                 if (Files.exists(targetDirectory)) {
                     Path backupDirectory = PathUtils.toPath(uri, Transactions.backup(transaction));
-                    Log.info("Backing up directory before deletion: " + target);
+                    logBuilder.addParameter("directory", target.toString())
+                            .info("backing up directory before deletion");
                     FileUtils.copyDirectory(targetDirectory.toFile(), backupDirectory.toFile());
                 } else {
-                    Log.info("The directory " + target + "does not exist. Skipping the backup of it.");
+                    logBuilder.addParameter("directory", target.toString())
+                            .info("cannot backup directory as it does not exist, skipping");
                 }
-
                 filesToDelete++;
             }
         }
-
         return filesToDelete;
     }
 
     /**
      * Copy an existing file from the website into the given transaction.
+     *
      * @param transaction
      * @param sourceUri
      * @param targetUri
@@ -262,6 +276,7 @@ public class Publisher {
      */
     static boolean copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
 
+        LogBuilder logBuilder = logBuilder();
         boolean moved = false;
 
         Path source = PathUtils.toPath(sourceUri, websitePath);
@@ -274,14 +289,16 @@ public class Publisher {
         long sizeOutput = 0;
 
         if (!Files.exists(source)) {
-            Log.info("Could not move file because it does not exist: " + source);
+            logBuilder.addParameter("path", source.toString())
+                    .info("could not move file because it does not exist");
             return false;
         }
 
         // if the file already exists it has already been copied so ignore it.
         // doing this allows the publish to be reattempted if it fails without trying to copy files over existing files.
         if (Files.exists(finalWebsiteTarget)) {
-            Log.info("Could not move the file - it already exists: " + finalWebsiteTarget);
+            logBuilder.addParameter("path", finalWebsiteTarget.toString())
+                    .info("could not move file as it alreadt exists");
             return false;
         }
 
@@ -332,11 +349,15 @@ public class Publisher {
     public static boolean commit(Transaction transaction, Path website) throws IOException {
         boolean result = true;
 
+        LogBuilder logBuilder = logBuilder();
+
         // Apply any deletes that are defined in the transaction first to ensure we do not delete updated files.
         for (UriInfo uriInfo : transaction.urisToDelete()) {
             String uri = uriInfo.uri();
             Path target = PathUtils.toPath(uri, website);
-            Log.info("Deleting directory: " + target.toString());
+
+            logBuilder.addParameter("path", target.toString())
+                    .info("deleting directory");
             FileUtils.deleteDirectory(target.toFile());
         }
 
@@ -487,7 +508,7 @@ public class Publisher {
     }
 
     public static void main(String[] args) throws IOException {
-
+        LogBuilder logBuilder = logBuilder();
         for (int i = 0; i < 8193; i++) {
 
             ShaInputStream input = new ShaInputStream(Random.inputStream(i));
@@ -506,9 +527,10 @@ public class Publisher {
                     String outputSha = output.sha();
                     long outputSize = output.size();
                     if (inputSize != outputSize || !StringUtils.equals(inputSha, outputSha)) {
-                        Log.info("Size   : " + i);
-                        Log.info("Input  : " + inputSize + "/" + input.sha());
-                        Log.info("Output : " + outputSize + "/" + output.sha());
+                        logBuilder.addParameter("size", i)
+                                .addParameter("input", inputSize + "/" + input.sha())
+                                .addParameter("output", outputSize + "/" + output.sha())
+                                .info("info");
                     }
 
                 }

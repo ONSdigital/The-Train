@@ -82,6 +82,12 @@
             </exclusions>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>4.0.5.RELEASE</version>
+            <scope>test</scope>
+        </dependency>
 
         <!-- Commons -->
         <dependency>
@@ -103,7 +109,8 @@
         <dependency>
             <groupId>com.github.ONSdigital</groupId>
             <artifactId>dp-logging</artifactId>
-            <version>master-SNAPSHOT</version>
+            <!--<version>master-SNAPSHOT</version>-->
+            <version>feature~performance-test-SNAPSHOT</version>
         </dependency>
 
         <!-- Test -->
