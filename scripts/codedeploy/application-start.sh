@@ -6,6 +6,8 @@ GIT_COMMIT=
 docker run -d                                    \
   --env=thetrain.transactions=/transactions      \
   --env=thetrain.website=/content                \
+  --env=DP_COLOURED_LOGGING=false                \
+  --env=DP_LOGGING_FORMAT=json                   \
   --name=the-train                               \
   --net=website                                  \
   --restart=always                               \

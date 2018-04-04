@@ -1,7 +1,7 @@
 package com.github.davidcarboni.thetrain.json;
 
 /**
- * Json debug returned by API endpoints.
+ * Json debug returned by Endpoint endpoints.
  */
 public class Result {
     public String message;

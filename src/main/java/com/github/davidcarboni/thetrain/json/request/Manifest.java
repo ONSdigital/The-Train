@@ -4,13 +4,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Manifest {
-    public List<FileCopy> filesToCopy;
-    public List<String> urisToDelete;
+    private List<FileCopy> filesToCopy;
+    private List<String> urisToDelete;
 
     public void addUriToDelete(String uri) {
         if (urisToDelete == null)
             urisToDelete = new ArrayList<>();
 
         urisToDelete.add(uri);
+    }
+
+    public List<String> getUrisToDelete() {
+        return this.urisToDelete;
+    }
+
+    public List<FileCopy> getFilesToCopy() {
+        return this.filesToCopy;
     }
 }
