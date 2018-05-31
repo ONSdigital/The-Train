@@ -16,10 +16,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -152,27 +149,15 @@ public class Publisher {
         if (target != null) {
             // Encrypt if a key was provided, then delete the original
             Files.createDirectories(target.getParent());
-            try (ShaOutputStream output = PathUtils.encryptingStream(target, transaction.key())) {
+            try (OutputStream output = PathUtils.outputStream(target)) {
                 IOUtils.copy(input, output);
-                shaInput = input.sha();
-                sizeInput = input.size();
-                shaOutput = output.sha();
-                sizeOutput = output.size();
-                if (StringUtils.equals(shaInput, shaOutput) && sizeInput == sizeOutput) {
-                    result = true;
-                } else {
-                    logBuilder()
-                            .addParameter("uri", uri)
-                            .addParameter("input", sizeInput + "/" + shaInput)
-                            .addParameter("output", sizeOutput + "/" + shaOutput)
-                            .info("SHA/size mismatch");
-                }
+                result = true;
             }
         }
 
         // Update the transaction
         UriInfo uriInfo = new UriInfo(uri, startDate);
-        uriInfo.stop(shaOutput, sizeOutput);
+        uriInfo.stop();
         uriInfo.setAction(action);
         transaction.addUri(uriInfo);
         return result;
@@ -285,9 +270,6 @@ public class Publisher {
 
         String action = backupExistingFile(transaction, targetUri);
 
-        String shaOutput = null;
-        long sizeOutput = 0;
-
         if (!Files.exists(source)) {
             logBuilder.addParameter("path", source.toString())
                     .info("could not move file because it does not exist");
@@ -298,24 +280,22 @@ public class Publisher {
         // doing this allows the publish to be reattempted if it fails without trying to copy files over existing files.
         if (Files.exists(finalWebsiteTarget)) {
             logBuilder.addParameter("path", finalWebsiteTarget.toString())
-                    .info("could not move file as it alreadt exists");
+                    .info("could not move file as it already exists");
             return false;
         }
 
         if (target != null) {
             Files.createDirectories(target.getParent());
-            try (InputStream input = new FileInputStream(source.toString());
-                 ShaOutputStream output = PathUtils.encryptingStream(target, transaction.key())) {
+            try (InputStream input = PathUtils.inputStream(source);
+                 OutputStream output = PathUtils.outputStream(target)) {
                 IOUtils.copy(input, output);
-                shaOutput = output.sha();
-                sizeOutput = output.size();
                 moved = true;
             }
         }
 
         // Update the transaction
         UriInfo uriInfo = new UriInfo(targetUri, new Date());
-        uriInfo.stop(shaOutput, sizeOutput);
+        uriInfo.stop();
         uriInfo.setAction(action);
         transaction.addUri(uriInfo);
         return moved;
@@ -418,21 +398,11 @@ public class Publisher {
             // NB We're using copy rather than move for two reasons:
             // - To be able to review a transaction after the fact and see all the files that were published
             // - If we use encryption we need to copy through a cipher stream to handle decryption
-            String uploadedSha = uriInfo.sha();
-            long uploadedSize = uriInfo.size();
-            String committedSha;
-            long committedSize;
-            try (ShaInputStream input = PathUtils.decryptingStream(source, transaction.key()); ShaOutputStream output = new ShaOutputStream(PathUtils.outputStream(target))) {
+            try (InputStream input = PathUtils.inputStream(source); OutputStream output = PathUtils.outputStream(target)) {
                 IOUtils.copy(input, output);
-                committedSha = output.sha();
-                committedSize = output.size();
             }
-            if (StringUtils.equals(uploadedSha, committedSha) && uploadedSize == committedSize) {
-                uriInfo.commit();
-                result = true;
-            } else {
-                uriInfo.fail("Published file mismatch. Uploaded: " + uploadedSize + " bytes (" + uploadedSha + ") Committed: " + committedSize + " bytes (" + committedSha + ")");
-            }
+            uriInfo.commit();
+            result = true;
 
         } catch (Throwable t) {
 
@@ -520,19 +490,8 @@ public class Publisher {
             // If entry data fit into the buffer, go asynchronous:
             if (read < buffer.length) {
 
-                try (ShaOutputStream output = PathUtils.encryptingStream(Files.createTempFile("s", "a"), Keys.newSecretKey())) {
+                try (OutputStream output = PathUtils.outputStream(Files.createTempFile("s", "a"))) {
                     IOUtils.copy(input, output);
-                    String inputSha = input.sha();
-                    long inputSize = input.size();
-                    String outputSha = output.sha();
-                    long outputSize = output.size();
-                    if (inputSize != outputSize || !StringUtils.equals(inputSha, outputSha)) {
-                        logBuilder.addParameter("size", i)
-                                .addParameter("input", inputSize + "/" + input.sha())
-                                .addParameter("output", outputSize + "/" + output.sha())
-                                .info("info");
-                    }
-
                 }
             }
         }

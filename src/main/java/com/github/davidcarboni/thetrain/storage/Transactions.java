@@ -44,17 +44,13 @@ public class Transactions {
     /**
      * Creates a new transaction.
      *
-     * @param encryptionPassword If this is not blank, encryption will be enabled for the transaction.
      * @return The details of the newly created transaction.
      * @throws IOException If a filesystem error occurs in creating the transaction.
      */
-    public static Transaction create(String encryptionPassword) throws IOException {
+    public static Transaction create() throws IOException {
 
         Transaction transaction = new Transaction();
         LogBuilder log = logBuilder().transactionID(transaction.id());
-
-        // Enable encryption if requested
-        transaction.enableEncryption(encryptionPassword);
 
         // Generate the file structure
         Path path = path(transaction.id());
@@ -102,7 +98,7 @@ public class Transactions {
      * @throws IOException If an error occurs in reading the transaction Json.
      */
 
-    public static Transaction get(String id, String encryptionPassword) throws IOException {
+    public static Transaction get(String id) throws IOException {
         LogBuilder log = logBuilder().transactionID(id);
         Transaction result = null;
 
@@ -122,11 +118,6 @@ public class Transactions {
                 } else {
                     log.info("retrieving transaction from in-memory storage");
                     result = transactionMap.get(id);
-
-                    if (result != null) {
-                        log.info("transaction retrieved from in-memory storage, enabling encryption");
-                        result.enableEncryption(encryptionPassword);
-                    }
                 }
             }
             return result;

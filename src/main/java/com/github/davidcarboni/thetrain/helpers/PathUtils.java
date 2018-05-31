@@ -151,42 +151,6 @@ public class PathUtils {
     }
 
     /**
-     * Generates a {@link BufferedInputStream} for the given {@link Path}, which will encrypt data as they are read if the given key is not null.
-     *
-     * @param file The file to be read.
-     * @param key  The encryption key. If null, no encryption will be performed.
-     * @return A {@link BufferedInputStream}, wrapped with a cipher stream if a key is provided, wrapped in an {@link ShaOutputStream}.
-     * @throws IOException If an error occurs in getting the stream, or if the encryption key is invalid.
-     */
-    public static ShaOutputStream encryptingStream(Path file, SecretKey key) throws IOException {
-        OutputStream result = outputStream(file);
-        if (key != null) {
-            result = new Crypto().encrypt(result, key);
-        }
-
-        // NB the ShaOutputStream must process cleartext content as it is written to the stream, before being encrypted, in order to return the correct SHA:
-        return new ShaOutputStream(result);
-    }
-
-    /**
-     * Generates a {@link BufferedInputStream} for the given {@link Path}, which will decrypt data as they are read if the given key is not null.
-     *
-     * @param file The file to be read.
-     * @param key  The encryption key. If null, no decryption will be performed.
-     * @return A {@link BufferedInputStream}, wrapped with a cipher stream if a key is provided, wrapped in an {@link ShaOutputStream}.
-     * @throws IOException If an error occurs in getting the stream, or if the encryption key is invalid.
-     */
-    public static ShaInputStream decryptingStream(Path file, SecretKey key) throws IOException {
-        InputStream result = inputStream(file);
-        if (key != null) {
-            result = new Crypto().decrypt(result, key);
-        }
-
-        // NB the ShaInputStream must process content read from the stream after decryption in order to return the correct SHA:
-        return new ShaInputStream(result);
-    }
-
-    /**
      * Lists URIs relative to the given {@link Path}.
      *
      * @param content The path within which to list URIs.

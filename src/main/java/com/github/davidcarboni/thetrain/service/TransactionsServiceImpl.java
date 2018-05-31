@@ -8,13 +8,13 @@ import java.io.IOException;
 public class TransactionsServiceImpl implements TransactionsService {
 
     @Override
-    public Transaction create(String encryptionPassword) throws IOException {
-        return Transactions.create(encryptionPassword);
+    public Transaction create() throws IOException {
+        return Transactions.create();
     }
 
     @Override
-    public Transaction get(String id, String encryptionPassword) throws IOException {
-        return Transactions.get(id, encryptionPassword);
+    public Transaction get(String id) throws IOException {
+        return Transactions.get(id);
     }
 
     @Override

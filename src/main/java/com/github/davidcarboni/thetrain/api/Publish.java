@@ -75,17 +75,8 @@ public class Publish extends Endpoint {
 
                 log.uri(uri);
 
-                encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
-                if (StringUtils.isBlank(encryptionPassword)) {
-                    log.responseStatus(BAD_REQUEST_400)
-                            .warn("bad request: publish requires encryptionPassword but none provided");
-
-                    response.setStatus(BAD_REQUEST_400);
-                    return new Result("Please provide transactionId and uri parameters.", true, null);
-                }
-
                 // Get the transaction
-                transaction = Transactions.get(transactionID, encryptionPassword);
+                transaction = Transactions.get(transactionID);
                 if (transaction == null) {
                     log.responseStatus(BAD_REQUEST_400)
                             .warn("bad request: no transaction with specified ID was found");
