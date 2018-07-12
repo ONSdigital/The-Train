@@ -7,7 +7,7 @@ export DP_COLOURED_LOGGING=true
 export DP_LOGGING_FORMAT=pretty_json
 JAVA_OPTS="-Xmx512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=n"
 
-mvn package && \
+mvn package -DskipTests && \
 java $JAVA_OPTS \
           -Dthetrain.website=$content_path \
           -Dthetrain.transactions=$transactions_path \
