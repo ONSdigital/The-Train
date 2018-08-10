@@ -29,6 +29,13 @@ job "the-train" {
       value     = "web.*"
     }
 
+    restart {
+      attempts = 3
+      delay    = "15s"
+      interval = "1m"
+      mode     = "delay"
+    }
+
     task "the-train" {
       driver = "docker"
 
@@ -37,7 +44,9 @@ job "the-train" {
       }
 
       config {
-        command = "${NOMAD_TASK_DIR}/start-task"
+        command     = "${NOMAD_TASK_DIR}/start-task"
+        image       = "{{ECR_URL}}:concourse-{{REVISION}}"
+        userns_mode = "host"
 
         args = [
           "java",
@@ -47,8 +56,6 @@ job "the-train" {
           "-Drestolino.files=target/web",
           "-jar target/*-jar-with-dependencies.jar",
         ]
-
-        image = "{{ECR_URL}}:concourse-{{REVISION}}"
 
         port_map {
           http = 8080
