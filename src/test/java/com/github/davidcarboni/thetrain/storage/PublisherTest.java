@@ -29,7 +29,7 @@ public class PublisherTest {
 
     @Before
     public void setUp() throws Exception {
-        transaction = Transactions.create(null);
+        transaction = Transactions.create();
     }
 
 
@@ -59,7 +59,7 @@ public class PublisherTest {
     }
 
     @Test
-    public void shouldPublishFileEncrypted() throws IOException {
+    public void shouldPublishFileNotEncrypted() throws IOException {
 
         // Given
         // Content to publish
@@ -70,16 +70,16 @@ public class PublisherTest {
         String uri = "/test.txt";
 
         // An encrypted transaction
-        Transaction transaction = Transactions.create(Random.password(8));
+        Transaction transaction = Transactions.create();
 
         // When
         // We publish the file
         Publisher.addFile(transaction, uri, Files.newInputStream(file));
 
         // Then
-        // The published file should not have the same hash as the original
+        // The published file should have the same hash as the original
         Path published = PathUtils.toPath(uri, Transactions.content(transaction));
-        assertNotEquals(sha, Hash.sha(published));
+        assertEquals(sha, Hash.sha(published));
         assertFalse(transaction.hasErrors());
     }
 
@@ -87,7 +87,7 @@ public class PublisherTest {
     public void shouldMoveFile() throws IOException {
         // Given
         // A transaction
-        Transaction transaction = Transactions.create(null);
+        Transaction transaction = Transactions.create();
         Path website = Website.path();
 
         // An existing file on the website
@@ -114,7 +114,7 @@ public class PublisherTest {
     public void shouldNotMoveFileIfItAlreadyExists() throws IOException {
         // Given
         // A transaction
-        Transaction transaction = Transactions.create(null);
+        Transaction transaction = Transactions.create();
         Path website = Website.path();
 
         // An existing file on the website
@@ -227,7 +227,7 @@ public class PublisherTest {
         // Given
 
         // A transaction
-        Transaction transaction = Transactions.create(null);
+        Transaction transaction = Transactions.create();
         Path content = Transactions.content(transaction);
         Path website = Website.path();
 
@@ -273,7 +273,7 @@ public class PublisherTest {
     public void shouldCommitDeletesInTransaction() throws IOException {
 
         // Given a transaction with deletes defined
-        Transaction transaction = Transactions.create(null);
+        Transaction transaction = Transactions.create();
         String uri = "/some/uri";
         String uriForAssociatedFile = "/some/uri";
 
@@ -318,7 +318,7 @@ public class PublisherTest {
 
         // A transaction
         String password = Random.password(8);
-        Transaction transaction = Transactions.create(password);
+        Transaction transaction = Transactions.create();
         Path content = Transactions.content(transaction);
         Path website = Website.path();
 

@@ -43,7 +43,6 @@ public class CommitManifest extends Endpoint {
         try {
             // Now get the parameters:
             transactionId = request.getParameter(TRANSACTION_ID_KEY);
-            String encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
 
             // Validate parameters
             if (StringUtils.isBlank(transactionId)) {
@@ -56,17 +55,10 @@ public class CommitManifest extends Endpoint {
             // add the transactionID to the log parameters.
             log.transactionID(transactionId);
 
-            if (StringUtils.isEmpty(encryptionPassword)) {
-                log.responseStatus(BAD_REQUEST_400)
-                        .warn("bad request: encryptionPassword required but none was provided");
-                response.setStatus(BAD_REQUEST_400);
-                return new Result("encryptionPassword required but was empty or null " + transactionId, true, null);
-            }
-
             log.info("request valid starting commit manifest for transaction");
 
             // Get the transaction
-            transaction = Transactions.get(transactionId, encryptionPassword);
+            transaction = Transactions.get(transactionId);
             if (transaction == null) {
                 log.responseStatus(BAD_REQUEST_400)
                         .warn("bad request: transaction with specified id was not found");

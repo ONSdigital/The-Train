@@ -105,7 +105,7 @@ public class Generator {
     public static void main(String[] args) throws IOException {
 
         // Generate a Transaction containing some content
-        Transaction transaction = Transactions.create(null);
+        Transaction transaction = Transactions.create();
         System.out.println("Transaction: " + Transactions.content(transaction).getParent());
         Path generated = Generator.generate();
         System.out.println("Generated: " + generated);

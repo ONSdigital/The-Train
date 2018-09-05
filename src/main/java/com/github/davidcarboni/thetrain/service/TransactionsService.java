@@ -6,9 +6,9 @@ import java.io.IOException;
 
 public interface TransactionsService {
 
-    Transaction create(String encryptionPassword) throws IOException;
+    Transaction create() throws IOException;
 
-    Transaction get(String id, String encryptionPassword) throws IOException;
+    Transaction get(String id) throws IOException;
 
     void update(Transaction transaction) throws IOException;
 

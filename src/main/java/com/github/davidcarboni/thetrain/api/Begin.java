@@ -31,16 +31,8 @@ public class Begin extends Endpoint {
         Transaction transaction = null;
 
         try {
-            String encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
-            if (StringUtils.isEmpty(encryptionPassword)) {
-                log.responseStatus(BAD_REQUEST_400)
-                        .warn("bad request: encryption password required but none provided");
-                response.setStatus(BAD_REQUEST_400);
-                return new Result("encryption password required but none provided", true, null);
-            }
-
             log.info("creating new publishing transaction");
-            transaction = getTransactionsService().create(encryptionPassword);
+            transaction = getTransactionsService().create();
             log.transactionID(transaction.id()).info("transaction created successfully");
 
             response.setStatus(OK_200);
