@@ -143,8 +143,15 @@ public class LogBuilder extends LogMessageBuilder {
         return this;
     }
 
+    public LogBuilder performanceMetric(long start, String step) {
+        addParameter("performanceMetric", true);
+        addParameter("time", System.currentTimeMillis() - start);
+        addParameter("step", step);
+        return this;
+    }
+
     public LogBuilder timeSince(long start) {
-        addParameter("timeTaken", System.currentTimeMillis() - start);
+        addParameter("time", System.currentTimeMillis() - start);
         return this;
     }
 

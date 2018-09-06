@@ -1,6 +1,6 @@
 package com.github.davidcarboni.thetrain.storage;
 
-import com.github.davidcarboni.cryptolite.Random;
+import com.github.davidcarboni.thetrain.helpers.Configuration;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.helpers.ShaInputStream;
 import com.github.davidcarboni.thetrain.helpers.UnionInputStream;
@@ -41,22 +41,14 @@ import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
  */
 public class Publisher {
 
-    private static final int bufferSize = 100 * 1024;
+    private static final int bufferSize;
     private static final ExecutorService pool;
-
-    private static class ShutdownTask extends Thread {
-        @Override
-        public void run() {
-            super.run();
-            logBuilder().info("shutting down Publisher Thread Pool");
-            pool.shutdown();
-        }
-    }
 
     // TODO - Don't like this but for now it will do.
     static {
-        pool = Executors.newFixedThreadPool(100);
-        Runtime.getRuntime().addShutdownHook(new ShutdownTask());
+        bufferSize = 100 * 1024;
+        pool = Executors.newFixedThreadPool(Configuration.threadPoolSize());
+        Runtime.getRuntime().addShutdownHook(new ShutdownTask(pool));
     }
 
     private static void copyFile(File src, File dest) throws IOException {
@@ -86,6 +78,7 @@ public class Publisher {
      * @throws IOException If a filesystem error occurs.
      */
     public static boolean addFiles(final Transaction transaction, String uri, final ZipInputStream zip) throws IOException {
+        long start = System.currentTimeMillis();
         boolean result = true;
         ZipEntry entry;
 
@@ -95,7 +88,6 @@ public class Publisher {
         int small = 0;
 
         try {
-
             while ((entry = zip.getNextEntry()) != null && !entry.isDirectory()) {
 
                 final Date startDate = new Date();
@@ -120,9 +112,13 @@ public class Publisher {
                     small++;
                 } else {
                     // Large file, so read from (data + "more from the zip")
-                    ShaInputStream input = new ShaInputStream(new UnionInputStream(data, zip)); // close this stream
-                    result &= addFile(transaction, targetUri, input, startDate);
-                    big++;
+                    try (
+                            UnionInputStream uin = new UnionInputStream(data, zip);
+                            ShaInputStream input = new ShaInputStream(uin)
+                    ) {
+                        result &= addFile(transaction, targetUri, input, startDate);
+                        big++;
+                    }
                 }
 
                 zip.closeEntry(); // do we need to wrap this in finally?
@@ -141,6 +137,10 @@ public class Publisher {
                 throw new IOException("Error completing small file write", e);
             }
         }
+        logBuilder().performanceMetric(start, "addFiles")
+                .transactionID(transaction.id())
+                .info("step completed");
+
         logBuilder()
                 .addParameter("largeFileSynchronouss", big)
                 .addParameter("smallFileAsynchronous", small)
@@ -222,6 +222,7 @@ public class Publisher {
     }
 
     public static int copyFiles(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
+        long start = System.currentTimeMillis();
         int filesMoved = 0;
         List<Future<Boolean>> futures = new ArrayList<>();
 
@@ -240,6 +241,9 @@ public class Publisher {
             }
         }
 
+        logBuilder().performanceMetric(start, "copyFiles")
+                .transactionID(transaction.id())
+                .info("step completed");
         return filesMoved;
     }
 
@@ -251,7 +255,7 @@ public class Publisher {
      * @return
      */
     public static int addFilesToDelete(Transaction transaction, Manifest manifest) throws IOException {
-
+        long start = System.currentTimeMillis();
         LogBuilder logBuilder = logBuilder();
         int filesToDelete = 0;
 
@@ -276,6 +280,10 @@ public class Publisher {
                 filesToDelete++;
             }
         }
+
+        logBuilder().performanceMetric(start, "addFilesToDelete")
+                .transactionID(transaction.id())
+                .info("step completed");
         return filesToDelete;
     }
 
@@ -291,6 +299,7 @@ public class Publisher {
      */
     static boolean copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
         LogBuilder logBuilder = logBuilder();
+        long start = System.currentTimeMillis();
         boolean moved = false;
 
         Path source = PathUtils.toPath(sourceUri, websitePath);
@@ -323,6 +332,10 @@ public class Publisher {
         uriInfo.stop();
         uriInfo.setAction(action);
         transaction.addUri(uriInfo);
+
+        logBuilder().performanceMetric(start, "copyFileIntoTransaction")
+                .transactionID(transaction.id())
+                .info("step completed");
         return moved;
     }
 
@@ -352,6 +365,7 @@ public class Publisher {
     }
 
     public static boolean commit(Transaction transaction, Path website) throws IOException {
+        long start = System.currentTimeMillis();
         boolean result = true;
         applyTransactionDeletes(transaction, website);
 
@@ -383,10 +397,15 @@ public class Publisher {
             Transactions.end(transaction);
         }
 
+        logBuilder().performanceMetric(start, "commit")
+                .transactionID(transaction.id())
+                .info("step completed");
+
         return result;
     }
 
     private static void applyTransactionDeletes(Transaction transaction, Path website) throws IOException {
+        long start = System.currentTimeMillis();
         LogBuilder logBuilder = logBuilder();
 
         // Apply any deletes that are defined in the transaction first to ensure we do not delete updated files.
@@ -399,6 +418,10 @@ public class Publisher {
                     .info("deleting directory");
 
             FileUtils.deleteDirectory(target.toFile());
+
+            logBuilder().performanceMetric(start, "applyTransactionDeletes")
+                    .transactionID(transaction.id())
+                    .info("step completed");
         }
     }
 
@@ -443,7 +466,6 @@ public class Publisher {
                 transaction.addError(error);
             }
         }
-
         return result;
     }
 
@@ -494,7 +516,6 @@ public class Publisher {
     }
 
     static UriInfo findUri(String uri, Transaction transaction) {
-
         for (UriInfo transactionUriInfo : transaction.uris()) {
             if (StringUtils.equals(uri, transactionUriInfo.uri())) {
                 return transactionUriInfo;
@@ -503,25 +524,5 @@ public class Publisher {
 
         // We didn't find the requested URI:
         return new UriInfo(uri);
-    }
-
-    public static void main(String[] args) throws IOException {
-        LogBuilder logBuilder = logBuilder();
-        for (int i = 0; i < 8193; i++) {
-
-            ShaInputStream input = new ShaInputStream(Random.inputStream(i));
-
-            byte[] buffer = new byte[8192];
-            int read = input.read(buffer);
-            final InputStream data = new ByteArrayInputStream(buffer, 0, read);
-
-            // If entry data fit into the buffer, go asynchronous:
-            if (read < buffer.length) {
-
-                try (OutputStream output = PathUtils.outputStream(Files.createTempFile("s", "a"))) {
-                    IOUtils.copy(input, output);
-                }
-            }
-        }
     }
 }

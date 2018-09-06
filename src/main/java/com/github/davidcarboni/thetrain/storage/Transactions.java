@@ -35,11 +35,20 @@ public class Transactions {
     static final String CONTENT = "content";
     static final String BACKUP = "backup";
 
-    static final Map<String, Transaction> transactionMap = new ConcurrentHashMap<>();
-    static final Map<String, ExecutorService> transactionExecutorMap = new ConcurrentHashMap<>();
-
     static Path transactionStore;
+    static final ObjectMapper objectMapper;
+    static final Map<String, Transaction> transactionMap;
+    static final Map<String, ExecutorService> transactionExecutorMap;
 
+
+    static {
+        objectMapper = new ObjectMapper();
+        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE);
+        objectMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+
+        transactionMap = new ConcurrentHashMap<>();
+        transactionExecutorMap = new ConcurrentHashMap<>();
+    }
 
     /**
      * Creates a new transaction.
@@ -57,7 +66,7 @@ public class Transactions {
         Files.createDirectory(path);
         Path json = path.resolve(JSON);
         try (OutputStream output = Files.newOutputStream(json)) {
-            objectMapper().writeValue(output, transaction);
+            objectMapper.writeValue(output, transaction);
             Files.createDirectory(path.resolve(CONTENT));
             Files.createDirectory(path.resolve(BACKUP));
             log.info("transaction written to disk successfully");
@@ -112,7 +121,7 @@ public class Transactions {
                     if (transactionPath != null && Files.exists(transactionPath)) {
                         final Path json = transactionPath.resolve(JSON);
                         try (InputStream input = Files.newInputStream(json)) {
-                            result = objectMapper().readValue(input, Transaction.class);
+                            result = objectMapper.readValue(input, Transaction.class);
                         }
                     }
                 } else {
@@ -174,7 +183,7 @@ public class Transactions {
                                     final Path json = transactionPath.resolve(JSON);
 
                                     try (OutputStream output = Files.newOutputStream(json)) {
-                                        objectMapper().writeValue(output, read);
+                                        objectMapper.writeValue(output, read);
                                     }
                                 }
                                 result = true;
@@ -215,7 +224,7 @@ public class Transactions {
                             .info("writing transaction file");
 
                     try (OutputStream output = Files.newOutputStream(json)) {
-                        objectMapper().writeValue(output, read);
+                        objectMapper.writeValue(output, read);
                         log.info("writing transaction file completed successfully");
                     } catch (Exception e) {
                         log.addParameter("path", json.toString())
@@ -321,12 +330,5 @@ public class Transactions {
 
         }
         return transactionStore;
-    }
-
-    private static ObjectMapper objectMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE);
-        objectMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
-        return objectMapper;
     }
 }
