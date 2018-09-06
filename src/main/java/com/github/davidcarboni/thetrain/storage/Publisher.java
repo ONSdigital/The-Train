@@ -315,6 +315,7 @@ public class Publisher {
         if (target != null) {
             Files.createDirectories(target.getParent());
             copyFile(source.toFile(), target.toFile());
+            moved = true;
         }
 
         // Update the transaction
@@ -427,16 +428,7 @@ public class Publisher {
             // NB We're using copy rather than move for two reasons:
             // - To be able to review a transaction after the fact and see all the files that were published
             // - If we use encryption we need to copy through a cipher stream to handle decryption
-
-            try (
-                    FileInputStream fis = new FileInputStream(source.toFile());
-                    FileOutputStream fos = new FileOutputStream(target.toFile());
-                    FileChannel sourceChannel = fis.getChannel();
-                    FileChannel destinationChannel = fos.getChannel()
-            ) {
-                destinationChannel.transferFrom(sourceChannel, 0, sourceChannel.size());
-            }
-
+            copyFile(source.toFile(), target.toFile());
             uriInfo.commit();
             result = true;
 
