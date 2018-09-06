@@ -143,6 +143,11 @@ public class LogBuilder extends LogMessageBuilder {
         return this;
     }
 
+    public LogBuilder timeSince(long start) {
+        addParameter("timeTaken", System.currentTimeMillis() - start);
+        return this;
+    }
+
     /**
      * Add a parameter.
      */
