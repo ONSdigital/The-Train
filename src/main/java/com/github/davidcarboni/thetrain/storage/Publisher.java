@@ -112,16 +112,19 @@ public class Publisher {
                     small++;
                 } else {
                     // Large file, so read from (data + "more from the zip")
-                    try (
-                            UnionInputStream uin = new UnionInputStream(data, zip);
-                            ShaInputStream input = new ShaInputStream(uin)
-                    ) {
-                        result &= addFile(transaction, targetUri, input, startDate);
-                        big++;
-                    }
-                }
 
-                zip.closeEntry(); // do we need to wrap this in finally?
+                    // TODO: Defect: These streams should be closed however closing the UnionInputStream will close
+                    // the underlying zip stream - which breaks the app.
+                    // It's probably possible to fix this but it would mean a big refactor (and this code is mental)
+                    // - its been this way for 2+ years and hasn't broken anything and the train's day are number so we
+                    // are taking the view - leave it and do it properly when we replace the Train.
+                    //
+                    // - Dave L.
+                    ShaInputStream input = new ShaInputStream(new UnionInputStream(data, zip));
+                    result &= addFile(transaction, targetUri, input, startDate);
+                    big++;
+                }
+                zip.closeEntry();
             }
 
         } catch (IOException e) {
@@ -137,6 +140,7 @@ public class Publisher {
                 throw new IOException("Error completing small file write", e);
             }
         }
+
         logBuilder().performanceMetric(start, "addFiles")
                 .transactionID(transaction.id())
                 .info("step completed");
