@@ -10,7 +10,6 @@ import com.github.davidcarboni.thetrain.json.request.FileCopy;
 import com.github.davidcarboni.thetrain.json.request.Manifest;
 import com.github.davidcarboni.thetrain.logging.LogBuilder;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -20,8 +19,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -189,8 +189,12 @@ public class Publisher {
         if (target != null) {
             // Encrypt if a key was provided, then delete the original
             Files.createDirectories(target.getParent());
-            try (OutputStream output = PathUtils.outputStream(target)) {
-                IOUtils.copy(input, output); // comes from request body so use stream copy.
+            try (
+                    ReadableByteChannel src = Channels.newChannel(input);
+                    FileOutputStream fos = new FileOutputStream(target.toFile());
+                    FileChannel dest = fos.getChannel()
+            ) {
+                dest.transferFrom(src, 0, Long.MAX_VALUE);
                 result = true;
             }
         }
