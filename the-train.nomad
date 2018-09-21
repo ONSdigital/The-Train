@@ -25,8 +25,7 @@ job "the-train" {
 
     constraint {
       attribute = "${node.class}"
-      operator  = "regexp"
-      value     = "web.*"
+      value     = "web-mount"
     }
 
     restart {
