@@ -24,6 +24,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -35,6 +36,12 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
+import static com.github.davidcarboni.thetrain.logging.MetricEvents.ADD_DELETE_FILES;
+import static com.github.davidcarboni.thetrain.logging.MetricEvents.ADD_FILES;
+import static com.github.davidcarboni.thetrain.logging.MetricEvents.APPLY_DELETES;
+import static com.github.davidcarboni.thetrain.logging.MetricEvents.COMMIT;
+import static com.github.davidcarboni.thetrain.logging.MetricEvents.COPY_FILE;
+import static com.github.davidcarboni.thetrain.logging.MetricEvents.COPY_FILES;
 
 /**
  * Class for handling publishing actions.
@@ -78,7 +85,7 @@ public class Publisher {
      * @throws IOException If a filesystem error occurs.
      */
     public static boolean addFiles(final Transaction transaction, String uri, final ZipInputStream zip) throws IOException {
-        long start = System.currentTimeMillis();
+        LocalDateTime start = LocalDateTime.now();
         boolean result = true;
         ZipEntry entry;
 
@@ -141,7 +148,7 @@ public class Publisher {
             }
         }
 
-        logBuilder().performanceMetric(start, "addFiles")
+        logBuilder().metrics(start, ADD_FILES)
                 .transactionID(transaction.id())
                 .info("step completed");
 
@@ -229,8 +236,8 @@ public class Publisher {
         return action;
     }
 
-    public static int copyFiles(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
-        long start = System.currentTimeMillis();
+/*    public static int copyFiles(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
+        LocalDateTime start = LocalDateTime.now();
         int filesMoved = 0;
         List<Future<Boolean>> futures = new ArrayList<>();
 
@@ -249,11 +256,45 @@ public class Publisher {
             }
         }
 
-        logBuilder().performanceMetric(start, "copyFiles")
+        logBuilder().metrics(start, COPY_FILES)
+                .transactionID(transaction.id())
+                .info("step completed");
+        return filesMoved;
+    }*/
+
+    public static int copyFiles(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
+        LocalDateTime start = LocalDateTime.now();
+        int filesMoved = 0;
+        List<Future<CopyFileResult>> futures = new ArrayList<>();
+
+        for (FileCopy move : manifest.getFilesToCopy()) {
+            futures.add(pool.submit(() -> copyFileIntoTransaction(transaction, move.source, move.target, websitePath)));
+        }
+
+        List<UriInfo> results = new ArrayList<>();
+
+        // Process results of any asynchronous writes
+        for (Future<CopyFileResult> future : futures) {
+            try {
+                CopyFileResult res = future.get();
+                if (res.isSuccess()) {
+                    filesMoved++;
+                    results.add(res.getUriInfo());
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                throw new IOException("Error on commit of file", e);
+            }
+        }
+
+        // all good update transaction
+        transaction.addUris(results);
+
+        logBuilder().metrics(start, COPY_FILES)
                 .transactionID(transaction.id())
                 .info("step completed");
         return filesMoved;
     }
+
 
     /**
      * Read the list of URI's to delete from the manifest and add them to the transaction.
@@ -263,7 +304,7 @@ public class Publisher {
      * @return
      */
     public static int addFilesToDelete(Transaction transaction, Manifest manifest) throws IOException {
-        long start = System.currentTimeMillis();
+        LocalDateTime start = LocalDateTime.now();
         LogBuilder logBuilder = logBuilder();
         int filesToDelete = 0;
 
@@ -289,9 +330,11 @@ public class Publisher {
             }
         }
 
-        logBuilder().performanceMetric(start, "addFilesToDelete")
+        logBuilder().metrics(start, ADD_DELETE_FILES)
                 .transactionID(transaction.id())
                 .info("step completed");
+
+
         return filesToDelete;
     }
 
@@ -305,9 +348,9 @@ public class Publisher {
      * @return
      * @throws IOException
      */
-    static boolean copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
+/*    static boolean copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
         LogBuilder logBuilder = logBuilder();
-        long start = System.currentTimeMillis();
+        LocalDateTime start = LocalDateTime.now();
         boolean moved = false;
 
         Path source = PathUtils.toPath(sourceUri, websitePath);
@@ -341,12 +384,54 @@ public class Publisher {
         uriInfo.setAction(action);
         transaction.addUri(uriInfo);
 
-        logBuilder().performanceMetric(start, "copyFileIntoTransaction")
+        logBuilder().metrics(start, COPY_FILE)
                 .transactionID(transaction.id())
                 .info("step completed");
         return moved;
-    }
+    }*/
+    static CopyFileResult copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
+        LogBuilder logBuilder = logBuilder();
+        LocalDateTime start = LocalDateTime.now();
+        boolean moved = false;
+        CopyFileResult result = new CopyFileResult();
 
+        Path source = PathUtils.toPath(sourceUri, websitePath);
+        Path target = PathUtils.toPath(targetUri, Transactions.content(transaction));
+        Path finalWebsiteTarget = PathUtils.toPath(targetUri, websitePath);
+
+        String action = backupExistingFile(transaction, targetUri);
+
+        if (!Files.exists(source)) {
+            logBuilder.addParameter("path", source.toString()).info("could not move file because it does not exist");
+            return result;
+        }
+
+        // if the file already exists it has already been copied so ignore it.
+        // doing this allows the publish to be reattempted if it fails without trying to copy files over existing files.
+        if (Files.exists(finalWebsiteTarget)) {
+            logBuilder.addParameter("path", finalWebsiteTarget.toString())
+                    .info("could not move file as it already exists");
+            return result;
+        }
+
+        if (target != null) {
+            Files.createDirectories(target.getParent());
+            copyFile(source.toFile(), target.toFile());
+            result.setSuccess(true);
+        }
+
+        // Update the transaction
+        UriInfo uriInfo = new UriInfo(targetUri, new Date());
+        uriInfo.stop();
+        uriInfo.setAction(action);
+
+        logBuilder().metrics(start, COPY_FILE)
+                .transactionID(transaction.id())
+                .info("step completed");
+
+        result.setUriInfo(uriInfo);
+        return result;
+    }
 
     public static Path getFile(Transaction transaction, String uri) throws IOException {
         Path result = null;
@@ -373,9 +458,9 @@ public class Publisher {
     }
 
     public static boolean commit(Transaction transaction, Path website) throws IOException {
-        long start = System.currentTimeMillis();
         boolean result = true;
         applyTransactionDeletes(transaction, website);
+        LocalDateTime start = LocalDateTime.now();
 
         // Then move file updates from the transaction to the website.
         List<Future<Boolean>> futures = new ArrayList<>();
@@ -405,7 +490,7 @@ public class Publisher {
             Transactions.end(transaction);
         }
 
-        logBuilder().performanceMetric(start, "commit")
+        logBuilder().metrics(start, COMMIT)
                 .transactionID(transaction.id())
                 .info("step completed");
 
@@ -413,7 +498,7 @@ public class Publisher {
     }
 
     private static void applyTransactionDeletes(Transaction transaction, Path website) throws IOException {
-        long start = System.currentTimeMillis();
+        LocalDateTime start = LocalDateTime.now();
         LogBuilder logBuilder = logBuilder();
 
         // Apply any deletes that are defined in the transaction first to ensure we do not delete updated files.
@@ -427,7 +512,7 @@ public class Publisher {
 
             FileUtils.deleteDirectory(target.toFile());
 
-            logBuilder().performanceMetric(start, "applyTransactionDeletes")
+            logBuilder().metrics(start, APPLY_DELETES)
                     .transactionID(transaction.id())
                     .info("step completed");
         }

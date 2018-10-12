@@ -1,16 +1,21 @@
 package com.github.davidcarboni.thetrain.helpers;
 
-import com.github.davidcarboni.cryptolite.Crypto;
-
-import javax.crypto.SecretKey;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Utility methods for dealing with paths and converting to/from URI strings.
@@ -69,6 +74,20 @@ public class PathUtils {
             result = setLeadingSlash(relative.toString());
         }
 
+        return result;
+    }
+
+    public static String toUriQuiet(Path path, Path root) {
+        String result = null;
+
+        try {
+            if (isContained(path, root)) {
+                Path relative = root.relativize(path);
+                result = setLeadingSlash(relative.toString());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         return result;
     }
 

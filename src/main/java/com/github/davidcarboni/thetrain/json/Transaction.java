@@ -40,6 +40,8 @@ public class Transaction {
     String startDate = DateConverter.toString(new Date());
     String endDate;
 
+
+    // TODO THIS IS MENTAL - WHY OH WHY IS THIS NOT PRIVATE?
     Set<UriInfo> uriInfos = new HashSet<>();
     Set<UriInfo> uriDeletes = new HashSet<>();
 
@@ -95,6 +97,13 @@ public class Transaction {
             Set<UriInfo> uriInfos = new HashSet<>(this.uriInfos);
             uriInfos.add(uriInfo);
             this.uriInfos = uriInfos;
+            status = PUBLISHING;
+        }
+    }
+
+    public void addUris(List<UriInfo> infos) {
+        synchronized (this) {
+            this.uriInfos.addAll(uriInfos);
             status = PUBLISHING;
         }
     }
