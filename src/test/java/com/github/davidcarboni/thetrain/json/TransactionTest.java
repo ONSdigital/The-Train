@@ -35,8 +35,8 @@ public class TransactionTest {
         // Then
         // A random ID should be generated and the start date should be set
         assertTrue(StringUtils.isNotBlank(transaction.id()));
-        assertTrue(StringUtils.isNotBlank(transaction.startDate));
-        assertEquals(Transaction.STARTED, transaction.status);
+        assertTrue(StringUtils.isNotBlank(transaction.startDate()));
+        assertEquals(Transaction.STARTED, transaction.getStatus());
     }
 
     @Test
@@ -54,7 +54,7 @@ public class TransactionTest {
         // Then
         // We should have one URI info in the collection
         assertEquals(1, transaction.uris().size());
-        assertEquals(Transaction.PUBLISHING, transaction.status);
+        assertEquals(Transaction.PUBLISHING, transaction.getStatus());
     }
 
     @Test
@@ -187,10 +187,10 @@ public class TransactionTest {
 
         // Then
         // We should have end dates and the expected status strings
-        assertEquals(Transaction.COMMITTED, ok.status);
-        assertEquals(Transaction.COMMIT_FAILED, error.status);
-        assertTrue(StringUtils.isNotBlank(ok.endDate));
-        assertTrue(StringUtils.isNotBlank(error.endDate));
+        assertEquals(Transaction.COMMITTED, ok.getStatus());
+        assertEquals(Transaction.COMMIT_FAILED, error.getStatus());
+        assertTrue(StringUtils.isNotBlank(ok.endDate()));
+        assertTrue(StringUtils.isNotBlank(error.endDate()));
     }
 
     @Test
@@ -208,9 +208,9 @@ public class TransactionTest {
 
         // Then
         // We should have end dates and the expected status strings
-        assertEquals(Transaction.ROLLED_BACK, ok.status);
-        assertEquals(Transaction.ROLLBACK_FAILED, error.status);
-        assertTrue(StringUtils.isNotBlank(ok.endDate));
-        assertTrue(StringUtils.isNotBlank(error.endDate));
+        assertEquals(Transaction.ROLLED_BACK, ok.getStatus());
+        assertEquals(Transaction.ROLLBACK_FAILED, error.getStatus());
+        assertTrue(StringUtils.isNotBlank(ok.endDate()));
+        assertTrue(StringUtils.isNotBlank(error.endDate()));
     }
 }

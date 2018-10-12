@@ -28,6 +28,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -90,7 +91,7 @@ public class Publisher {
         ZipEntry entry;
 
         // Small files are written asynchronously from byte array buffers:
-        List<Future<Boolean>> smallFileWrites = new ArrayList<>();
+        List<Future<CopyFileResult>> smallFileWrites = new ArrayList<>();
         int big = 0;
         int small = 0;
 
@@ -114,7 +115,7 @@ public class Publisher {
 
                 // If entry data fit into the buffer, go asynchronous:
                 if (count < buffer.length) {
-                    smallFileWrites.add(pool.submit(() -> Boolean.valueOf(addFile(transaction, targetUri, new ShaInputStream(data), startDate))));
+                    smallFileWrites.add(pool.submit(() -> addFile2(transaction, targetUri, new ShaInputStream(data), startDate)));
                     // todo close input stream - pass in data and create stream insude addFile()
                     small++;
                 } else {
@@ -128,7 +129,7 @@ public class Publisher {
                     //
                     // - Dave L.
                     ShaInputStream input = new ShaInputStream(new UnionInputStream(data, zip));
-                    result &= addFile(transaction, targetUri, input, startDate);
+                    result &= addFile2(transaction, targetUri, input, startDate).isSuccess();
                     big++;
                 }
                 zip.closeEntry();
@@ -139,14 +140,20 @@ public class Publisher {
             throw e;
         }
 
+        List<UriInfo> infos = new ArrayList<>();
         // Process results of any asynchronous writes
-        for (Future<Boolean> smallFileWrite : smallFileWrites) {
+        for (Future<CopyFileResult> smallFileWrite : smallFileWrites) {
             try {
-                result &= smallFileWrite.get().booleanValue();
+
+                CopyFileResult res = smallFileWrite.get();
+                result &= res.isSuccess();
+                infos.add(res.getUriInfo());
             } catch (InterruptedException | ExecutionException e) {
                 throw new IOException("Error completing small file write", e);
             }
         }
+
+        transaction.addUris(infos);
 
         logBuilder().metrics(start, ADD_FILES)
                 .transactionID(transaction.id())
@@ -211,6 +218,37 @@ public class Publisher {
         uriInfo.stop();
         uriInfo.setAction(action);
         transaction.addUri(uriInfo);
+        return result;
+    }
+
+    public static CopyFileResult addFile2(Transaction transaction, String uri, ShaInputStream input, Date startDate)
+            throws IOException {
+        CopyFileResult result = new CopyFileResult();
+
+        // Add the file
+        Path content = Transactions.content(transaction);
+        Path target = PathUtils.toPath(uri, content);
+
+        String action = backupExistingFile(transaction, uri);
+
+        if (target != null) {
+            // Encrypt if a key was provided, then delete the original
+            Files.createDirectories(target.getParent());
+            try (
+                    ReadableByteChannel src = Channels.newChannel(input);
+                    FileOutputStream fos = new FileOutputStream(target.toFile());
+                    FileChannel dest = fos.getChannel()
+            ) {
+                dest.transferFrom(src, 0, Long.MAX_VALUE);
+                result.setSuccess(true);
+            }
+        }
+
+        // Update the transaction
+        UriInfo uriInfo = new UriInfo(uri, startDate);
+        uriInfo.stop();
+        uriInfo.setAction(action);
+        result.setUriInfo(uriInfo);
         return result;
     }
 
@@ -609,13 +647,14 @@ public class Publisher {
     }
 
     static UriInfo findUri(String uri, Transaction transaction) {
-        for (UriInfo transactionUriInfo : transaction.uris()) {
-            if (StringUtils.equals(uri, transactionUriInfo.uri())) {
-                return transactionUriInfo;
-            }
-        }
+        Optional<UriInfo> result = transaction.uris()
+                .parallelStream()
+                .filter(uriInfo -> StringUtils.equals(uri, uriInfo.uri()))
+                .findFirst();
 
-        // We didn't find the requested URI:
+        if (result.isPresent()) {
+            return result.get();
+        }
         return new UriInfo(uri);
     }
 }

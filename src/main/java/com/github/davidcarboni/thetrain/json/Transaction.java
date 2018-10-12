@@ -1,13 +1,9 @@
 package com.github.davidcarboni.thetrain.json;
 
-import com.github.davidcarboni.cryptolite.KeyWrapper;
-import com.github.davidcarboni.cryptolite.Keys;
 import com.github.davidcarboni.cryptolite.Random;
 import com.github.davidcarboni.thetrain.helpers.DateConverter;
-import com.github.davidcarboni.thetrain.logging.LogBuilder;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.crypto.SecretKey;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -15,16 +11,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
  * Details of a single transaction, including any files transferred and any errors encountered.
- * <p/>
  * NB a {@link Transaction} is the unit of synchronization, so methods that manipulate the collections in this class synchronize on <code>this</code>.
  */
 public class Transaction {
+
+    private final transient ReentrantLock addLock = new ReentrantLock();
+    private final transient ReentrantLock deleteLock = new ReentrantLock();
+    private final transient ReentrantLock errorsLock = new ReentrantLock();
 
     public static final String STARTED = "started";
     public static final String PUBLISHING = "publishing";
@@ -35,17 +33,17 @@ public class Transaction {
 
     // Whilst an ID collision is technically possible it's a
     // theoretical rather than a practical consideration.
-    String id = Random.id();
-    String status = STARTED;
-    String startDate = DateConverter.toString(new Date());
-    String endDate;
+    private String id = Random.id();
+    private String status = STARTED;
+    private String startDate = DateConverter.toString(new Date());
+    private String endDate;
 
 
     // TODO THIS IS MENTAL - WHY OH WHY IS THIS NOT PRIVATE?
-    Set<UriInfo> uriInfos = new HashSet<>();
-    Set<UriInfo> uriDeletes = new HashSet<>();
+    private Set<UriInfo> uriInfos = new HashSet<>();
+    private Set<UriInfo> uriDeletes = new HashSet<>();
 
-    List<String> errors = new ArrayList<>();
+    private List<String> errors = new ArrayList<>();
 
     /**
      * The actual files on disk in this transaction.
@@ -75,6 +73,10 @@ public class Transaction {
         return endDate;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
     /**
      * @return An unmodifiable set of the URIs in this transaction.
      */
@@ -93,18 +95,22 @@ public class Transaction {
      * @param uriInfo The URI to add to the set of URIs.
      */
     public void addUri(UriInfo uriInfo) {
-        synchronized (this) {
-            Set<UriInfo> uriInfos = new HashSet<>(this.uriInfos);
-            uriInfos.add(uriInfo);
-            this.uriInfos = uriInfos;
+        addLock.lock();
+        try {
+            this.uriInfos.add(uriInfo);
             status = PUBLISHING;
+        } finally {
+            addLock.unlock();
         }
     }
 
     public void addUris(List<UriInfo> infos) {
-        synchronized (this) {
+        addLock.lock();
+        try {
             this.uriInfos.addAll(uriInfos);
             status = PUBLISHING;
+        } finally {
+            addLock.unlock();
         }
     }
 
@@ -114,11 +120,11 @@ public class Transaction {
      * @param uriInfo
      */
     public void addUriDelete(UriInfo uriInfo) {
-        synchronized (this) {
-            Set<UriInfo> uriDeletes = new HashSet<>(this.uriDeletes);
-            uriDeletes.add(uriInfo);
-            this.uriDeletes = uriDeletes;
-            status = PUBLISHING;
+        deleteLock.lock();
+        try {
+            this.uriDeletes.add(uriInfo);
+        } finally {
+            deleteLock.unlock();
         }
     }
 
@@ -153,10 +159,11 @@ public class Transaction {
      * @param error An error debug to be added to this transaction.
      */
     public void addError(String error) {
-        synchronized (this) {
-            List<String> errors = new ArrayList<>(this.errors);
-            errors.add(error);
-            this.errors = errors;
+        this.errorsLock.lock();
+        try {
+            this.errors.add(error);
+        } finally {
+            this.errorsLock.unlock();
         }
     }
 
