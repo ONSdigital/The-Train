@@ -93,7 +93,7 @@ public class CommitManifest extends Endpoint {
 
             log.websitePath(websitePath).info("copying manifest files to website and adding files to delete");
 
-            int copied = Publisher.copyFiles(transaction, manifest, websitePath);
+            int copied = Publisher.copyFilesIntoTransaction(transaction, manifest, websitePath);
             int deleted = Publisher.addFilesToDelete(transaction, manifest);
 
             if (copied != manifest.getFilesToCopy().size()) {

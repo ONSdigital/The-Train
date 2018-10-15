@@ -2,12 +2,12 @@ package com.github.davidcarboni.thetrain.storage;
 
 import com.github.davidcarboni.thetrain.json.UriInfo;
 
-public class CopyFileResult {
+public class TransactionUpdate {
 
     private boolean isSuccess;
     private UriInfo uriInfo;
 
-    public CopyFileResult() {
+    public TransactionUpdate() {
         this.isSuccess = false; // default
     }
 

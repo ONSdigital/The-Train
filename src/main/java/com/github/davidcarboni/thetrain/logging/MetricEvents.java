@@ -12,7 +12,7 @@ public enum MetricEvents {
 
     COPY_FILE("copyFile", "copy a file into the the transaction"),
 
-    COPY_FILES("copyFiles", "copy files into the the transaction");
+    COPY_FILES("copyFilesIntoTransaction", "copy files into the the transaction");
 
     private final String name;
     private final String description;

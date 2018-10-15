@@ -128,6 +128,15 @@ public class Transaction {
         }
     }
 
+    public void addUriDeletes(List<UriInfo> deletes) {
+        deleteLock.lock();
+        try {
+            this.uriDeletes.addAll(deletes);
+        } finally {
+            deleteLock.unlock();
+        }
+    }
+
     /**
      * @return If the status of the transaction is {@value #STARTED} or {@value #PUBLISHING}, true, otherwise false.
      */

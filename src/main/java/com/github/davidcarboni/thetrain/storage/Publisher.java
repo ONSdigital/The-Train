@@ -2,7 +2,6 @@ package com.github.davidcarboni.thetrain.storage;
 
 import com.github.davidcarboni.thetrain.helpers.Configuration;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
-import com.github.davidcarboni.thetrain.helpers.ShaInputStream;
 import com.github.davidcarboni.thetrain.helpers.UnionInputStream;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.json.UriInfo;
@@ -76,6 +75,25 @@ public class Publisher {
         }
     }
 
+    private static boolean addStreamContentToTransaction(Path target, InputStream input) throws IOException {
+        if (target != null) {
+            Files.createDirectories(target.getParent());
+            try (
+                    ReadableByteChannel src = Channels.newChannel(input);
+                    FileOutputStream fos = new FileOutputStream(target.toFile());
+                    FileChannel dest = fos.getChannel()
+            ) {
+                dest.transferFrom(src, 0, Long.MAX_VALUE);
+            } catch (Exception e) {
+                logBuilder()
+                        .addParameter("targetPath", target.toString())
+                        .error(e, "unexpected error transfering inputstream content to transaction via file channel");
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Adds a set of files contained in a zip to the given transaction. The start date for each file transfer is the instant when each {@link ZipEntry} is accessed.
      *
@@ -91,7 +109,7 @@ public class Publisher {
         ZipEntry entry;
 
         // Small files are written asynchronously from byte array buffers:
-        List<Future<CopyFileResult>> smallFileWrites = new ArrayList<>();
+        List<Future<TransactionUpdate>> smallFileWrites = new ArrayList<>();
         int big = 0;
         int small = 0;
 
@@ -115,8 +133,7 @@ public class Publisher {
 
                 // If entry data fit into the buffer, go asynchronous:
                 if (count < buffer.length) {
-                    smallFileWrites.add(pool.submit(() -> addFile2(transaction, targetUri, new ShaInputStream(data), startDate)));
-                    // todo close input stream - pass in data and create stream insude addFile()
+                    smallFileWrites.add(pool.submit(() -> addContentToTransaction(transaction, targetUri, data, startDate)));
                     small++;
                 } else {
                     // Large file, so read from (data + "more from the zip")
@@ -128,8 +145,10 @@ public class Publisher {
                     // are taking the view - leave it and do it properly when we replace the Train.
                     //
                     // - Dave L.
-                    ShaInputStream input = new ShaInputStream(new UnionInputStream(data, zip));
-                    result &= addFile2(transaction, targetUri, input, startDate).isSuccess();
+                    //ShaInputStream input = new ShaInputStream(new UnionInputStream(data, zip));
+                    InputStream input = new UnionInputStream(data, zip);
+                    TransactionUpdate update = addContentToTransaction(transaction, targetUri, input, startDate);
+                    result &= update.isSuccess();
                     big++;
                 }
                 zip.closeEntry();
@@ -142,10 +161,10 @@ public class Publisher {
 
         List<UriInfo> infos = new ArrayList<>();
         // Process results of any asynchronous writes
-        for (Future<CopyFileResult> smallFileWrite : smallFileWrites) {
+        for (Future<TransactionUpdate> smallFileWrite : smallFileWrites) {
             try {
 
-                CopyFileResult res = smallFileWrite.get();
+                TransactionUpdate res = smallFileWrite.get();
                 result &= res.isSuccess();
                 infos.add(res.getUriInfo());
             } catch (InterruptedException | ExecutionException e) {
@@ -177,8 +196,12 @@ public class Publisher {
      * @throws IOException If a filesystem error occurs.
      */
     public static boolean addFile(Transaction transaction, String uri, InputStream input) throws IOException {
-        return addFile(transaction, uri, new ShaInputStream(input), new Date());
-        // TODO again this needs to close the stream
+        TransactionUpdate update = addContentToTransaction(transaction, uri, input, new Date());
+        if (update.isSuccess()) {
+            transaction.addUri(update.getUriInfo());
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -191,63 +214,21 @@ public class Publisher {
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public static boolean addFile(Transaction transaction, String uri, ShaInputStream input, Date startDate) throws IOException {
-        boolean result = false;
-
-        // Add the file
-        Path content = Transactions.content(transaction);
-        Path target = PathUtils.toPath(uri, content);
-
-        String action = backupExistingFile(transaction, uri);
-
-        if (target != null) {
-            // Encrypt if a key was provided, then delete the original
-            Files.createDirectories(target.getParent());
-            try (
-                    ReadableByteChannel src = Channels.newChannel(input);
-                    FileOutputStream fos = new FileOutputStream(target.toFile());
-                    FileChannel dest = fos.getChannel()
-            ) {
-                dest.transferFrom(src, 0, Long.MAX_VALUE);
-                result = true;
-            }
-        }
-
-        // Update the transaction
-        UriInfo uriInfo = new UriInfo(uri, startDate);
-        uriInfo.stop();
-        uriInfo.setAction(action);
-        transaction.addUri(uriInfo);
-        return result;
-    }
-
-    public static CopyFileResult addFile2(Transaction transaction, String uri, ShaInputStream input, Date startDate)
+    public static TransactionUpdate addContentToTransaction(Transaction transaction, String uri, InputStream input, Date startDate)
             throws IOException {
-        CopyFileResult result = new CopyFileResult();
-
-        // Add the file
         Path content = Transactions.content(transaction);
         Path target = PathUtils.toPath(uri, content);
-
         String action = backupExistingFile(transaction, uri);
 
-        if (target != null) {
-            // Encrypt if a key was provided, then delete the original
-            Files.createDirectories(target.getParent());
-            try (
-                    ReadableByteChannel src = Channels.newChannel(input);
-                    FileOutputStream fos = new FileOutputStream(target.toFile());
-                    FileChannel dest = fos.getChannel()
-            ) {
-                dest.transferFrom(src, 0, Long.MAX_VALUE);
-                result.setSuccess(true);
-            }
-        }
-
-        // Update the transaction
+        TransactionUpdate result = new TransactionUpdate();
         UriInfo uriInfo = new UriInfo(uri, startDate);
+
+        boolean addResult = addStreamContentToTransaction(target, input);
+        result.setSuccess(addResult);
+
         uriInfo.stop();
         uriInfo.setAction(action);
+
         result.setUriInfo(uriInfo);
         return result;
     }
@@ -274,36 +255,10 @@ public class Publisher {
         return action;
     }
 
-/*    public static int copyFiles(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
+    public static int copyFilesIntoTransaction(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
         LocalDateTime start = LocalDateTime.now();
         int filesMoved = 0;
-        List<Future<Boolean>> futures = new ArrayList<>();
-
-        for (FileCopy move : manifest.getFilesToCopy()) {
-            futures.add(pool.submit(() -> copyFileIntoTransaction(transaction, move.source, move.target, websitePath)));
-        }
-
-        // Process results of any asynchronous writes
-        for (Future<Boolean> future : futures) {
-            try {
-                if (future.get().booleanValue()) {
-                    filesMoved++;
-                }
-            } catch (InterruptedException | ExecutionException e) {
-                throw new IOException("Error on commit of file", e);
-            }
-        }
-
-        logBuilder().metrics(start, COPY_FILES)
-                .transactionID(transaction.id())
-                .info("step completed");
-        return filesMoved;
-    }*/
-
-    public static int copyFiles(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
-        LocalDateTime start = LocalDateTime.now();
-        int filesMoved = 0;
-        List<Future<CopyFileResult>> futures = new ArrayList<>();
+        List<Future<TransactionUpdate>> futures = new ArrayList<>();
 
         for (FileCopy move : manifest.getFilesToCopy()) {
             futures.add(pool.submit(() -> copyFileIntoTransaction(transaction, move.source, move.target, websitePath)));
@@ -312,9 +267,9 @@ public class Publisher {
         List<UriInfo> results = new ArrayList<>();
 
         // Process results of any asynchronous writes
-        for (Future<CopyFileResult> future : futures) {
+        for (Future<TransactionUpdate> future : futures) {
             try {
-                CopyFileResult res = future.get();
+                TransactionUpdate res = future.get();
                 if (res.isSuccess()) {
                     filesMoved++;
                     results.add(res.getUriInfo());
@@ -344,94 +299,48 @@ public class Publisher {
     public static int addFilesToDelete(Transaction transaction, Manifest manifest) throws IOException {
         LocalDateTime start = LocalDateTime.now();
         LogBuilder logBuilder = logBuilder();
-        int filesToDelete = 0;
+
+        List<UriInfo> deletedURIS = new ArrayList<>();
+        Path website = Website.path();
 
         if (manifest.getUrisToDelete() != null) {
+
             for (String uri : manifest.getUrisToDelete()) {
                 UriInfo uriInfo = new UriInfo(uri, new Date());
                 uriInfo.setAction(UriInfo.DELETE);
-                transaction.addUriDelete(uriInfo);
 
-                Path website = Website.path();
                 Path target = PathUtils.toPath(uri, website);
                 Path targetDirectory = target;
                 if (Files.exists(targetDirectory)) {
                     Path backupDirectory = PathUtils.toPath(uri, Transactions.backup(transaction));
                     logBuilder.addParameter("directory", target.toString())
                             .info("backing up directory before deletion");
+
                     FileUtils.copyDirectory(targetDirectory.toFile(), backupDirectory.toFile());
                 } else {
                     logBuilder.addParameter("directory", target.toString())
                             .info("cannot backup directory as it does not exist, skipping");
                 }
-                filesToDelete++;
+                deletedURIS.add(uriInfo);
             }
+            transaction.addUriDeletes(deletedURIS);
         }
 
         logBuilder().metrics(start, ADD_DELETE_FILES)
                 .transactionID(transaction.id())
                 .info("step completed");
 
-
-        return filesToDelete;
+        return deletedURIS.size();
     }
 
     /**
      * Copy an existing file from the website into the given transaction.
-     *
-     * @param transaction
-     * @param sourceUri
-     * @param targetUri
-     * @param websitePath
-     * @return
-     * @throws IOException
      */
-/*    static boolean copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
+    static TransactionUpdate copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
         LogBuilder logBuilder = logBuilder();
         LocalDateTime start = LocalDateTime.now();
         boolean moved = false;
-
-        Path source = PathUtils.toPath(sourceUri, websitePath);
-        Path target = PathUtils.toPath(targetUri, Transactions.content(transaction));
-        Path finalWebsiteTarget = PathUtils.toPath(targetUri, websitePath);
-
-        String action = backupExistingFile(transaction, targetUri);
-
-        if (!Files.exists(source)) {
-            logBuilder.addParameter("path", source.toString()).info("could not move file because it does not exist");
-            return false;
-        }
-
-        // if the file already exists it has already been copied so ignore it.
-        // doing this allows the publish to be reattempted if it fails without trying to copy files over existing files.
-        if (Files.exists(finalWebsiteTarget)) {
-            logBuilder.addParameter("path", finalWebsiteTarget.toString())
-                    .info("could not move file as it already exists");
-            return false;
-        }
-
-        if (target != null) {
-            Files.createDirectories(target.getParent());
-            copyFile(source.toFile(), target.toFile());
-            moved = true;
-        }
-
-        // Update the transaction
-        UriInfo uriInfo = new UriInfo(targetUri, new Date());
-        uriInfo.stop();
-        uriInfo.setAction(action);
-        transaction.addUri(uriInfo);
-
-        logBuilder().metrics(start, COPY_FILE)
-                .transactionID(transaction.id())
-                .info("step completed");
-        return moved;
-    }*/
-    static CopyFileResult copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
-        LogBuilder logBuilder = logBuilder();
-        LocalDateTime start = LocalDateTime.now();
-        boolean moved = false;
-        CopyFileResult result = new CopyFileResult();
+        TransactionUpdate result = new TransactionUpdate();
 
         Path source = PathUtils.toPath(sourceUri, websitePath);
         Path target = PathUtils.toPath(targetUri, Transactions.content(transaction));
