@@ -25,6 +25,8 @@ public class ConfigurationValidation implements Startup {
 
     static final String WEBSITE_PATH = WEBSITE + "_PATH";
 
+    static final String PUBLISHING_THREAD_POOL_SIZE = "PUBLISHING_THREAD_POOL_SIZE";
+
     @Override
     public void init() {
         String transactionStorePath = Configuration.transactionStore();
@@ -59,6 +61,7 @@ public class ConfigurationValidation implements Startup {
             logBuilder().clazz(getClass())
                     .addParameter(WEBSITE_PATH, websitePath)
                     .addParameter(TRANSACTIONS_PATH, transactionStorePath)
+                    .addParameter(PUBLISHING_THREAD_POOL_SIZE, Configuration.threadPoolSize())
                     .debug(HEALTHY_MSG);
         }
     }
