@@ -118,7 +118,6 @@ public class Publish extends Endpoint {
                 } else {
                     log.info("adding file to publish transaction");
                     try (InputStream bis = new BufferedInputStream(data)) {
-                        //published = Publisher.addFile(transaction, uri, input, startDate);
                         published = Publisher.addContentToTransaction(transaction, uri, bis, startDate).isSuccess();
                         log.info("publish: file successfully added to publish transaction");
                     } catch (Exception e) {

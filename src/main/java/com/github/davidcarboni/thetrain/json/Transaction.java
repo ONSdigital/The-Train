@@ -38,11 +38,8 @@ public class Transaction {
     private String startDate = DateConverter.toString(new Date());
     private String endDate;
 
-
-    // TODO THIS IS MENTAL - WHY OH WHY IS THIS NOT PRIVATE?
     private Set<UriInfo> uriInfos = new HashSet<>();
     private Set<UriInfo> uriDeletes = new HashSet<>();
-
     private List<String> errors = new ArrayList<>();
 
     /**

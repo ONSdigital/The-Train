@@ -155,7 +155,9 @@ public class Publisher {
             }
 
         } catch (IOException e) {
-            logBuilder().error(e, "addFiles threw unexpected error");
+            logBuilder()
+                    .transactionID(transaction.id())
+                    .error(e, "addFiles threw unexpected error");
             throw e;
         }
 
@@ -349,7 +351,9 @@ public class Publisher {
         String action = backupExistingFile(transaction, targetUri);
 
         if (!Files.exists(source)) {
-            logBuilder.addParameter("path", source.toString()).info("could not move file because it does not exist");
+            logBuilder
+                    .transactionID(transaction.id())
+                    .addParameter("path", source.toString()).info("could not move file because it does not exist");
             return result;
         }
 
@@ -418,7 +422,7 @@ public class Publisher {
                 futures.add(pool.submit(() -> commitFile(uri, transaction, website)));
             }
         } catch (IOException e) {
-            logBuilder().error(e, "commit threw unexpected exception");
+            logBuilder().transactionID(transaction.id()).error(e, "commit threw unexpected exception");
             throw e;
         }
 
@@ -427,6 +431,7 @@ public class Publisher {
             try {
                 result &= future.get().booleanValue();
             } catch (InterruptedException | ExecutionException e) {
+                logBuilder().transactionID(transaction.id()).error(e, "Error on commit of file");
                 throw new IOException("Error on commit of file", e);
             }
         }

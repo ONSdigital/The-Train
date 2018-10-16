@@ -77,20 +77,6 @@ public class PathUtils {
         return result;
     }
 
-    public static String toUriQuiet(Path path, Path root) {
-        String result = null;
-
-        try {
-            if (isContained(path, root)) {
-                Path relative = root.relativize(path);
-                result = setLeadingSlash(relative.toString());
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return result;
-    }
-
     /**
      * Ensures the given string has a leading slash. This is useful for ensuring URIs always have a leading slash.
      *
