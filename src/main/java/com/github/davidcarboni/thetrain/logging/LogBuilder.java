@@ -148,20 +148,6 @@ public class LogBuilder extends LogMessageBuilder {
         return this;
     }
 
-    public LogBuilder metrics(LocalDateTime start, String step) {
-        Duration duration = Duration.between(start, LocalDateTime.now());
-        long seconds = duration.getSeconds();
-        Map<String, Object> metrics = new HashMap<>();
-        if (seconds > 0) {
-            metrics.put("durationSeconds", seconds); // if its less than 1 seconds only log nano.
-        }
-        metrics.put("durationNano", duration.getNano());
-        metrics.put("eventName", step);
-
-        addParameter("metrics", metrics);
-        return this;
-    }
-
     public LogBuilder metrics(LocalDateTime start, MetricEvents event) {
         addParameter("metrics", createMetrics(start, event));
         return this;
