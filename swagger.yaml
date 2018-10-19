@@ -23,7 +23,7 @@ paths:
   /begin:
     post:
       tags:
-      - "begin"
+      - "Pre-publish"
       summary: "Create a new publishing transaction"
       description: "Create a new publishing transaction"
       produces:
@@ -38,7 +38,7 @@ paths:
   /commitManifest:
     post:
       tags:
-      - "commitManifest"
+      - "Pre-publish"
       summary: "Send the manifest of the files to copy/move & delete in this transaction"
       description: "Send the manifest of the files to copy/move & delete in this transaction"
       parameters:
@@ -70,6 +70,43 @@ paths:
       responses:
         200:
           description: "publish manifest sent successfully"
+          schema:
+            $ref: '#/definitions/Result'
+        400:
+          description: "bad request"
+        500:
+          description: "internal server error"
+  /publish:
+    post:
+      tags:
+      - "Publish"
+      consumes:
+        - multipart/form-data
+      summary: "Send content to be added to the publish transaction"
+      description: "Files sent will be added to transaction but will not actually be published on to the public
+      website until the transaction is committed. Several files can be added to a transaction by calling this
+      endpoint multiple times with the each file to be published. Alternatively several files can be sent at once but
+       using the query param zip=true."
+      parameters:
+      - in: query
+        name: transactionId
+        type: string
+        required: true
+        description: "The publishing transactionID"
+      - in: query
+        name: zip
+        type: boolean
+        required: false
+        description: "Indicates the body is a zipped file"
+      - in: formData
+        name: content
+        type: file
+        description: "The content to be published"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "content sucessfully added to the publish transaction"
           schema:
             $ref: '#/definitions/Result'
         400:
