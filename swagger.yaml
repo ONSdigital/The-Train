@@ -38,7 +38,7 @@ paths:
   /commitManifest:
     post:
       tags:
-      - "manifest"
+      - "commitManifest"
       summary: "Send the manifest of the files to copy/move & delete in this transaction"
       description: "Send the manifest of the files to copy/move & delete in this transaction"
       parameters:
@@ -69,9 +69,11 @@ paths:
       - "application/json"
       responses:
         200:
-          description: "transaction created successfully"
+          description: "publish manifest sent successfully"
           schema:
             $ref: '#/definitions/Result'
+        400:
+          description: "bad request"
         500:
           description: "internal server error"
 definitions:

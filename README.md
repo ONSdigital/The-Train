@@ -17,7 +17,8 @@ and [Zebdee][1]) are clients of The-Train and are responsible for orchestrating 
 
 ## Endpoints
 
-Below is a list of the available endpoints with a brief description of what they do.
+Below is a list of the available endpoints with a brief description of what they do. For more detail on the API you 
+can checkout the `swagger.yml` in the root of this project.
  
 | Endpoint               | Method    | Description                                                               |
 | ---------------------- | --------- | --------------------------------------------------------------------------| 
@@ -51,7 +52,7 @@ git clone git@github.com:ONSdigital/The-Train.git
 Update the `default-run.sh` with your config.
 
 #### Configuration
-| Environment variable | Description  |
+| Env variable         | Description  |
 | -------------------- | ------------ | 
 | `WEBSITE`            | The path to the public facing website content directory. For dev local this will be `<YOUR_CONTENT_DIR>/zebedee/master` |
 | `TRANSACTION_STORE`  | The directory in which to create the publishing transaction files. For dev local this will be `<YOUR_CONTENT_DIR>/zebedee/transactions` |
@@ -85,7 +86,8 @@ If successful you should see a response similar to:
 }
 ```
 
-You should also have a directory name the same as the transation ID in your response under your `transactions` directory. :tada:
+You should also have a directory name the same as the transation ID in your response under your 
+configurated `transactions` directory. :tada:
 
 
 [1]: https://github.com/ONSdigital/zebedee
