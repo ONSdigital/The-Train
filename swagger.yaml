@@ -1,0 +1,68 @@
+swagger: "2.0"
+info:
+  description: "Publishing API ONS website."
+  version: "1.0.0"
+  title: "The-Train"
+  license:
+    name: "Open Government Licence v3.0"
+    url: "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+basePath: "/v1"
+tags:
+- name: "The-Train"
+schemes:
+- "https"
+paths:
+  /begin:
+    post:
+      tags:
+      - "begin"
+      summary: "Create a new publishing transaction"
+      description: "Create a new publishing transaction"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "transaction created successfully"
+          schema:
+            $ref: '#/definitions/Result'
+        500:
+          description: "internal server error"
+definitions:
+  Result:
+    type: object
+    properties:
+      message:
+        type: string
+        description: "message about the request result"
+        example: "New transaction created."
+      error:
+        type: boolean
+        description: "indicates if the request was successful"
+      transaction:
+        type: object
+        properties:
+          id:
+            type: string
+            description: "the created transaction ID"
+          status:
+            type: string
+            description: "the current status of the transaction"
+          startDate:
+            type: string
+            description: "the date the transaction of created"
+            example: "2018-10-19T13:08:03.238+0100"
+          uriInfos:
+            type: array
+            description: "URI information for this transaction"
+            items:
+              type: string
+          uriDeletes:
+            type: array
+            description: "URI delete information for this transaction"
+            items:
+              type: string
+          errors:
+            type: array
+            description: "error information for this transaction"
+            items:
+              type: string
