@@ -11,6 +11,14 @@ tags:
 - name: "The-Train"
 schemes:
 - "https"
+parameters:
+  publish_manifest:
+    name: manifest
+    description: "A publish manifest"
+    in: body
+    required: true
+    schema:
+      $ref: '#/definitions/Manifest'
 paths:
   /begin:
     post:
@@ -18,6 +26,45 @@ paths:
       - "begin"
       summary: "Create a new publishing transaction"
       description: "Create a new publishing transaction"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "transaction created successfully"
+          schema:
+            $ref: '#/definitions/Result'
+        500:
+          description: "internal server error"
+  /commitManifest:
+    post:
+      tags:
+      - "manifest"
+      summary: "Send the manifest of the files to copy/move & delete in this transaction"
+      description: "Send the manifest of the files to copy/move & delete in this transaction"
+      parameters:
+      - in: query
+        name: transactionId
+        type: string
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+                filesToCopy:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      source:
+                        type: string
+                      target:
+                        type: string
+                urisToDelete:
+                  type: array
+                  items:
+                    type: string
       produces:
       - "application/json"
       responses:
@@ -66,3 +113,22 @@ definitions:
             description: "error information for this transaction"
             items:
               type: string
+  Manifest:
+    type: object
+    properties:
+      filesToCopy:
+        type: array
+        description: "a list of file mappings to copy from -> to"
+        items:
+          type: object
+          properties:
+            source:
+              type: string
+            target:
+              type: string
+      urisToDelete:
+        type: array
+        description: "a list of URI's to be deleted"
+        items:
+          type: string
+
