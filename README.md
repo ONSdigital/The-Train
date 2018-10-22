@@ -27,7 +27,7 @@ can checkout the `swagger.yml` in the root of this project.
 | **/publish**           | **POST**  | Send a file to be published in this transaction (called one or more times)  |
 | **/commit**            | **POST**  | Once all the publish content has been sent begin moving the content onto the web box |
 | **/rollback**          | **POST**  | Attempt to revert the publish if something goes wrong |
-| **/transaction**       | **GET**   | Get the request transaction |
+| **/transaction**       | **GET**   | Get the requested transaction |
 
 #### Pre-publish steps
 For scheduled publishes we execute the _begin_ and _commitManifest_ steps slightly _ahead_ of the publish time as a 
