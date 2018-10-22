@@ -24,7 +24,7 @@ can checkout the `swagger.yml` in the root of this project.
 | ---------------------- | --------- | --------------------------------------------------------------------------| 
 | **/begin**             | **POST**  | Create a transation for this publish.                                      |
 | **/commitManifest**    | **POST**  | Send the publishing manifest                                               |
-| **/publish**           | **POST**  | Send a file to be published in this transaction (called one or more times  |
+| **/publish**           | **POST**  | Send a file to be published in this transaction (called one or more times)  |
 | **/commit**            | **POST**  | Once all the publish content has been sent begin moving the content onto the web box |
 | **/rollback**          | **POST**  | Attempt to revert the publish if something goes wrong |
 | **/transaction**       | **GET**   | Get the request transaction |
@@ -32,7 +32,7 @@ can checkout the `swagger.yml` in the root of this project.
 #### Pre-publish steps
 For scheduled publishes we execute the _begin_ and _commitManifest_ steps slightly _ahead_ of the publish time as a 
 minor performance gain. When its time to execute the actual publish the transation exists so we only need to move the
- content to web box. **As previously mentioned this service is earmarked for depreication. There are some fundamental
+ content to web box. **As previously mentioned this service is earmarked for deprecation. There are some fundamental
   issues and perfomance is one of them.** 
 
 ## Getting started
@@ -86,7 +86,7 @@ If successful you should see a response similar to:
 }
 ```
 
-You should also have a directory name the same as the transation ID in your response under your 
+You should also have a directory name the same as the transaction ID in your response under your 
 configurated `transactions` directory. :tada:
 
 

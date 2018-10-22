@@ -113,6 +113,76 @@ paths:
           description: "bad request"
         500:
           description: "internal server error"
+  /commit:
+    post:
+      tags:
+      - "Publish"
+      summary: "Commit the publish transaction"
+      description:  "Commit the publish transaction and attemp to move the content from the transaction directory
+      onto the live site."
+      parameters:
+      - in: query
+        name: transactionId
+        type: string
+        required: true
+        description: "The publishing transactionID to commit"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Sucessfully committed the publishing transaction"
+          schema:
+            $ref: '#/definitions/Result'
+        400:
+          description: "bad request"
+        500:
+          description: "internal server error"
+  /rollback:
+    post:
+      tags:
+      - "Publish"
+      summary: "Attempt to rollback the publish transaction"
+      description:  "Attemps to rollback the publish transaction if there has been an error."
+      parameters:
+      - in: query
+        name: transactionId
+        type: string
+        required: true
+        description: "The publishing transactionID to rollback"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Sucessfully rolled back the publishing transaction"
+          schema:
+            $ref: '#/definitions/Result'
+        400:
+          description: "bad request"
+        500:
+          description: "internal server error"
+  /transaction:
+    get:
+      tags:
+      - "Transactions"
+      summary: "Get a transaction "
+      description:  "Get the transaction with the ID provided."
+      parameters:
+      - in: query
+        name: transactionId
+        type: string
+        required: true
+        description: "The ID of the transaction to get"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Get transaction successful"
+          schema:
+            $ref: '#/definitions/Result'
+        400:
+          description: "bad request"
+        500:
+          description: "internal server error"
 definitions:
   Result:
     type: object
