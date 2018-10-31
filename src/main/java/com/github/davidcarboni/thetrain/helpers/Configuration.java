@@ -2,6 +2,8 @@ package com.github.davidcarboni.thetrain.helpers;
 
 import org.apache.commons.lang3.StringUtils;
 
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
+
 /**
  * Convenience class to get configuration values from {@link System#getProperty(String)} or gracefully fall back to {@link System#getenv()}.
  */
@@ -12,7 +14,6 @@ public class Configuration {
     static final String WEBSITE_LEGACY = "thetrain.website";
     static final String WEBSITE = "WEBSITE";
     static final String THREAD_POOL_SIZE = "POOL_SIZE";
-    static final int DEFAULT_THREAD_POOL_SIZE = 20;
 
     /**
      * Gets a configuration value from {@link System#getProperty(String)}, falling back to {@link System#getenv()}
@@ -37,7 +38,10 @@ public class Configuration {
         try {
             return Integer.parseInt(System.getenv(THREAD_POOL_SIZE));
         } catch (NumberFormatException e) {
-            return DEFAULT_THREAD_POOL_SIZE;
+            logBuilder()
+                    .addParameter("envVar", THREAD_POOL_SIZE)
+                    .error(e, "fail to parse environment variable to integer");
+            throw e;
         }
     }
 }

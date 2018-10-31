@@ -57,12 +57,21 @@ public class ConfigurationValidation implements Startup {
             healthy = false;
         }
 
+        try {
+            Configuration.threadPoolSize();
+        } catch (Exception e) {
+            healthy = false;
+        }
+
         if (healthy) {
             logBuilder().clazz(getClass())
                     .addParameter(WEBSITE_PATH, websitePath)
                     .addParameter(TRANSACTIONS_PATH, transactionStorePath)
                     .addParameter(PUBLISHING_THREAD_POOL_SIZE, Configuration.threadPoolSize())
                     .debug(HEALTHY_MSG);
+        } else {
+            logBuilder().warn("application configuration invalid exiting application");
+            System.exit(1);
         }
     }
 }
