@@ -44,6 +44,8 @@ public class CommitManifest extends Endpoint {
             // Now get the parameters:
             transactionId = request.getParameter(TRANSACTION_ID_KEY);
 
+            Publisher publisher = Publisher.getInstance();
+
             // Validate parameters
             if (StringUtils.isBlank(transactionId)) {
                 log.responseStatus(BAD_REQUEST_400)
@@ -93,8 +95,8 @@ public class CommitManifest extends Endpoint {
 
             log.websitePath(websitePath).info("copying manifest files to website and adding files to delete");
 
-            int copied = Publisher.copyFilesIntoTransaction(transaction, manifest, websitePath);
-            int deleted = Publisher.addFilesToDelete(transaction, manifest);
+            int copied = publisher.copyFilesIntoTransaction(transaction, manifest, websitePath);
+            int deleted = publisher.addFilesToDelete(transaction, manifest);
 
             if (copied != manifest.getFilesToCopy().size()) {
                 log.responseStatus(INTERNAL_SERVER_ERROR_500)

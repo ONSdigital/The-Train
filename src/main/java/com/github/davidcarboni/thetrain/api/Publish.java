@@ -44,6 +44,7 @@ public class Publish extends Endpoint {
         String transactionID = null;
         String encryptionPassword = null;
         String uri = null;
+        Publisher publisher = Publisher.getInstance();
 
         try {
             // Record the start time
@@ -109,7 +110,7 @@ public class Publish extends Endpoint {
                     log.info("unzipping file");
 
                     try (ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))) {
-                        published = Publisher.addFiles(transaction, uri, input);
+                        published = publisher.addFiles(transaction, uri, input);
                         log.info("file unzupped and added successfully");
                     } catch (Exception e) {
                         log.error(e, "unexpected error while attempting to add zipped file to publish transaction");
@@ -118,7 +119,7 @@ public class Publish extends Endpoint {
                 } else {
                     log.info("adding file to publish transaction");
                     try (InputStream bis = new BufferedInputStream(data)) {
-                        published = Publisher.addContentToTransaction(transaction, uri, bis, startDate).isSuccess();
+                        published = publisher.addContentToTransaction(transaction, uri, bis, startDate).isSuccess();
                         log.info("publish: file successfully added to publish transaction");
                     } catch (Exception e) {
                         log.error(e, "unexpected error while attempting to add file to publish transaction");

@@ -9,11 +9,11 @@ import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
  */
 public class Configuration {
 
-    static final String TRANSACTION_STORE_LEGACY = "thetrain.transactions";
-    static final String TRANSACTION_STORE = "TRANSACTION_STORE";
-    static final String WEBSITE_LEGACY = "thetrain.website";
-    static final String WEBSITE = "WEBSITE";
-    static final String THREAD_POOL_SIZE = "POOL_SIZE";
+    public static final String TRANSACTION_STORE_LEGACY = "thetrain.transactions";
+    public static final String TRANSACTION_STORE = "TRANSACTION_STORE";
+    public static final String WEBSITE_LEGACY = "thetrain.website";
+    public static final String WEBSITE = "WEBSITE";
+    public static final String THREAD_POOL_SIZE = "POOL_SIZE";
 
     /**
      * Gets a configuration value from {@link System#getProperty(String)}, falling back to {@link System#getenv()}

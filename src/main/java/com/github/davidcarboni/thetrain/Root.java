@@ -1,6 +1,8 @@
-package com.github.davidcarboni.thetrain.helpers;
+package com.github.davidcarboni.thetrain;
 
 import com.github.davidcarboni.restolino.framework.Startup;
+import com.github.davidcarboni.thetrain.helpers.Configuration;
+import com.github.davidcarboni.thetrain.storage.Publisher;
 import org.apache.commons.lang3.StringUtils;
 
 import java.nio.file.Files;
@@ -11,7 +13,7 @@ import static com.github.davidcarboni.thetrain.helpers.Configuration.WEBSITE;
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
 import static java.lang.String.format;
 
-public class ConfigurationValidation implements Startup {
+public class Root implements Startup {
 
     static final String CONFIG_MISSING_MSG = "application configuration validation error: value expected but none " +
             "found. It is strongly recommended you investigate and fix this before continuing";
@@ -27,51 +29,74 @@ public class ConfigurationValidation implements Startup {
 
     static final String PUBLISHING_THREAD_POOL_SIZE = "PUBLISHING_THREAD_POOL_SIZE";
 
+    static final String TRANS_STORE_PATH_INVALID = "transaction store path config invalid";
+
+    static final String WEBSITE_PATH_INVALID = "website store path config invalid";
+
     @Override
     public void init() {
+        logBuilder().info("initialising The-Train");
+
+        try {
+            String transactionPath = validateTransactionStorePath();
+            String websitePath = validateWebSitePath();
+            int threadPoolSize = validateThreadPoolSize();
+
+            logBuilder().clazz(getClass())
+                    .addParameter(WEBSITE_PATH, websitePath)
+                    .addParameter(TRANSACTIONS_PATH, transactionPath)
+                    .addParameter(PUBLISHING_THREAD_POOL_SIZE, threadPoolSize)
+                    .debug(HEALTHY_MSG);
+
+            Publisher.init(threadPoolSize);
+
+        } catch (IllegalArgumentException e) {
+            logBuilder().warn("application configuration invalid exiting application");
+            System.exit(1);
+        }
+    }
+
+    private String validateTransactionStorePath() {
         String transactionStorePath = Configuration.transactionStore();
-        String websitePath = Configuration.website();
-        boolean healthy = true;
 
         if (StringUtils.isEmpty(transactionStorePath)) {
             logBuilder().clazz(getClass())
                     .addParameter(TRANSACTIONS_PATH, "null")
                     .warn(CONFIG_MISSING_MSG);
-            healthy = false;
+            throw new IllegalArgumentException(TRANS_STORE_PATH_INVALID);
         } else if (!Files.isDirectory(Paths.get(transactionStorePath))) {
             logBuilder().clazz(getClass())
                     .addParameter(TRANSACTIONS_PATH, transactionStorePath)
                     .warn(format(INVALID_CONFIG_MSG, TRANSACTION_STORE));
-            healthy = false;
+            throw new IllegalArgumentException(TRANS_STORE_PATH_INVALID);
         }
+
+        return transactionStorePath;
+    }
+
+    private String validateWebSitePath() {
+        String websitePath = Configuration.website();
 
         if (StringUtils.isEmpty(websitePath)) {
             logBuilder().clazz(getClass())
                     .addParameter(WEBSITE_PATH, "null")
                     .warn(CONFIG_MISSING_MSG);
-            healthy = false;
+            throw new IllegalArgumentException(WEBSITE_PATH_INVALID);
         } else if (!Files.isDirectory(Paths.get(websitePath))) {
             logBuilder().clazz(getClass())
                     .addParameter(WEBSITE_PATH, websitePath)
                     .warn(format(INVALID_CONFIG_MSG, WEBSITE));
-            healthy = false;
+            throw new IllegalArgumentException(WEBSITE_PATH_INVALID);
         }
+        return websitePath;
+    }
 
+    private int validateThreadPoolSize() {
         try {
-            Configuration.threadPoolSize();
+            return Configuration.threadPoolSize();
         } catch (Exception e) {
-            healthy = false;
-        }
-
-        if (healthy) {
-            logBuilder().clazz(getClass())
-                    .addParameter(WEBSITE_PATH, websitePath)
-                    .addParameter(TRANSACTIONS_PATH, transactionStorePath)
-                    .addParameter(PUBLISHING_THREAD_POOL_SIZE, Configuration.threadPoolSize())
-                    .debug(HEALTHY_MSG);
-        } else {
-            logBuilder().warn("application configuration invalid exiting application");
-            System.exit(1);
+            throw new IllegalArgumentException(e);
         }
     }
+
 }

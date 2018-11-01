@@ -1,6 +1,5 @@
 package com.github.davidcarboni.thetrain.storage;
 
-import com.github.davidcarboni.thetrain.helpers.Configuration;
 import com.github.davidcarboni.thetrain.helpers.PathUtils;
 import com.github.davidcarboni.thetrain.helpers.UnionInputStream;
 import com.github.davidcarboni.thetrain.json.Transaction;
@@ -48,17 +47,47 @@ import static com.github.davidcarboni.thetrain.logging.MetricEvents.COPY_FILES;
  */
 public class Publisher {
 
-    private static final int bufferSize;
-    private static final ExecutorService pool;
+    private static ExecutorService pool;
+    private static Publisher instance;
 
-    // TODO - Don't like this but for now it will do.
-    static {
-        bufferSize = 100 * 1024;
-        pool = Executors.newFixedThreadPool(Configuration.threadPoolSize());
+    private final int bufferSize;
+
+    /**
+     * Initalize the publisher
+     */
+    public static void init(int threadPoolSzie) {
+        pool = Executors.newFixedThreadPool(threadPoolSzie);
+        logBuilder().addParameter("threads", threadPoolSzie).info("initialised publisher thread pool");
+
         Runtime.getRuntime().addShutdownHook(new ShutdownTask(pool));
+        getInstance();
     }
 
-    private static void copyFile(File src, File dest) throws IOException {
+    /**
+     * @return the singleton instance of the publisher/
+     */
+    public static Publisher getInstance() {
+        if (instance == null) {
+            synchronized (Publisher.class) {
+                if (instance == null) {
+                    int bufferSize = 100 * 1024;
+                    instance = new Publisher(bufferSize);
+                    logBuilder().addParameter("bufferSize", bufferSize).info("initialised new publisher instance");
+                }
+            }
+        }
+        return instance;
+    }
+
+    /**
+     * Construct a new Publisher instance with the specified buffer size. Publisher is a singleton instance - use
+     * {@link Publisher#getInstance()}
+     */
+    private Publisher(final int bufferSize) {
+        this.bufferSize = bufferSize;
+    }
+
+    private void copyFile(File src, File dest) throws IOException {
         try (
                 FileInputStream fis = new FileInputStream(src);
                 FileOutputStream fos = new FileOutputStream(dest);
@@ -75,7 +104,7 @@ public class Publisher {
         }
     }
 
-    private static boolean addStreamContentToTransaction(Path target, InputStream input) throws IOException {
+    private boolean addStreamContentToTransaction(Path target, InputStream input) throws IOException {
         if (target != null) {
             Files.createDirectories(target.getParent());
             try (
@@ -103,7 +132,7 @@ public class Publisher {
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public static boolean addFiles(final Transaction transaction, String uri, final ZipInputStream zip) throws IOException {
+    public boolean addFiles(final Transaction transaction, String uri, final ZipInputStream zip) throws IOException {
         LocalDateTime start = LocalDateTime.now();
         boolean result = true;
         ZipEntry entry;
@@ -197,7 +226,7 @@ public class Publisher {
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public static boolean addFile(Transaction transaction, String uri, InputStream input) throws IOException {
+    public boolean addFile(Transaction transaction, String uri, InputStream input) throws IOException {
         TransactionUpdate update = addContentToTransaction(transaction, uri, input, new Date());
         if (update.isSuccess()) {
             transaction.addUri(update.getUriInfo());
@@ -216,7 +245,7 @@ public class Publisher {
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public static TransactionUpdate addContentToTransaction(Transaction transaction, String uri, InputStream input, Date startDate)
+    public TransactionUpdate addContentToTransaction(Transaction transaction, String uri, InputStream input, Date startDate)
             throws IOException {
         Path content = Transactions.content(transaction);
         Path target = PathUtils.toPath(uri, content);
@@ -243,7 +272,7 @@ public class Publisher {
      * @return
      * @throws IOException
      */
-    private static String backupExistingFile(Transaction transaction, String uri) throws IOException {
+    private String backupExistingFile(Transaction transaction, String uri) throws IOException {
         // Back up the existing file, if present
         String action = UriInfo.CREATE;
         Path website = Website.path();
@@ -257,7 +286,7 @@ public class Publisher {
         return action;
     }
 
-    public static int copyFilesIntoTransaction(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
+    public int copyFilesIntoTransaction(Transaction transaction, Manifest manifest, Path websitePath) throws IOException {
         LocalDateTime start = LocalDateTime.now();
         int filesMoved = 0;
         List<Future<TransactionUpdate>> futures = new ArrayList<>();
@@ -298,7 +327,7 @@ public class Publisher {
      * @param manifest
      * @return
      */
-    public static int addFilesToDelete(Transaction transaction, Manifest manifest) throws IOException {
+    public int addFilesToDelete(Transaction transaction, Manifest manifest) throws IOException {
         LocalDateTime start = LocalDateTime.now();
         LogBuilder logBuilder = logBuilder();
 
@@ -338,7 +367,7 @@ public class Publisher {
     /**
      * Copy an existing file from the website into the given transaction.
      */
-    static TransactionUpdate copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
+    TransactionUpdate copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
         LogBuilder logBuilder = logBuilder();
         LocalDateTime start = LocalDateTime.now();
         boolean moved = false;
@@ -384,7 +413,7 @@ public class Publisher {
         return result;
     }
 
-    public static Path getFile(Transaction transaction, String uri) throws IOException {
+    public Path getFile(Transaction transaction, String uri) throws IOException {
         Path result = null;
 
         Path content = Transactions.content(transaction);
@@ -403,12 +432,12 @@ public class Publisher {
      * @return The list of files (directories are not included).
      * @throws IOException If an error occurs.
      */
-    public static List<String> listUris(Transaction transaction) throws IOException {
+    public List<String> listUris(Transaction transaction) throws IOException {
         Path content = Transactions.content(transaction);
         return PathUtils.listUris(content);
     }
 
-    public static boolean commit(Transaction transaction, Path website) throws IOException {
+    public boolean commit(Transaction transaction, Path website) throws IOException {
         boolean result = true;
         applyTransactionDeletes(transaction, website);
         LocalDateTime start = LocalDateTime.now();
@@ -449,7 +478,7 @@ public class Publisher {
         return result;
     }
 
-    private static void applyTransactionDeletes(Transaction transaction, Path website) throws IOException {
+    private void applyTransactionDeletes(Transaction transaction, Path website) throws IOException {
         LocalDateTime start = LocalDateTime.now();
         LogBuilder logBuilder = logBuilder();
 
@@ -478,7 +507,7 @@ public class Publisher {
      * @param website     The website directory to commit to.
      * @throws IOException If a filesystem error occurs.
      */
-    static boolean commitFile(String uri, Transaction transaction, Path website) throws IOException {
+    boolean commitFile(String uri, Transaction transaction, Path website) throws IOException {
         boolean result = false;
 
         UriInfo uriInfo = findUri(uri, transaction);
@@ -514,7 +543,7 @@ public class Publisher {
         return result;
     }
 
-    public static boolean rollback(Transaction transaction) throws IOException {
+    public boolean rollback(Transaction transaction) throws IOException {
         boolean result = true;
 
         List<String> uris = listUris(transaction);
@@ -532,7 +561,7 @@ public class Publisher {
         return result;
     }
 
-    static boolean rollbackFile(String uri, Transaction transaction) throws IOException {
+    boolean rollbackFile(String uri, Transaction transaction) throws IOException {
         boolean result = false;
 
         UriInfo uriInfo = findUri(uri, transaction);
@@ -560,7 +589,7 @@ public class Publisher {
         return result;
     }
 
-    static UriInfo findUri(String uri, Transaction transaction) {
+    UriInfo findUri(String uri, Transaction transaction) {
         Optional<UriInfo> result = transaction.uris()
                 .parallelStream()
                 .filter(uriInfo -> StringUtils.equals(uri, uriInfo.uri()))
