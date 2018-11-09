@@ -36,33 +36,14 @@ public class TransactionsTest {
 
         // When
         // We create a transaction
-        Transaction transaction = Transactions.create(null);
+        Transaction transaction = Transactions.create();
 
         // Then
         // The transaction should exist and be populated with values
         assertNotNull(transaction);
         assertTrue(StringUtils.isNotBlank(transaction.id()));
         assertTrue(StringUtils.isNotBlank(transaction.startDate()));
-        assertNotNull(Transactions.get(transaction.id(), null));
-    }
-
-    /**
-     * Tests that a transaction can be created with an encryption key.
-     */
-    @Test
-    public void shouldCreateTransactionWithEncryption() throws IOException {
-
-        // Given
-        // An encryption password
-        String password = Random.password(8);
-
-        // When
-        // We create a transaction
-        Transaction transaction = Transactions.create(password);
-
-        // Then
-        // The transaction should exist and be populated with values
-        assertNotNull(transaction.key());
+        assertNotNull(Transactions.get(transaction.id()));
     }
 
     /**
@@ -73,11 +54,11 @@ public class TransactionsTest {
 
         // Given
         // A transaction
-        Transaction transaction = Transactions.create(null);
+        Transaction transaction = Transactions.create();
 
         // When
         // We get the transaction
-        Transaction got = Transactions.get(transaction.id(), null);
+        Transaction got = Transactions.get(transaction.id());
 
         // Then
         // The read transaction should contain the expected values:
@@ -94,7 +75,7 @@ public class TransactionsTest {
 
         // Given
         // A transaction
-        Transaction transaction = Transactions.create(null);
+        Transaction transaction = Transactions.create();
         UriInfo uriInfo = new UriInfo("/uri.txt");
         String error = "error";
         transaction.addError(error);
@@ -109,7 +90,7 @@ public class TransactionsTest {
         synchronized (Transactions.transactionMap) {
             // So we can run tests in parallel
             Transactions.transactionMap.clear();
-            Transaction read = Transactions.get(transaction.id(), null);
+            Transaction read = Transactions.get(transaction.id());
             assertEquals(1, read.errors().size());
             assertEquals(1, read.uris().size());
             assertTrue(read.errors().contains(error));
@@ -125,7 +106,7 @@ public class TransactionsTest {
 
         // Given
         // A transaction
-        Transaction transaction = Transactions.create(null);
+        Transaction transaction = Transactions.create();
 
         assertTrue(Transactions.transactionMap.containsKey(transaction.id()));
         assertTrue(Transactions.transactionExecutorMap.containsKey(transaction.id()));
@@ -148,7 +129,7 @@ public class TransactionsTest {
 
         // Given
         // A transaction
-        Transaction transaction = Transactions.create(null);
+        Transaction transaction = Transactions.create();
 
         // When
         // We update the transaction using the async method
@@ -170,7 +151,7 @@ public class TransactionsTest {
 
         // Given
         // A transaction
-        Transaction transaction = Transactions.create(null);
+        Transaction transaction = Transactions.create();
 
         // When
         // We update the transaction using the async method when the transaction is ended.
@@ -192,7 +173,7 @@ public class TransactionsTest {
 
         // Given
         // A transaction and lots of URI infos and errors
-        final Transaction transaction = Transactions.create(null);
+        final Transaction transaction = Transactions.create();
         Set<UriInfo> uriInfos = new HashSet<>();
         for (int i = 0; i < 100; i++) {
             uriInfos.add(new UriInfo("/" + Random.id()));
@@ -268,7 +249,7 @@ public class TransactionsTest {
 
         // When
         // We get with the ID
-        Transaction got = Transactions.get(id, null);
+        Transaction got = Transactions.get(id);
 
         // Then
         // We should get null and no error
@@ -287,7 +268,7 @@ public class TransactionsTest {
 
         // When
         // We get with the ID
-        Transaction got = Transactions.get(id, null);
+        Transaction got = Transactions.get(id);
 
         // Then
         // We should get null and no error
@@ -299,7 +280,7 @@ public class TransactionsTest {
 
         // Given
         // A transaction
-        Transaction transaction = Transactions.create(null);
+        Transaction transaction = Transactions.create();
 
         // When
         // We get the content staging path
@@ -334,7 +315,7 @@ public class TransactionsTest {
 
         // Given
         // A transaction
-        Transaction transaction = Transactions.create(null);
+        Transaction transaction = Transactions.create();
 
         // When
         // We get the backup path

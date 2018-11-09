@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static com.github.davidcarboni.thetrain.api.common.Endpoint.ENCRYPTION_PASSWORD_KEY;
 import static com.github.davidcarboni.thetrain.api.common.Endpoint.TRANSACTION_ID_KEY;
 import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
 import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR;
@@ -45,25 +44,7 @@ public class CommitTest extends AbstractAPITest {
 
         verify(response, times(1)).setStatus(SC_BAD_REQUEST);
         verify(transactionsService, times(1)).update(null);
-        verify(transactionsService, never()).get(anyString(), anyString());
-        verifyZeroInteractions(publisherService);
-    }
-
-    @Test
-    public void shouldReturnBadRequestIEncryptionPasswordNull() throws Exception {
-        when(request.getParameter(TRANSACTION_ID_KEY))
-                .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(null);
-
-        Result actual = endpoint.commit(request, response);
-        Result expected = new Result("encryptionPassword required but was empty or null " + transactionID, true, null);
-
-        assertResult(actual, expected);
-
-        verify(response, times(1)).setStatus(SC_BAD_REQUEST);
-        verify(transactionsService, times(1)).update(null);
-        verify(transactionsService, never()).get(anyString(), anyString());
+        verify(transactionsService, never()).get(anyString());
         verifyZeroInteractions(publisherService);
     }
 
@@ -73,9 +54,7 @@ public class CommitTest extends AbstractAPITest {
 
         when(request.getParameter(TRANSACTION_ID_KEY))
                 .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(encryptionPassword);
-        when(transactionsService.get(transactionID, encryptionPassword))
+        when(transactionsService.get(transactionID))
                 .thenThrow(ex);
 
         Result actual = endpoint.commit(request, response);
@@ -84,7 +63,7 @@ public class CommitTest extends AbstractAPITest {
         assertResult(actual, expected);
 
         verify(response, times(1)).setStatus(SC_INTERNAL_SERVER_ERROR);
-        verify(transactionsService, times(1)).get(transactionID, encryptionPassword);
+        verify(transactionsService, times(1)).get(transactionID);
         verify(transactionsService, times(1)).update(null);
         verifyZeroInteractions(publisherService);
     }
@@ -93,9 +72,7 @@ public class CommitTest extends AbstractAPITest {
     public void shouldReturnBadRequestIfTransactionNull() throws Exception {
         when(request.getParameter(TRANSACTION_ID_KEY))
                 .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(encryptionPassword);
-        when(transactionsService.get(transactionID, encryptionPassword))
+        when(transactionsService.get(transactionID))
                 .thenReturn(null);
 
         Result actual = endpoint.commit(request, response);
@@ -104,7 +81,7 @@ public class CommitTest extends AbstractAPITest {
         assertResult(actual, expected);
 
         verify(response, times(1)).setStatus(SC_BAD_REQUEST);
-        verify(transactionsService, times(1)).get(transactionID, encryptionPassword);
+        verify(transactionsService, times(1)).get(transactionID);
         verify(transactionsService, times(1)).update(null);
         verifyZeroInteractions(publisherService);
     }
@@ -113,9 +90,7 @@ public class CommitTest extends AbstractAPITest {
     public void shouldReturnBadRequestIfTransactionClosed() throws Exception {
         when(request.getParameter(TRANSACTION_ID_KEY))
                 .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(encryptionPassword);
-        when(transactionsService.get(transactionID, encryptionPassword))
+        when(transactionsService.get(transactionID))
                 .thenReturn(transaction);
         when(transaction.isOpen())
                 .thenReturn(false);
@@ -126,7 +101,7 @@ public class CommitTest extends AbstractAPITest {
         assertResult(actual, expected);
 
         verify(response, times(1)).setStatus(SC_BAD_REQUEST);
-        verify(transactionsService, times(1)).get(transactionID, encryptionPassword);
+        verify(transactionsService, times(1)).get(transactionID);
         verify(transactionsService, times(1)).update(transaction);
         verifyZeroInteractions(publisherService);
     }
@@ -135,9 +110,7 @@ public class CommitTest extends AbstractAPITest {
     public void shouldReturnBadRequestIfTransactionHasErrors() throws Exception {
         when(request.getParameter(TRANSACTION_ID_KEY))
                 .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(encryptionPassword);
-        when(transactionsService.get(transactionID, encryptionPassword))
+        when(transactionsService.get(transactionID))
                 .thenReturn(transaction);
         when(transaction.isOpen())
                 .thenReturn(true);
@@ -150,7 +123,7 @@ public class CommitTest extends AbstractAPITest {
         assertResult(actual, expected);
 
         verify(response, times(1)).setStatus(SC_BAD_REQUEST);
-        verify(transactionsService, times(1)).get(transactionID, encryptionPassword);
+        verify(transactionsService, times(1)).get(transactionID);
         verify(transactionsService, times(1)).update(transaction);
         verifyZeroInteractions(publisherService);
     }
@@ -159,9 +132,7 @@ public class CommitTest extends AbstractAPITest {
     public void shouldReturnInternalServerErrorIfTWebsitePathNull() throws Exception {
         when(request.getParameter(TRANSACTION_ID_KEY))
                 .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(encryptionPassword);
-        when(transactionsService.get(transactionID, encryptionPassword))
+        when(transactionsService.get(transactionID))
                 .thenReturn(transaction);
         when(transaction.isOpen())
                 .thenReturn(true);
@@ -176,7 +147,7 @@ public class CommitTest extends AbstractAPITest {
         assertResult(actual, expected);
 
         verify(response, times(1)).setStatus(SC_INTERNAL_SERVER_ERROR);
-        verify(transactionsService, times(1)).get(transactionID, encryptionPassword);
+        verify(transactionsService, times(1)).get(transactionID);
         verify(transactionsService, times(1)).update(transaction);
         verify(publisherService, times(1)).websitePath();
     }
@@ -187,9 +158,7 @@ public class CommitTest extends AbstractAPITest {
 
         when(request.getParameter(TRANSACTION_ID_KEY))
                 .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(encryptionPassword);
-        when(transactionsService.get(transactionID, encryptionPassword))
+        when(transactionsService.get(transactionID))
                 .thenReturn(transaction);
         when(transaction.isOpen())
                 .thenReturn(true);
@@ -206,7 +175,7 @@ public class CommitTest extends AbstractAPITest {
         assertResult(actual, expected);
 
         verify(response, times(1)).setStatus(SC_INTERNAL_SERVER_ERROR);
-        verify(transactionsService, times(1)).get(transactionID, encryptionPassword);
+        verify(transactionsService, times(1)).get(transactionID);
         verify(transactionsService, times(1)).update(transaction);
         verify(publisherService, times(1)).websitePath();
         verify(publisherService, times(1)).commit(transaction, websitePath);
@@ -218,9 +187,7 @@ public class CommitTest extends AbstractAPITest {
 
         when(request.getParameter(TRANSACTION_ID_KEY))
                 .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(encryptionPassword);
-        when(transactionsService.get(transactionID, encryptionPassword))
+        when(transactionsService.get(transactionID))
                 .thenReturn(transaction);
         when(transaction.isOpen())
                 .thenReturn(true);
@@ -237,7 +204,7 @@ public class CommitTest extends AbstractAPITest {
         assertResult(actual, expected);
 
         verify(response, times(1)).setStatus(HttpServletResponse.SC_OK);
-        verify(transactionsService, times(1)).get(transactionID, encryptionPassword);
+        verify(transactionsService, times(1)).get(transactionID);
         verify(transactionsService, times(1)).update(transaction);
         verify(publisherService, times(1)).websitePath();
         verify(publisherService, times(1)).commit(transaction, websitePath);

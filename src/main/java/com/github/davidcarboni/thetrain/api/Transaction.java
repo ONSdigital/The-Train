@@ -47,16 +47,7 @@ public class Transaction extends Endpoint {
 
             log.transactionID(transactionID);
 
-            String encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
-            if (StringUtils.isEmpty(encryptionPassword)) {
-                log.responseStatus(BAD_REQUEST_400)
-                        .warn("tbad request: ransaction requires encryptionPassword but none was provided");
-
-                response.setStatus(BAD_REQUEST_400);
-                return new Result("transaction requires encryptionPassword but none was provided", true, null);
-            }
-
-            transaction = getTransactionsService().get(transactionID, encryptionPassword);
+            transaction = getTransactionsService().get(transactionID);
             if (transaction == null) {
                 log.responseStatus(BAD_REQUEST_400)
                         .warn("bad request: transaction with specified ID not found");

@@ -16,22 +16,6 @@ public class Configuration {
     static final String WEBSITE_LEGACY = "thetrain.website";
     static final String WEBSITE = "WEBSITE";
 
-    // Commented out as part of temporary fix
-    static {
-        LogBuilder log = logBuilder();
-        if (Keys.canUseStrongKeys()) {
-            log.addParameter("keyBitSize", Keys.SYMMETRIC_KEY_SIZE_UNLIMITED)
-                    .info("this system is able to use strong AES encryption");
-
-        } else {
-            log.addParameter("keyBitSize", Keys.SYMMETRIC_KEY_SIZE_STANDARD)
-                    .info("this system is restricted to standard AES encryption");
-        }
-        log.addParameter("keyBitSize", Keys.getSymmetricKeySize())
-                //.addParameter("random", new java.util.Random().nextInt())
-                .info("symmetric key size set");
-    }
-
     /**
      * Gets a configuration value from {@link System#getProperty(String)}, falling back to {@link System#getenv()}
      * if the property comes back blank.

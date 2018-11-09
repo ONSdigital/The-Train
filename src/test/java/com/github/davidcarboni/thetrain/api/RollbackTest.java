@@ -9,7 +9,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 
-import static com.github.davidcarboni.thetrain.api.common.Endpoint.ENCRYPTION_PASSWORD_KEY;
 import static com.github.davidcarboni.thetrain.api.common.Endpoint.TRANSACTION_ID_KEY;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -42,24 +41,7 @@ public class RollbackTest extends AbstractAPITest {
 
         verify(response, times(1)).setStatus(HttpServletResponse.SC_BAD_REQUEST);
         verify(transactionsService, times(1)).update(null);
-        verify(transactionsService, never()).get(anyString(), anyString());
-        verifyZeroInteractions(publisherService);
-    }
-
-    @Test
-    public void shouldReturnBadRequestIfENcryptionPasswordNull() throws Exception {
-        when(request.getParameter(TRANSACTION_ID_KEY))
-                .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(null);
-
-        Result actual = endpoint.rollback(request, response);
-
-        assertResult(actual, new Result("rollback requires encryptionPassword but none was provided", true, null));
-
-        verify(response, times(1)).setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        verify(transactionsService, times(1)).update(null);
-        verify(transactionsService, never()).get(anyString(), anyString());
+        verify(transactionsService, never()).get(anyString());
         verifyZeroInteractions(publisherService);
     }
 
@@ -67,9 +49,7 @@ public class RollbackTest extends AbstractAPITest {
     public void shouldReturnBadRequestIfTransactionNull() throws Exception {
         when(request.getParameter(TRANSACTION_ID_KEY))
                 .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(encryptionPassword);
-        when(transactionsService.get(transactionID, encryptionPassword))
+        when(transactionsService.get(transactionID))
                 .thenReturn(null);
 
         Result actual = endpoint.rollback(request, response);
@@ -77,7 +57,7 @@ public class RollbackTest extends AbstractAPITest {
         assertResult(actual, new Result("Unknown transaction " + transactionID, true, null));
 
         verify(response, times(1)).setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        verify(transactionsService, times(1)).get(transactionID, encryptionPassword);
+        verify(transactionsService, times(1)).get(transactionID);
         verify(transactionsService, times(1)).update(null);
         verifyZeroInteractions(publisherService);
     }
@@ -88,9 +68,7 @@ public class RollbackTest extends AbstractAPITest {
 
         when(request.getParameter(TRANSACTION_ID_KEY))
                 .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(encryptionPassword);
-        when(transactionsService.get(transactionID, encryptionPassword))
+        when(transactionsService.get(transactionID))
                 .thenThrow(e);
 
         Result actual = endpoint.rollback(request, response);
@@ -98,7 +76,7 @@ public class RollbackTest extends AbstractAPITest {
         assertResult(actual, new Result(ExceptionUtils.getStackTrace(e), true, null));
 
         verify(response, times(1)).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        verify(transactionsService, times(1)).get(transactionID, encryptionPassword);
+        verify(transactionsService, times(1)).get(transactionID);
         verify(transactionsService, times(1)).update(any());
         verifyZeroInteractions(publisherService);
     }
@@ -107,9 +85,7 @@ public class RollbackTest extends AbstractAPITest {
     public void shouldReturnBadRequestIfTransactionClosed() throws Exception {
         when(request.getParameter(TRANSACTION_ID_KEY))
                 .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(encryptionPassword);
-        when(transactionsService.get(transactionID, encryptionPassword))
+        when(transactionsService.get(transactionID))
                 .thenReturn(transaction);
         when(transaction.isOpen())
                 .thenReturn(false);
@@ -119,7 +95,7 @@ public class RollbackTest extends AbstractAPITest {
         assertResult(actual, new Result("This transaction is closed.", true, transaction));
 
         verify(response, times(1)).setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        verify(transactionsService, times(1)).get(transactionID, encryptionPassword);
+        verify(transactionsService, times(1)).get(transactionID);
         verify(transactionsService, times(1)).update(transaction);
         verifyZeroInteractions(publisherService);
     }
@@ -128,9 +104,7 @@ public class RollbackTest extends AbstractAPITest {
     public void shouldReturnInternalServerErrorIfRollbackFails() throws Exception {
         when(request.getParameter(TRANSACTION_ID_KEY))
                 .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(encryptionPassword);
-        when(transactionsService.get(transactionID, encryptionPassword))
+        when(transactionsService.get(transactionID))
                 .thenReturn(transaction);
         when(transaction.isOpen())
                 .thenReturn(true);
@@ -142,7 +116,7 @@ public class RollbackTest extends AbstractAPITest {
         assertResult(actual, new Result("Errors were detected in rolling back the transaction.", true, transaction));
 
         verify(response, times(1)).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        verify(transactionsService, times(1)).get(transactionID, encryptionPassword);
+        verify(transactionsService, times(1)).get(transactionID);
         verify(publisherService, times(1)).rollback(transaction);
         verify(transactionsService, times(1)).update(transaction);
     }
@@ -151,9 +125,7 @@ public class RollbackTest extends AbstractAPITest {
     public void shouldReturnOKIfRollbackSuccessful() throws Exception {
         when(request.getParameter(TRANSACTION_ID_KEY))
                 .thenReturn(transactionID);
-        when(request.getParameter(ENCRYPTION_PASSWORD_KEY))
-                .thenReturn(encryptionPassword);
-        when(transactionsService.get(transactionID, encryptionPassword))
+        when(transactionsService.get(transactionID))
                 .thenReturn(transaction);
         when(transaction.isOpen())
                 .thenReturn(true);
@@ -165,7 +137,7 @@ public class RollbackTest extends AbstractAPITest {
         assertResult(actual, new Result("Transaction rolled back.", false, transaction));
 
         verify(response, times(1)).setStatus(HttpServletResponse.SC_OK);
-        verify(transactionsService, times(1)).get(transactionID, encryptionPassword);
+        verify(transactionsService, times(1)).get(transactionID);
         verify(publisherService, times(1)).rollback(transaction);
         verify(transactionsService, times(1)).listFiles(transaction);
         verify(transactionsService, times(1)).update(transaction);

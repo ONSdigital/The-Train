@@ -21,7 +21,7 @@ public class Website {
     /**
      * Determines the {@link Path} to the website content.
      * For development purposes, if no {@value Configuration#WEBSITE} configuration value is set
-     * then a temponary folder is created.
+     * then a temporary folder is created.
      *
      * @return A path to the website root or, if the determined path does not point to a directory, null.
      * @throws IOException

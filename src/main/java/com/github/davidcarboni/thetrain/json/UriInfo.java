@@ -52,8 +52,6 @@ public class UriInfo {
     String start;
     String end;
     long duration;
-    String sha;
-    long size;
     String error;
 
     transient Date startDate;
@@ -109,19 +107,13 @@ public class UriInfo {
      *
      * @return <code>this</code>.
      */
-    public void stop(String sha, long size) {
-        this.sha = sha;
-        this.size = size;
+    public void stop() {
         endDate = new Date();
         end = DateConverter.toString(endDate);
         if (startDate != null && endDate != null) {
             duration = endDate.getTime() - startDate.getTime();
         }
-        if (StringUtils.isNotBlank(sha)) {
-            status = UPLOADED;
-        } else {
-            status = UPLOAD_FAILED;
-        }
+        status = UPLOADED;
     }
 
     /**
@@ -159,20 +151,6 @@ public class UriInfo {
      */
     public String error() {
         return error;
-    }
-
-    /**
-     * @return The file SHA fingerprint.
-     */
-    public String sha() {
-        return sha;
-    }
-
-    /**
-     * @return The file size.
-     */
-    public long size() {
-        return size;
     }
 
     // The hashCode and equals methods are used to identify this instance in the Set<Uri> in Transaction.

@@ -32,35 +32,17 @@ public class UriInfoTest {
     public void shouldSetEndDateDurationShaAndStatusOnStop() throws InterruptedException {
 
         // Given
-        String sha = "123abc";
         UriInfo uriInfo = new UriInfo("test", new Date());
         Thread.sleep(2);
 
         // When
-        uriInfo.stop(sha, 0);
+        uriInfo.stop();
 
         // Then
         Assert.assertNotNull(uriInfo.endDate);
         Assert.assertEquals(uriInfo.endDate, DateConverter.toDate(uriInfo.end));
         Assert.assertTrue(uriInfo.duration > 0);
-        Assert.assertEquals(sha, uriInfo.sha);
         Assert.assertEquals(UriInfo.UPLOADED, uriInfo.status);
-    }
-
-    @Test
-    public void shouldNotUpdateStatusForBlankSha() throws InterruptedException {
-
-        // Given
-        UriInfo blank = new UriInfo("blank", new Date());
-        UriInfo nul = new UriInfo("null", new Date());
-
-        // When
-        blank.stop("", 0);
-        nul.stop(null, 0);
-
-        // Then
-        Assert.assertEquals("upload failed", blank.status);
-        Assert.assertEquals("upload failed", nul.status);
     }
 
     @Test
