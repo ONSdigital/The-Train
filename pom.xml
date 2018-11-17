@@ -35,11 +35,24 @@
     <dependencies>
 
         <!-- Restolino -->
-        <dependency>
+<!--        <dependency>
             <groupId>com.github.davidcarboni</groupId>
             <artifactId>restolino</artifactId>
             <version>0.1.8</version>
+        </dependency>-->
+
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <version>2.5</version>
+            <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-http</artifactId>
+            <version>9.4.14.v20181114</version>
+        </dependency>
+
 
 
         <!-- http -->

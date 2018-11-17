@@ -1,17 +1,14 @@
 package com.github.onsdigital.thetrain;
 
-import com.github.davidcarboni.restolino.framework.Startup;
 import com.github.onsdigital.thetrain.helpers.Configuration;
-import com.github.onsdigital.thetrain.storage.Publisher;
 import com.github.onsdigital.thetrain.logging.LogBuilder;
+import com.github.onsdigital.thetrain.storage.Publisher;
 import org.apache.commons.lang3.StringUtils;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static java.lang.String.format;
-
-public class Root implements Startup {
+public class Root {//implements Startup {
 
     static final String CONFIG_MISSING_MSG = "application configuration validation error: value expected but none " +
             "found. It is strongly recommended you investigate and fix this before continuing";
@@ -31,7 +28,7 @@ public class Root implements Startup {
 
     static final String WEBSITE_PATH_INVALID = "website store path config invalid";
 
-    @Override
+    //@Override
     public void init() {
         LogBuilder.logBuilder().info("initialising The-Train");
 

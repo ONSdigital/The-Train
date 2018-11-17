@@ -1,6 +1,5 @@
 package com.github.onsdigital.thetrain.api;
 
-import com.github.davidcarboni.restolino.framework.Api;
 import com.github.onsdigital.thetrain.api.common.Endpoint;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
@@ -9,7 +8,6 @@ import org.apache.commons.fileupload.FileUploadException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.POST;
 import java.io.IOException;
 
 import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
@@ -18,10 +16,10 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
 /**
  * Endpoint to start a new {@link com.github.onsdigital.thetrain.json.Transaction}.
  */
-@Api
+//@Api
 public class Begin extends Endpoint {
 
-    @POST
+    //@POST
     public Result beginTransaction(HttpServletRequest request,
                                    HttpServletResponse response) throws IOException, FileUploadException {
         LogBuilder log = LogBuilder.logBuilder().endpoint(this);

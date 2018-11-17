@@ -1,6 +1,5 @@
 package com.github.onsdigital.thetrain.api;
 
-import com.github.davidcarboni.restolino.framework.Api;
 import com.github.onsdigital.thetrain.api.common.Endpoint;
 import com.github.onsdigital.thetrain.helpers.Hash;
 import com.github.onsdigital.thetrain.helpers.PathUtils;
@@ -14,7 +13,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.GET;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,10 +23,10 @@ import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
 /**
  * Endpoint to start a new {@link Transaction}.
  */
-@Api
+//@Api
 public class Verify extends Endpoint {
 
-    @GET
+    //  @GET
     public FileHash verify(HttpServletRequest request,
                            HttpServletResponse response) throws IOException, FileUploadException {
         LogBuilder log = LogBuilder.logBuilder().endpoint(this);

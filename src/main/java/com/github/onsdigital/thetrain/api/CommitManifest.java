@@ -1,21 +1,19 @@
 package com.github.onsdigital.thetrain.api;
 
-import com.github.davidcarboni.restolino.framework.Api;
 import com.github.onsdigital.thetrain.api.common.Endpoint;
 import com.github.onsdigital.thetrain.json.Result;
+import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.json.request.Manifest;
 import com.github.onsdigital.thetrain.logging.LogBuilder;
 import com.github.onsdigital.thetrain.storage.Publisher;
 import com.github.onsdigital.thetrain.storage.Transactions;
 import com.github.onsdigital.thetrain.storage.Website;
-import com.github.onsdigital.thetrain.json.Transaction;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.POST;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -27,9 +25,9 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
 /**
  * Endpoint to move files within an existing {@link Transaction}.
  */
-@Api
+//@Api
 public class CommitManifest extends Endpoint {
-    @POST
+    //@POST
     public Result commitManifest(
             HttpServletRequest request,
             HttpServletResponse response,

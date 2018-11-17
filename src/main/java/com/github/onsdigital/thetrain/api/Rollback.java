@@ -1,6 +1,5 @@
 package com.github.onsdigital.thetrain.api;
 
-import com.github.davidcarboni.restolino.framework.Api;
 import com.github.onsdigital.thetrain.api.common.Endpoint;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
@@ -11,7 +10,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.POST;
 import java.io.IOException;
 
 import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
@@ -21,10 +19,10 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
 /**
  * Endpoint to roll back an existing {@link com.github.onsdigital.thetrain.json.Transaction}.
  */
-@Api
+//@Api
 public class Rollback extends Endpoint {
 
-    @POST
+    //@POST
     public Result rollback(HttpServletRequest request,
                            HttpServletResponse response) throws IOException, FileUploadException {
 
