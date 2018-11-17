@@ -34,12 +34,18 @@
 
     <dependencies>
 
+        <dependency>
+            <groupId>com.sparkjava</groupId>
+            <artifactId>spark-core</artifactId>
+            <version>2.8.0</version>
+        </dependency>
+
         <!-- Restolino -->
-<!--        <dependency>
-            <groupId>com.github.davidcarboni</groupId>
-            <artifactId>restolino</artifactId>
-            <version>0.1.8</version>
-        </dependency>-->
+        <!--        <dependency>
+                    <groupId>com.github.davidcarboni</groupId>
+                    <artifactId>restolino</artifactId>
+                    <version>0.1.8</version>
+                </dependency>-->
 
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -52,7 +58,6 @@
             <artifactId>jetty-http</artifactId>
             <version>9.4.14.v20181114</version>
         </dependency>
-
 
 
         <!-- http -->
@@ -180,7 +185,8 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>com.github.davidcarboni.restolino.Main</mainClass>
+                            <!--<mainClass>com.github.davidcarboni.restolino.Main</mainClass>-->
+                            <mainClass>com.github.onsdigital.thetrain.App</mainClass>
                             <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                             <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                         </manifest>

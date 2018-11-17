@@ -14,5 +14,4 @@ java $JAVA_OPTS \
           -Dthetrain.website=$content_path \
           -Dthetrain.transactions=$transactions_path \
           -DPORT=8084 \
-          -Drestolino.packageprefix=com.github.davidcarboni.thetrain.api \
           -jar target/the-train-0.0.1-SNAPSHOT-jar-with-dependencies.jar
