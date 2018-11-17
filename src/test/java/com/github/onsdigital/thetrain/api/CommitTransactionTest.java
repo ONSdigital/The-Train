@@ -20,7 +20,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-public class CommitTest extends AbstractAPITest {
+public class CommitTransactionTest extends AbstractAPITest {
 
     private Commit endpoint;
 
