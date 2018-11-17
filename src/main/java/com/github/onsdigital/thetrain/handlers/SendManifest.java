@@ -23,7 +23,7 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
 /**
  * Endpoint to move files within an existing {@link Transaction}.
  */
-public class SendManifestHandler extends BaseHandler {
+public class SendManifest extends BaseHandler {
 
     @Override
     public Object handle(Request request, Response response) throws Exception {

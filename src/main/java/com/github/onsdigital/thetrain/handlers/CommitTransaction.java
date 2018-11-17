@@ -18,7 +18,7 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
 /**
  * Endpoint to commit an existing {@link Transaction}.
  */
-public class CommitTransactionHandler extends BaseHandler {
+public class CommitTransaction extends BaseHandler {
 
     @Override
     public Object handle(Request request, Response response) throws Exception {

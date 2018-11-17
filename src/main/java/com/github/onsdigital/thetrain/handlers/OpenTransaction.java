@@ -12,7 +12,7 @@ import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
-public class OpenTransactionHandler extends BaseHandler {
+public class OpenTransaction extends BaseHandler {
 
     @Override
     public Object handle(Request request, Response response) throws Exception {

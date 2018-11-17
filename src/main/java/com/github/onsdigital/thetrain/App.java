@@ -2,9 +2,9 @@ package com.github.onsdigital.thetrain;
 
 import com.github.onsdigital.thetrain.filters.AfterFilter;
 import com.github.onsdigital.thetrain.filters.BeforeFilter;
-import com.github.onsdigital.thetrain.handlers.CommitTransactionHandler;
-import com.github.onsdigital.thetrain.handlers.OpenTransactionHandler;
-import com.github.onsdigital.thetrain.handlers.SendManifestHandler;
+import com.github.onsdigital.thetrain.handlers.CommitTransaction;
+import com.github.onsdigital.thetrain.handlers.OpenTransaction;
+import com.github.onsdigital.thetrain.handlers.SendManifest;
 import com.github.onsdigital.thetrain.response.JsonTransformer;
 import spark.ResponseTransformer;
 import spark.Route;
@@ -31,13 +31,16 @@ public class App {
 
         after("/*", new AfterFilter());
 
-        Route openTransaction = new OpenTransactionHandler();
-        post("/Begin", openTransaction, transformer);
+        registerHandler("/Begin", new OpenTransaction(), transformer);
+        registerHandler("/Commit", new CommitTransaction(), transformer);
+        registerHandler("/CommitManifest", new SendManifest(), transformer);
+    }
 
-        Route commitTransaction = new CommitTransactionHandler();
-        post("/Commit", commitTransaction, transformer);
+    private static void registerHandler(String uri, Route route, ResponseTransformer transformer) {
+        logBuilder().uri(uri)
+                .addParameter("method", "POST")
+                .info("registered request handler");
 
-        Route sendManifest = new SendManifestHandler();
-        post("/CommitManifest", sendManifest, transformer);
+        post(uri, route, transformer);
     }
 }

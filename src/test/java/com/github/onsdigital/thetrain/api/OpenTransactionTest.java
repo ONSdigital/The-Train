@@ -13,7 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-public class OpenTransactionHandlerTest extends AbstractAPITest {
+public class OpenTransactionTest extends AbstractAPITest {
 
     private Begin endpoint;
 
