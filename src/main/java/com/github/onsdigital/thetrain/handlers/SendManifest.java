@@ -35,9 +35,7 @@ public class SendManifest extends BaseHandler {
 
         try {
             // Now get the parameters:
-            transactionId = request.params(TRANSACTION_ID_KEY);
-
-            Publisher publisher = Publisher.getInstance();
+            transactionId = request.raw().getParameter(TRANSACTION_ID_KEY);
 
             // Validate parameters
             if (StringUtils.isBlank(transactionId)) {

@@ -8,24 +8,18 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import spark.Request;
 import spark.Response;
 
-import java.nio.file.Path;
-
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
 import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
-/**
- * Endpoint to commit an existing {@link Transaction}.
- */
-public class CommitTransaction extends BaseHandler {
+public class RollbackTransaction extends BaseHandler {
 
     @Override
     public Object handle(Request request, Response response) throws Exception {
+        LogBuilder log = logBuilder();
         Transaction transaction = null;
         String transactionId = null;
-
-        LogBuilder log = logBuilder();
 
         try {
             // Transaction ID
@@ -34,7 +28,7 @@ public class CommitTransaction extends BaseHandler {
                 log.responseStatus(BAD_REQUEST_400)
                         .warn("bad request: transactionID required but none provided");
                 response.status(BAD_REQUEST_400);
-                return new Result("Please provide a transactionId parameter.", true, transaction);
+                return new Result("Please provide a transactionId parameter.", true, null);
             }
 
             log.transactionID(transactionId);
@@ -43,7 +37,8 @@ public class CommitTransaction extends BaseHandler {
             transaction = getTransactionsService().get(transactionId);
             if (transaction == null) {
                 log.responseStatus(BAD_REQUEST_400)
-                        .warn("bad request: transaction was not found");
+                        .warn("bad request: transaction with specified ID was not found");
+
                 response.status(BAD_REQUEST_400);
                 return new Result("Unknown transaction " + transactionId, true, null);
             }
@@ -51,52 +46,45 @@ public class CommitTransaction extends BaseHandler {
             // Check the transaction state
             if (!transaction.isOpen()) {
                 log.responseStatus(BAD_REQUEST_400)
-                        .warn("unexpected error, transaction is closed");
+                        .warn("bad request: unexpected error transaction is closed");
+
                 response.status(BAD_REQUEST_400);
                 return new Result("This transaction is closed.", true, transaction);
             }
 
-            // Check for errors in the transaction
-            if (transaction.hasErrors()) {
-                log.responseStatus(BAD_REQUEST_400)
-                        .errors(transaction.errors()).warn("bad request: transaction has errors");
-                response.status(BAD_REQUEST_400);
-                return new Result("This transaction cannot be committed because errors have been reported.", true, transaction);
-            }
+            log.info("request is valid, proceeding with rollback");
 
-            // Get the website Path to publish to
-            Path website = getPublisherService().websitePath();
-            if (website == null) {
+            boolean success = getPublisherService().rollback(transaction);
+            if (!success) {
                 log.responseStatus(INTERNAL_SERVER_ERROR_500)
-                        .warn("transaction commit error - website path is null");
+                        .warn("rollback was unsuccessful");
+
                 response.status(INTERNAL_SERVER_ERROR_500);
-                return new Result("website folder could not be used: " + website, true, transaction);
+                return new Result("Errors were detected in rolling back the transaction.", true, transaction);
             }
 
-            log.websitePath(website).info("request valid proceeding with committing transaction");
+            getTransactionsService().listFiles(transaction);
 
-            boolean commitSuccessful = getPublisherService().commit(transaction, website);
-            if (!commitSuccessful) {
-                log.responseStatus(INTERNAL_SERVER_ERROR_500)
-                        .warn("commiting publish to website was unsuccessful");
-                response.status(INTERNAL_SERVER_ERROR_500);
-                return new Result("Errors were detected in committing the transaction.", true, transaction);
-            }
-
-            // no errors return success response
-            log.responseStatus(OK_200)
-                    .info("commiting publish to website completed successfully");
+            log.responseStatus(OK_200).info("rollback completed successfully");
             response.status(OK_200);
-            return new Result("Transaction committed.", false, transaction);
+            return new Result("Transaction rolled back.", false, transaction);
 
         } catch (Exception e) {
             log.responseStatus(INTERNAL_SERVER_ERROR_500)
-                    .error(e, "transaction returned unexpected error");
+                    .error(e, "unexpected error while rollbacking back transaction");
+
             response.status(INTERNAL_SERVER_ERROR_500);
             return new Result(ExceptionUtils.getStackTrace(e), true, transaction);
         } finally {
-            log.info("persisting changes to transaction");
-            getTransactionsService().update(transaction);
+            log.info("updating transaction");
+            try {
+                getTransactionsService().update(transaction);
+            } catch (Exception e) {
+                log.responseStatus(INTERNAL_SERVER_ERROR_500)
+                        .error(e, "unexpected error while updating transaction");
+
+                return new Result("unexpected error while updating transaction", true, transaction);
+            }
         }
     }
 }

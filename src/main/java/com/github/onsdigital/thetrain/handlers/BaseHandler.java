@@ -4,7 +4,9 @@ import com.github.onsdigital.thetrain.service.PublisherService;
 import com.github.onsdigital.thetrain.service.PublisherServiceImpl;
 import com.github.onsdigital.thetrain.service.TransactionsService;
 import com.github.onsdigital.thetrain.service.TransactionsServiceImpl;
+import com.github.onsdigital.thetrain.storage.Publisher;
 import com.google.gson.Gson;
+import spark.Request;
 import spark.Route;
 
 public abstract class BaseHandler implements Route {
@@ -18,6 +20,8 @@ public abstract class BaseHandler implements Route {
     public static final String SHA1_KEY = "sha1";
 
     protected Gson gson;
+
+    protected Publisher publisher;
 
     protected TransactionsService transactionsService;
 
@@ -39,5 +43,10 @@ public abstract class BaseHandler implements Route {
 
     protected BaseHandler() {
         this.gson = new Gson();
+        this.publisher = Publisher.getInstance();
+    }
+
+    protected String getTransactionID(Request req) {
+        return req.raw().getParameter(TRANSACTION_ID_KEY);
     }
 }
