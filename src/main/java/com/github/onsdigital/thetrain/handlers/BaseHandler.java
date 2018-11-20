@@ -1,15 +1,14 @@
 package com.github.onsdigital.thetrain.handlers;
 
-import com.github.onsdigital.thetrain.service.PublisherService;
-import com.github.onsdigital.thetrain.service.PublisherServiceImpl;
-import com.github.onsdigital.thetrain.service.TransactionsService;
-import com.github.onsdigital.thetrain.service.TransactionsServiceImpl;
-import com.github.onsdigital.thetrain.storage.Publisher;
-import com.google.gson.Gson;
+import com.github.onsdigital.thetrain.exception.BadRequestException;
+import org.apache.commons.lang3.StringUtils;
 import spark.Request;
 import spark.Route;
 
 public abstract class BaseHandler implements Route {
+
+    static final String TRANSACTON_ID_MISSING_ERR = "transactionID required but none provided";
+    static final String URI_MISSING_ERR = "uri required but none provided";
 
     public static final String TRANSACTION_ID_KEY = "transactionId";
 
@@ -19,34 +18,16 @@ public abstract class BaseHandler implements Route {
 
     public static final String SHA1_KEY = "sha1";
 
-    protected Gson gson;
-
-    protected Publisher publisher;
-
-    protected TransactionsService transactionsService;
-
-    protected PublisherService publisherService;
-
-    protected TransactionsService getTransactionsService() {
-        if (transactionsService == null) {
-            transactionsService = new TransactionsServiceImpl();
+    protected String getURI(Request request) throws BadRequestException {
+        String uri = request.raw().getParameter(URI_KEY);
+        if (StringUtils.isBlank(uri)) {
+            throw new BadRequestException(URI_MISSING_ERR);
         }
-        return transactionsService;
+        return uri;
     }
 
-    protected PublisherService getPublisherService() {
-        if (publisherService == null) {
-            publisherService = new PublisherServiceImpl();
-        }
-        return publisherService;
+    protected boolean isZipped(Request request) {
+        return Boolean.valueOf(request.raw().getParameter(ZIP_KEY));
     }
 
-    protected BaseHandler() {
-        this.gson = new Gson();
-        this.publisher = Publisher.getInstance();
-    }
-
-    protected String getTransactionID(Request req) {
-        return req.raw().getParameter(TRANSACTION_ID_KEY);
-    }
 }

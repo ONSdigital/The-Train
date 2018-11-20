@@ -7,6 +7,7 @@ import com.github.onsdigital.thetrain.logging.LogBuilder;
 import com.github.onsdigital.thetrain.storage.Publisher;
 import com.github.onsdigital.thetrain.storage.Transactions;
 import com.github.onsdigital.thetrain.storage.Website;
+import com.google.gson.Gson;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import spark.Request;
@@ -24,6 +25,14 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
  * Endpoint to move files within an existing {@link Transaction}.
  */
 public class SendManifest extends BaseHandler {
+
+    private Gson gson;
+    private Publisher publisher;
+
+    public SendManifest(Publisher publisher) {
+        this.gson = new Gson();
+        this.publisher = publisher;
+    }
 
     @Override
     public Object handle(Request request, Response response) throws Exception {

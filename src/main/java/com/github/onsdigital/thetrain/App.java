@@ -1,7 +1,13 @@
 package com.github.onsdigital.thetrain;
 
+import com.github.onsdigital.thetrain.exception.BadRequestException;
+import com.github.onsdigital.thetrain.exception.PublishException;
+import com.github.onsdigital.thetrain.exception.handler.BadRequestExceptionHandler;
+import com.github.onsdigital.thetrain.exception.handler.CatchAllHandler;
+import com.github.onsdigital.thetrain.exception.handler.PublishExceptionHandler;
 import com.github.onsdigital.thetrain.filters.AfterFilter;
 import com.github.onsdigital.thetrain.filters.BeforeFilter;
+import com.github.onsdigital.thetrain.filters.QuietFilter;
 import com.github.onsdigital.thetrain.handlers.AddFileToTransaction;
 import com.github.onsdigital.thetrain.handlers.CommitTransaction;
 import com.github.onsdigital.thetrain.handlers.GetTransaction;
@@ -9,7 +15,12 @@ import com.github.onsdigital.thetrain.handlers.OpenTransaction;
 import com.github.onsdigital.thetrain.handlers.RollbackTransaction;
 import com.github.onsdigital.thetrain.handlers.SendManifest;
 import com.github.onsdigital.thetrain.handlers.VerifyTransaction;
+import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
 import com.github.onsdigital.thetrain.response.JsonTransformer;
+import com.github.onsdigital.thetrain.service.PublisherService;
+import com.github.onsdigital.thetrain.service.PublisherServiceImpl;
+import com.github.onsdigital.thetrain.service.TransactionsService;
+import com.github.onsdigital.thetrain.service.TransactionsServiceImpl;
 import com.github.onsdigital.thetrain.storage.Publisher;
 import spark.ResponseTransformer;
 import spark.Route;
@@ -20,6 +31,7 @@ import java.util.Map;
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 import static spark.Spark.after;
 import static spark.Spark.before;
+import static spark.Spark.exception;
 import static spark.Spark.get;
 import static spark.Spark.port;
 import static spark.Spark.post;
@@ -38,25 +50,60 @@ public class App {
         port(8084);
 
         Publisher.init(100);
-        ResponseTransformer transformer = JsonTransformer.get();
 
         ROUTES = new HashMap<>();
 
         before("/*", new BeforeFilter());
 
-        after("/*", new AfterFilter());
+        AfterFilter afterFilter = new AfterFilter();
+        after("/*", afterFilter);
 
-        registerPostHandler("/begin", new OpenTransaction(), transformer);
-        registerPostHandler("/commit", new CommitTransaction(), transformer);
-        registerPostHandler("/CommitManifest", new SendManifest(), transformer);
-        registerPostHandler("/publish", new AddFileToTransaction(), transformer);
-        registerPostHandler("/rollback", new RollbackTransaction(), transformer);
-        registerGetHandler("/transaction", new GetTransaction(), transformer);
-        registerGetHandler("/veify", new VerifyTransaction(), transformer);
+        registerExeptionHandlers(afterFilter);
+
+        regusterRoutes();
 
         logBuilder().addParameter("routes", ROUTES)
                 .addParameter("PORT", 8084)
                 .info("registered routes");
+    }
+
+    private static void registerExeptionHandlers(QuietFilter afterFilter) {
+        exception(BadRequestException.class, (e, req, resp) ->
+                new BadRequestExceptionHandler(afterFilter).handle(e, req, resp));
+
+        exception(PublishException.class,
+                (e, req, resp) -> new PublishExceptionHandler(afterFilter).handle(e, req, resp));
+
+        exception(Exception.class, (e, req, resp) -> new CatchAllHandler(afterFilter).handle(e, req, resp));
+    }
+
+    private static void regusterRoutes() {
+        ResponseTransformer transformer = JsonTransformer.get();
+        TransactionsService transactionsService = new TransactionsServiceImpl();
+        PublisherService publisherService = new PublisherServiceImpl();
+        Publisher publisher = Publisher.getInstance();
+        FileUploadHelper fileUploadHelper = new FileUploadHelper();
+
+        Route openTransaction = new OpenTransaction(transactionsService);
+        registerPostHandler("/begin", openTransaction, transformer);
+
+        Route addFile = new AddFileToTransaction(transactionsService, publisher, fileUploadHelper);
+        registerPostHandler("/publish", addFile, transformer);
+
+        Route commit = new CommitTransaction(transactionsService, publisherService);
+        registerPostHandler("/commit", commit, transformer);
+
+        Route sendManifest = new SendManifest(publisher);
+        registerPostHandler("/CommitManifest", sendManifest, transformer);
+
+        Route rollback = new RollbackTransaction(transactionsService, publisherService);
+        registerPostHandler("/rollback", rollback, transformer);
+
+        Route getTransaction = new GetTransaction(transactionsService);
+        registerGetHandler("/transaction", getTransaction, transformer);
+
+        Route verify = new VerifyTransaction();
+        registerGetHandler("/veify", verify, transformer);
     }
 
     private static void registerPostHandler(String uri, Route route, ResponseTransformer transformer) {

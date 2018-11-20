@@ -12,7 +12,7 @@ import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 
 public class BeforeFilter implements Filter {
 
-    static final String REQ_ID_KEY = "X-REQUEST-ID";
+    static final String REQ_ID_KEY = "X-Request-Id";
 
     @Override
     public void handle(Request request, Response response) throws Exception {
@@ -24,8 +24,7 @@ public class BeforeFilter implements Filter {
 
         MDC.put(REQ_ID_KEY, requestID);
 
-        logBuilder().addParameter(REQ_ID_KEY, requestID)
-                .uri(request.uri())
+        logBuilder().uri(request.uri())
                 .addParameter("method", request.requestMethod())
                 .info("inbound request");
     }

@@ -1,183 +1,103 @@
 package com.github.onsdigital.thetrain.handlers;
 
-import com.github.davidcarboni.encryptedfileupload.EncryptedFileItemFactory;
+import com.github.onsdigital.thetrain.exception.BadRequestException;
+import com.github.onsdigital.thetrain.exception.PublishException;
+import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.logging.LogBuilder;
+import com.github.onsdigital.thetrain.service.TransactionsService;
 import com.github.onsdigital.thetrain.storage.Publisher;
-import com.github.onsdigital.thetrain.storage.Transactions;
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import com.github.onsdigital.thetrain.storage.TransactionUpdate;
+import org.apache.http.HttpStatus;
 import spark.Request;
 import spark.Response;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.zip.ZipInputStream;
 
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
-import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
-import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
-import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
 public class AddFileToTransaction extends BaseHandler {
 
+    static final String ADD_FILE_ERR_MSG = "error adding file to transaction";
+
+    private TransactionsService transactionsService;
     private Publisher publisher;
+    private FileUploadHelper fileUploadHelper;
+
+    public AddFileToTransaction(TransactionsService transactionsService, Publisher publisher,
+                                FileUploadHelper fileUploadHelper) {
+        this.transactionsService = transactionsService;
+        this.publisher = publisher;
+        this.fileUploadHelper = fileUploadHelper;
+    }
 
     @Override
     public Object handle(Request request, Response response) throws Exception {
+        Date startDate = new Date();
         LogBuilder log = logBuilder();
-        Transaction transaction = null;
-        String transactionID = null;
-        String uri = null;
 
-        try {
-            // Record the start time
-            Date startDate = new Date();
+        Transaction transaction = transactionsService.getTransaction(request);
+        log.transactionID(transaction.id());
 
-            // Get the file first because request.getParameter will consume the body of the request:
-            try (InputStream data = getFile(request.raw())) {
+        String uri = getURI(request);
+        log.uri(uri);
 
-                transactionID = request.raw().getParameter(TRANSACTION_ID_KEY);
-                if (StringUtils.isBlank(transactionID)) {
-                    log.responseStatus(BAD_REQUEST_400)
-                            .warn("bad request: publish requires transactionID but none provided");
-
-                    response.status(BAD_REQUEST_400);
-                    return new Result("Please provide transactionId and uri parameters.", true, null);
-                }
-
-                log.transactionID(transactionID);
-
-                uri = request.raw().getParameter(URI_KEY);
-                if (StringUtils.isBlank(uri)) {
-                    log.responseStatus(BAD_REQUEST_400)
-                            .warn("bad request: publish requires uri but none provided");
-
-                    response.status(BAD_REQUEST_400);
-                    return new Result("Please provide transactionId and uri parameters.", true, null);
-                }
-
-                log.uri(uri);
-
-                // Get the transaction
-                transaction = Transactions.get(transactionID);
-                if (transaction == null) {
-                    log.responseStatus(BAD_REQUEST_400)
-                            .warn("bad request: no transaction with specified ID was found");
-
-                    response.status(BAD_REQUEST_400);
-                    return new Result("Unknown transaction " + transactionID, true, null);
-                }
-
-                // Check the transaction state
-                if (transaction != null && !transaction.isOpen()) {
-                    log.responseStatus(BAD_REQUEST_400)
-                            .warn("bad request: unexpected error transaction is closed");
-
-                    response.status(BAD_REQUEST_400);
-                    return new Result("This transaction is closed.", true, transaction);
-                }
-
-                if (data == null) {
-                    log.responseStatus(BAD_REQUEST_400)
-                            .warn("bad request: unexpected error  data is null");
-                    response.status(BAD_REQUEST_400);
-                    return new Result("No data found for published file.", true, transaction);
-                }
-
-                log.info("request valid proceeding with addFile");
-
-                boolean zipped = BooleanUtils.toBoolean(request.raw().getParameter(ZIP_KEY));
-                boolean published;
-
-                if (zipped) {
-                    log.info("unzipping file");
-
-                    try (ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))) {
-                        published = publisher.addFiles(transaction, uri, input);
-                        log.info("file unzupped and added successfully");
-                    } catch (Exception e) {
-                        log.error(e, "unexpected error while attempting to add zipped file to publish transaction");
-                        throw e;
-                    }
-                } else {
-                    log.info("adding file to publish transaction");
-                    try (InputStream bis = new BufferedInputStream(data)) {
-                        published = publisher.addContentToTransaction(transaction, uri, bis, startDate).isSuccess();
-                        log.info("publish: file successfully added to publish transaction");
-                    } catch (Exception e) {
-                        log.error(e, "unexpected error while attempting to add file to publish transaction");
-                        throw e;
-                    }
-                }
-
-                if (published) {
-                    log.responseStatus(OK_200).info("file added to  publish transaction successfully");
-
-                } else {
-                    log.responseStatus(INTERNAL_SERVER_ERROR_500)
-                            .warn("error while adding file to publish transaction");
-
-                    response.status(INTERNAL_SERVER_ERROR_500);
-                    return new Result("Sadly " + uri + " was not published.", true, transaction);
-                }
-
-                try {
-                    Transactions.tryUpdateAsync(transaction.id());
-                } catch (Exception e) {
-                    log.responseStatus(INTERNAL_SERVER_ERROR_500)
-                            .error(e, "unexpected error while attempting to async update transaction");
-                    return new Result("unexpected error while attempting to async update transaction", true, transaction);
-                }
-
-                // otherwise its a successful response/
-                return new Result("Published to " + uri, false, transaction);
-            }
-
-        } catch (Exception e) {
-            log.responseStatus(INTERNAL_SERVER_ERROR_500)
-                    .error(e, "error while attempting to add file to publish transaction");
-            response.status(INTERNAL_SERVER_ERROR_500);
-            return new Result(ExceptionUtils.getStackTrace(e), true, transaction);
+        if (isZipped(request)) {
+            handleZipRequest(request, transaction, uri);
+        } else {
+            handleNonZipRequest(request, transaction, uri, startDate);
         }
+
+        transactionsService.tryUpdateAsync(transaction);
+
+        log.info("file added to publish transaction successfully");
+        return new Result("Published to " + uri, false, transaction);
     }
 
-
-    /**
-     * Handles reading the uploaded file.
-     *
-     * @param request The http request.
-     * @return A temp file containing the file data.
-     * @throws IOException If an error occurs in processing the file.
-     */
-    InputStream getFile(HttpServletRequest request)
-            throws IOException {
-        InputStream result = null;
-
-        // Set up the objects that do all the heavy lifting
-        EncryptedFileItemFactory factory = new EncryptedFileItemFactory();
-        ServletFileUpload upload = new ServletFileUpload(factory);
-
-        try {
-            // Read the items - this will save the values to temp files
-            for (FileItem item : upload.parseRequest(request)) {
-                if (!item.isFormField()) {
-                    result = item.getInputStream();
-                }
-            }
+    private void handleZipRequest(Request request, Transaction transaction, String uri) throws PublishException {
+        boolean isSuccess = false;
+        try (
+                InputStream data = fileUploadHelper.getFileInputStream(request.raw(), transaction.id());
+                ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))
+        ) {
+            isSuccess = publisher.addFiles(transaction, uri, input);
         } catch (Exception e) {
-            logBuilder().error(e, "error while getting item inputstream");
-            // item.write throws a general Exception, so specialise it by wrapping with IOException
-            throw new IOException("Error processing uploaded file", e);
+            throw new PublishException("error processing zip request", e, transaction,
+                    HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
 
-        return result;
+        if (!isSuccess) {
+            throw new PublishException("error processing zip request", transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        }
+        logBuilder().info("file unzipped and added successfully");
+    }
+
+    private void handleNonZipRequest(Request request, Transaction transaction, String uri, Date startDate)
+            throws BadRequestException, PublishException {
+        boolean isSuccess = false;
+        try (
+                InputStream data = fileUploadHelper.getFileInputStream(request.raw(), transaction.id());
+                InputStream bis = new BufferedInputStream(data)
+        ) {
+            TransactionUpdate update = publisher.addContentToTransaction(transaction, uri, bis, startDate);
+            isSuccess = update.isSuccess();
+
+        } catch (BadRequestException e) {
+            // re-throw
+            throw e;
+        } catch (Exception e) {
+            // treat all others are a publish exception.
+            throw new PublishException(ADD_FILE_ERR_MSG, e, transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        }
+
+        if (!isSuccess) {
+            throw new PublishException(ADD_FILE_ERR_MSG, transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        }
+
+        logBuilder().transactionID(transaction).uri(uri).info("file successfully added to transaction");
     }
 }

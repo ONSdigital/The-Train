@@ -1,8 +1,8 @@
 package com.github.onsdigital.thetrain.logging;
 
 import ch.qos.logback.classic.Level;
-import com.github.onsdigital.thetrain.api.common.Endpoint;
 import com.github.onsdigital.logging.builder.LogMessageBuilder;
+import com.github.onsdigital.thetrain.json.Transaction;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -18,13 +18,28 @@ import java.util.Map;
  */
 public class LogBuilder extends LogMessageBuilder {
 
+    static final String NAME_SPACE = "the-train";
+    static final String ERROR_CONTEXT = "errorContext";
+    static final String CLASS = "class";
+    static final String STACK_TRACE = "stackTrace";
+    static final String PACKAGE = "com.github.onsdigital.thetrain";
+    static final String TRANSACTION_ID = "transactionID";
+    static final String URI = "uri";
+    static final String WEBSITE_PATH = "websitePath";
+    static final String RESPONSE_STATUS = "responseStatus";
+    static final String METRICS = "metrics";
+    static final String DURATION_MS = "durationMillis";
+    static final String EVENT = "event";
+    static final String DESCRIPTION = "description";
+
+
     public static LogBuilder logBuilder() {
         return new LogBuilder("");
     }
 
     protected LogBuilder(String eventDescription) {
         super(eventDescription);
-        setNamespace("the-train");
+        setNamespace(NAME_SPACE);
     }
 
     /**
@@ -68,15 +83,21 @@ public class LogBuilder extends LogMessageBuilder {
     public void error(Throwable t, String message) {
         logLevel = Level.ERROR;
         description = message;
-        addParameter("errorContext", message);
-        addParameter("class", t.getClass().getName());
-        parameters.getParameters().put("stackTrace", ExceptionUtils.getStackTrace(t));
+        addParameter(ERROR_CONTEXT, message);
+        addParameter(CLASS, t.getClass().getName());
+        parameters.getParameters().put(STACK_TRACE, ExceptionUtils.getStackTrace(t));
         addMessage(message).log();
+    }
+
+    public void error(String message) {
+        logLevel = Level.ERROR;
+        description = message;
+        log();
     }
 
     @Override
     public String getLoggerName() {
-        return "com.github.onsdigital.thetrain";
+        return PACKAGE;
     }
 
     /**
@@ -84,17 +105,14 @@ public class LogBuilder extends LogMessageBuilder {
      */
     public LogBuilder transactionID(String transactionID) {
         if (!StringUtils.isEmpty(transactionID)) {
-            addParameter("transactionID", transactionID);
+            addParameter(TRANSACTION_ID, transactionID);
         }
         return this;
     }
 
-    /**
-     * Add API endpoint name to the log parameters.
-     */
-    public LogBuilder endpoint(Endpoint endpoint) {
-        if (endpoint != null) {
-            addParameter("endpoint", "/" + endpoint.getClass().getSimpleName().toLowerCase());
+    public LogBuilder transactionID(Transaction transaction) {
+        if (transaction != null && !StringUtils.isEmpty(transaction.id())) {
+            addParameter(TRANSACTION_ID, transaction.id());
         }
         return this;
     }
@@ -104,7 +122,7 @@ public class LogBuilder extends LogMessageBuilder {
      */
     public LogBuilder clazz(Class c) {
         if (c != null) {
-            addParameter("class", c.getSimpleName().toLowerCase());
+            addParameter(CLASS, c.getSimpleName().toLowerCase());
         }
         return this;
     }
@@ -115,7 +133,7 @@ public class LogBuilder extends LogMessageBuilder {
      */
     public LogBuilder uri(String uri) {
         if (!StringUtils.isEmpty(uri)) {
-            addParameter("uri", uri);
+            addParameter(URI, uri);
         }
         return this;
     }
@@ -125,7 +143,7 @@ public class LogBuilder extends LogMessageBuilder {
      */
     public LogBuilder errors(List<String> errors) {
         if (errors != null && !errors.isEmpty()) {
-            addParameter("transactionID", String.join(", ", errors));
+            addParameter(TRANSACTION_ID, String.join(", ", errors));
         }
         return this;
     }
@@ -135,7 +153,7 @@ public class LogBuilder extends LogMessageBuilder {
      */
     public LogBuilder websitePath(Path websitePath) {
         if (websitePath == null || !StringUtils.isEmpty(websitePath.toString())) {
-            addParameter("websitePath", websitePath.toString());
+            addParameter(WEBSITE_PATH, websitePath.toString());
         }
         return this;
     }
@@ -144,21 +162,20 @@ public class LogBuilder extends LogMessageBuilder {
      * Add the HTTP response status to the log parameters.
      */
     public LogBuilder responseStatus(int status) {
-        addParameter("responseStatus", status);
+        addParameter(RESPONSE_STATUS, status);
         return this;
     }
 
     public LogBuilder metrics(LocalDateTime start, MetricEvents event) {
-        addParameter("metrics", createMetrics(start, event));
+        addParameter(METRICS, createMetrics(start, event));
         return this;
     }
 
     private Map<String, Object> createMetrics(LocalDateTime start, MetricEvents event) {
-        Duration duration = Duration.between(start, LocalDateTime.now());
         Map<String, Object> metrics = new HashMap<>();
-        metrics.put("durationMillis", duration.toMillis());
-        metrics.put("event", event.getName());
-        metrics.put("description", event.getDescription());
+        metrics.put(DURATION_MS, Duration.between(start, LocalDateTime.now()).toMillis());
+        metrics.put(EVENT, event.getName());
+        metrics.put(DESCRIPTION, event.getDescription());
         return metrics;
     }
 

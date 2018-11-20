@@ -3,6 +3,8 @@ package com.github.onsdigital.thetrain.handlers;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.logging.LogBuilder;
+import com.github.onsdigital.thetrain.service.PublisherService;
+import com.github.onsdigital.thetrain.service.TransactionsService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import spark.Request;
@@ -14,6 +16,14 @@ import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
 public class RollbackTransaction extends BaseHandler {
+
+    private TransactionsService transactionsService;
+    private PublisherService publisherService;
+
+    public RollbackTransaction(TransactionsService transactionsService, PublisherService publisherService) {
+        this.transactionsService = transactionsService;
+        this.publisherService = publisherService;
+    }
 
     @Override
     public Object handle(Request request, Response response) throws Exception {
@@ -34,7 +44,7 @@ public class RollbackTransaction extends BaseHandler {
             log.transactionID(transactionId);
 
             // Transaction object
-            transaction = getTransactionsService().get(transactionId);
+            transaction = transactionsService.getTransaction(request);
             if (transaction == null) {
                 log.responseStatus(BAD_REQUEST_400)
                         .warn("bad request: transaction with specified ID was not found");
@@ -54,7 +64,7 @@ public class RollbackTransaction extends BaseHandler {
 
             log.info("request is valid, proceeding with rollback");
 
-            boolean success = getPublisherService().rollback(transaction);
+            boolean success = publisherService.rollback(transaction);
             if (!success) {
                 log.responseStatus(INTERNAL_SERVER_ERROR_500)
                         .warn("rollback was unsuccessful");
@@ -63,7 +73,7 @@ public class RollbackTransaction extends BaseHandler {
                 return new Result("Errors were detected in rolling back the transaction.", true, transaction);
             }
 
-            getTransactionsService().listFiles(transaction);
+            transactionsService.listFiles(transaction);
 
             log.responseStatus(OK_200).info("rollback completed successfully");
             response.status(OK_200);
@@ -78,7 +88,7 @@ public class RollbackTransaction extends BaseHandler {
         } finally {
             log.info("updating transaction");
             try {
-                getTransactionsService().update(transaction);
+                transactionsService.update(transaction);
             } catch (Exception e) {
                 log.responseStatus(INTERNAL_SERVER_ERROR_500)
                         .error(e, "unexpected error while updating transaction");
