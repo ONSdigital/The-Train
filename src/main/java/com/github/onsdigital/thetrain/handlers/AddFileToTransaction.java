@@ -28,6 +28,9 @@ public class AddFileToTransaction extends BaseHandler {
     private Publisher publisher;
     private FileUploadHelper fileUploadHelper;
 
+    /**
+     * Construct a new add file to transaction Route.
+     */
     public AddFileToTransaction(TransactionsService transactionsService, Publisher publisher,
                                 FileUploadHelper fileUploadHelper) {
         this.transactionsService = transactionsService;
@@ -58,6 +61,9 @@ public class AddFileToTransaction extends BaseHandler {
         return new Result("Published to " + uri, false, transaction);
     }
 
+    /**
+     * Handle a zip file request
+     */
     private void handleZipRequest(Request request, Transaction transaction, String uri) throws PublishException {
         boolean isSuccess = false;
         try (
@@ -76,6 +82,9 @@ public class AddFileToTransaction extends BaseHandler {
         logBuilder().info("file unzipped and added successfully");
     }
 
+    /**
+     * handle a single file request.
+     */
     private void handleNonZipRequest(Request request, Transaction transaction, String uri, Date startDate)
             throws BadRequestException, PublishException {
         boolean isSuccess = false;

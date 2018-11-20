@@ -20,6 +20,7 @@ public class TransactionsServiceImpl implements TransactionsService {
     public static final String TRANSACTON_ID_UNKNOWN_ERR = "unknown transaction ID not found: transactionID: ";
     public static final String TRANS_CLOSED_ERR = "transaction closed transactionID: %s";
     public static final String TRANS_ASYNC_UPDATE_ERR = "error async updating transacion";
+    public static final String TRANS_CONTAINS_ERRS = "transaction cannot be committed because errors have been reported";
 
     @Override
     public Transaction create() throws PublishException {
@@ -55,7 +56,7 @@ public class TransactionsServiceImpl implements TransactionsService {
 
         // Check for errors in the transaction
         if (transaction.hasErrors()) {
-            throw new BadRequestException("transaction cannot be committed because errors have been reported");
+            throw new BadRequestException(TRANS_CONTAINS_ERRS);
         }
 
         return transaction;
