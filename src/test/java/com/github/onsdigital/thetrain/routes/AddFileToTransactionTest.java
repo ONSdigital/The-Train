@@ -1,4 +1,4 @@
-package com.github.onsdigital.thetrain.handlers;
+package com.github.onsdigital.thetrain.routes;
 
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import com.github.onsdigital.thetrain.exception.PublishException;
@@ -19,12 +19,11 @@ import spark.Route;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 
-import static com.github.onsdigital.thetrain.handlers.AddFileToTransaction.ADD_FILE_ERR_MSG;
-import static com.github.onsdigital.thetrain.handlers.BaseHandler.URI_MISSING_ERR;
+import static com.github.onsdigital.thetrain.routes.AddFileToTransaction.ADD_FILE_ERR_MSG;
+import static com.github.onsdigital.thetrain.routes.BaseHandler.URI_MISSING_ERR;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;

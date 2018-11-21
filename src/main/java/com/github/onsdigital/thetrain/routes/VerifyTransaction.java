@@ -1,4 +1,4 @@
-package com.github.onsdigital.thetrain.handlers;
+package com.github.onsdigital.thetrain.routes;
 
 import com.github.onsdigital.thetrain.helpers.Hash;
 import com.github.onsdigital.thetrain.helpers.PathUtils;

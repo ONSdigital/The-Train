@@ -1,4 +1,4 @@
-package com.github.onsdigital.thetrain.handlers;
+package com.github.onsdigital.thetrain.routes;
 
 import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.json.Result;
@@ -13,7 +13,7 @@ import spark.Request;
 import spark.Response;
 import spark.Route;
 
-import static com.github.onsdigital.thetrain.handlers.OpenTransaction.SUCCESS_MSG;
+import static com.github.onsdigital.thetrain.routes.OpenTransaction.SUCCESS_MSG;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
