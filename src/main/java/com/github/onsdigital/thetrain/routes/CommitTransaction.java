@@ -19,6 +19,8 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
  */
 public class CommitTransaction extends BaseHandler {
 
+    static final String COMMIT_UNSUCCESSFUL_ERR = "commiting publish to website was unsuccessful";
+
     private TransactionsService transactionsService;
     private PublisherService publisherService;
 
@@ -33,21 +35,18 @@ public class CommitTransaction extends BaseHandler {
         LogBuilder log = logBuilder();
 
         try {
-            // Transaction ID
             transaction = transactionsService.getTransaction(request);
             log.transactionID(transaction.id());
 
-            // Get the website Path to publish to
             Path website = publisherService.websitePath();
             log.websitePath(website).info("request valid proceeding with committing transaction");
 
             boolean commitSuccessful = publisherService.commit(transaction, website);
             if (!commitSuccessful) {
                 log.transactionID(transaction.id()).error("commit transaction was unsuccessful");
-                throw new PublishException("commiting publish to website was unsuccessful", transaction);
+                throw new PublishException(COMMIT_UNSUCCESSFUL_ERR, transaction);
             }
 
-            // no errors return success response
             log.responseStatus(OK_200).info("commiting publish to website completed successfully");
             response.status(OK_200);
             return new Result("Transaction committed.", false, transaction);

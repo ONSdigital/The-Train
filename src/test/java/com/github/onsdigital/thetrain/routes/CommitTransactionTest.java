@@ -13,6 +13,9 @@ import spark.Request;
 import spark.Response;
 import spark.Route;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.Mockito.times;
@@ -41,6 +44,7 @@ public class CommitTransactionTest {
     private Route route;
     private BadRequestException badRequestException;
     private PublishException publishException;
+    private Path websitePath = Paths.get("/website/path");
 
     @Before
     public void setUp() throws Exception {
@@ -94,6 +98,46 @@ public class CommitTransactionTest {
             verify(transactionsService, times(1)).update(null);
             verify(publisherService, times(1)).websitePath();
             verifyNoMoreInteractions(transactionsService, publisherService);
+            throw e;
+        }
+    }
+
+    @Test(expected = PublishException.class)
+    public void testPublisherServiceCommitError() throws Exception {
+        when(transactionsService.getTransaction(request)).thenReturn(transaction);
+
+        when(publisherService.websitePath()).thenReturn(websitePath);
+
+        when(publisherService.commit(transaction, websitePath)).thenThrow(publishException);
+
+        try {
+            route.handle(request, response);
+        } catch (BadRequestException e) {
+            assertThat(e.getMessage(), equalTo(publishException.getMessage()));
+            verify(transactionsService, times(1)).getTransaction(request);
+            verify(transactionsService, times(1)).update(transaction);
+            verify(publisherService, times(1)).websitePath();
+            verify(publisherService, times(1)).commit(transaction, websitePath);
+            throw e;
+        }
+    }
+
+    @Test(expected = PublishException.class)
+    public void testPublisherServiceCommitUnsuccessful() throws Exception {
+        when(transactionsService.getTransaction(request)).thenReturn(transaction);
+
+        when(publisherService.websitePath()).thenReturn(websitePath);
+
+        when(publisherService.commit(transaction, websitePath)).thenReturn(false);
+
+        try {
+            route.handle(request, response);
+        } catch (BadRequestException e) {
+            assertThat(e.getMessage(), equalTo(publishException.getMessage()));
+            verify(transactionsService, times(1)).getTransaction(request);
+            verify(transactionsService, times(1)).update(transaction);
+            verify(publisherService, times(1)).websitePath();
+            verify(publisherService, times(1)).commit(transaction, websitePath);
             throw e;
         }
     }
