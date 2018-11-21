@@ -17,7 +17,7 @@ public interface TransactionsService {
 
     Transaction getTransaction(Request request) throws BadRequestException, PublishException;
 
-    void update(Transaction transaction) throws IOException;
+    void update(Transaction transaction) throws PublishException;
 
     void listFiles(Transaction transaction) throws IOException;
 

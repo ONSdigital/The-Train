@@ -6,8 +6,8 @@ import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.logging.LogBuilder;
+import com.github.onsdigital.thetrain.service.PublisherService;
 import com.github.onsdigital.thetrain.service.TransactionsService;
-import com.github.onsdigital.thetrain.storage.Publisher;
 import com.github.onsdigital.thetrain.storage.TransactionUpdate;
 import org.apache.http.HttpStatus;
 import spark.Request;
@@ -25,16 +25,16 @@ public class AddFileToTransaction extends BaseHandler {
     static final String ADD_FILE_ERR_MSG = "error adding file to transaction";
 
     private TransactionsService transactionsService;
-    private Publisher publisher;
+    private PublisherService publisherService;
     private FileUploadHelper fileUploadHelper;
 
     /**
      * Construct a new add file to transaction Route.
      */
-    public AddFileToTransaction(TransactionsService transactionsService, Publisher publisher,
+    public AddFileToTransaction(TransactionsService transactionsService, PublisherService publisherService,
                                 FileUploadHelper fileUploadHelper) {
         this.transactionsService = transactionsService;
-        this.publisher = publisher;
+        this.publisherService = publisherService;
         this.fileUploadHelper = fileUploadHelper;
     }
 
@@ -70,7 +70,7 @@ public class AddFileToTransaction extends BaseHandler {
                 InputStream data = fileUploadHelper.getFileInputStream(request.raw(), transaction.id());
                 ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))
         ) {
-            isSuccess = publisher.addFiles(transaction, uri, input);
+            isSuccess = publisherService.addFiles(transaction, uri, input);
         } catch (Exception e) {
             throw new PublishException("error processing zip request", e, transaction,
                     HttpStatus.SC_INTERNAL_SERVER_ERROR);
@@ -92,7 +92,7 @@ public class AddFileToTransaction extends BaseHandler {
                 InputStream data = fileUploadHelper.getFileInputStream(request.raw(), transaction.id());
                 InputStream bis = new BufferedInputStream(data)
         ) {
-            TransactionUpdate update = publisher.addContentToTransaction(transaction, uri, bis, startDate);
+            TransactionUpdate update = publisherService.addContentToTransaction(transaction, uri, bis, startDate);
             isSuccess = update.isSuccess();
 
         } catch (BadRequestException e) {

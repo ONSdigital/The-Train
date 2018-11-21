@@ -7,7 +7,7 @@ export DP_COLOURED_LOGGING=true
 export DP_LOGGING_FORMAT=pretty_json
 export POOL_SIZE=100
 
-JAVA_OPTS="-Xmx1024m -Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=n"
+JAVA_OPTS="-Xmx1024m -Xms1024m -Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=n"
 
 mvn package -DskipTests=true && \
 java $JAVA_OPTS \

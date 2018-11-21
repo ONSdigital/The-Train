@@ -81,19 +81,18 @@ public class App {
         ResponseTransformer transformer = JsonTransformer.get();
         TransactionsService transactionsService = new TransactionsServiceImpl();
         PublisherService publisherService = new PublisherServiceImpl();
-        Publisher publisher = Publisher.getInstance();
         FileUploadHelper fileUploadHelper = new FileUploadHelper();
 
         Route openTransaction = new OpenTransaction(transactionsService);
         registerPostHandler("/begin", openTransaction, transformer);
 
-        Route addFile = new AddFileToTransaction(transactionsService, publisher, fileUploadHelper);
+        Route addFile = new AddFileToTransaction(transactionsService, publisherService, fileUploadHelper);
         registerPostHandler("/publish", addFile, transformer);
 
         Route commit = new CommitTransaction(transactionsService, publisherService);
         registerPostHandler("/commit", commit, transformer);
 
-        Route sendManifest = new SendManifest(publisher);
+        Route sendManifest = new SendManifest(transactionsService, publisherService);
         registerPostHandler("/CommitManifest", sendManifest, transformer);
 
         Route rollback = new RollbackTransaction(transactionsService, publisherService);

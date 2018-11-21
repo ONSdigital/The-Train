@@ -20,6 +20,7 @@ public class TransactionsServiceImpl implements TransactionsService {
     public static final String TRANSACTON_ID_UNKNOWN_ERR = "unknown transaction ID not found: transactionID: ";
     public static final String TRANS_CLOSED_ERR = "transaction closed transactionID: %s";
     public static final String TRANS_ASYNC_UPDATE_ERR = "error async updating transacion";
+    public static final String TRANS_UPDATE_ERR = "error updating transacion";
     public static final String TRANS_CONTAINS_ERRS = "transaction cannot be committed because errors have been reported";
 
     @Override
@@ -63,8 +64,12 @@ public class TransactionsServiceImpl implements TransactionsService {
     }
 
     @Override
-    public void update(Transaction transaction) throws IOException {
-        Transactions.update(transaction);
+    public void update(Transaction transaction) throws PublishException {
+        try {
+            Transactions.update(transaction);
+        } catch (Exception e) {
+            throw new PublishException(TRANS_UPDATE_ERR, e, transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        }
     }
 
     @Override
@@ -77,7 +82,7 @@ public class TransactionsServiceImpl implements TransactionsService {
         try {
             return Transactions.tryUpdateAsync(transaction.id());
         } catch (Exception e) {
-            throw new PublishException(TRANS_ASYNC_UPDATE_ERR, transaction,
+            throw new PublishException(TRANS_ASYNC_UPDATE_ERR, e, transaction,
                     HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
     }

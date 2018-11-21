@@ -1,15 +1,16 @@
 package com.github.onsdigital.thetrain.handlers;
 
+import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.json.request.Manifest;
 import com.github.onsdigital.thetrain.logging.LogBuilder;
-import com.github.onsdigital.thetrain.storage.Publisher;
+import com.github.onsdigital.thetrain.service.PublisherService;
+import com.github.onsdigital.thetrain.service.TransactionsService;
 import com.github.onsdigital.thetrain.storage.Transactions;
 import com.github.onsdigital.thetrain.storage.Website;
 import com.google.gson.Gson;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.http.HttpStatus;
 import spark.Request;
 import spark.Response;
 
@@ -17,8 +18,6 @@ import java.nio.file.Path;
 
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 import static java.lang.String.format;
-import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
-import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
 /**
@@ -26,86 +25,57 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
  */
 public class SendManifest extends BaseHandler {
 
-    private Gson gson;
-    private Publisher publisher;
+    static final String COPY_RESULT_ERR = "the number of copied files does not match expected in value of the " +
+            "manifest, expected: %d, actual %d";
 
-    public SendManifest(Publisher publisher) {
+    static final String DELETE_RESULT_ERR = "the number of delete files does not match expected in value of the " +
+            "manifest, expected: %d, actual %d";
+
+    private TransactionsService transactionsService;
+    private PublisherService publisherService;
+
+    /**
+     * Construct a new send manifest Route
+     */
+    public SendManifest(TransactionsService transactionsService, PublisherService publisherService) {
         this.gson = new Gson();
-        this.publisher = publisher;
+        this.transactionsService = transactionsService;
+        this.publisherService = publisherService;
     }
 
     @Override
     public Object handle(Request request, Response response) throws Exception {
         Transaction transaction = null;
-        String transactionId = null;
         LogBuilder log = logBuilder();
 
-        Manifest manifest = gson.fromJson(request.body(), Manifest.class);
+        Manifest manifest = getManifest(request);
 
         try {
-            // Now get the parameters:
-            transactionId = request.raw().getParameter(TRANSACTION_ID_KEY);
 
-            // Validate parameters
-            if (StringUtils.isBlank(transactionId)) {
-                log.responseStatus(BAD_REQUEST_400)
-                        .warn("bad request: transactionID is required but none was provided");
-                response.status(BAD_REQUEST_400);
-                return new Result("Please provide transactionId and uri parameters.", true, null);
-            }
-
-            // add the transactionID to the log parameters.
-            log.transactionID(transactionId);
+            transaction = transactionsService.getTransaction(request);
+            log.transactionID(transaction);
 
             log.info("request valid starting commit manifest for transaction");
-
-            // Get the transaction
-            transaction = Transactions.get(transactionId);
-            if (transaction == null) {
-                log.responseStatus(BAD_REQUEST_400)
-                        .warn("bad request: transaction with specified id was not found");
-                response.status(BAD_REQUEST_400);
-                return new Result("Unknown transaction " + transactionId, true, null);
-            }
-
-            // Check the transaction state
-            if (transaction != null && !transaction.isOpen()) {
-                log.responseStatus(BAD_REQUEST_400)
-                        .warn("bad request: could not proceed as transaction is unexpectedly closed");
-                response.status(BAD_REQUEST_400);
-                return new Result("This transaction is closed.", true, transaction);
-            }
-
-            if (manifest == null) {
-                log.responseStatus(BAD_REQUEST_400)
-                        .warn("bad request: unexpected error transaction manifest is empty");
-                response.status(BAD_REQUEST_400);
-                return new Result("No manifest found for in this request.", true, transaction);
-            }
 
             // Get the website Path to publish to
             Path websitePath = Website.path();
             if (websitePath == null) {
-                log.responseStatus(INTERNAL_SERVER_ERROR_500)
-                        .warn("unexpected error website path is null");
-                response.status(INTERNAL_SERVER_ERROR_500);
-                return new Result("website folder could not be used: " + websitePath, true, transaction);
+                throw new PublishException("unexpected error website path is null", transaction,
+                        HttpStatus.SC_INTERNAL_SERVER_ERROR);
             }
-
 
             log.websitePath(websitePath).info("copying manifest files to website and adding files to delete");
 
-            int copied = publisher.copyFilesIntoTransaction(transaction, manifest, websitePath);
-            int deleted = publisher.addFilesToDelete(transaction, manifest);
+            int copied = publisherService.copyFilesIntoTransaction(transaction, manifest, websitePath);
+            int copyExpected = manifest.getFilesToCopy().size();
+            if (copied != copyExpected) {
+                throw new PublishException(format(COPY_RESULT_ERR, copied, copyExpected), transaction);
+            }
 
-            if (copied != manifest.getFilesToCopy().size()) {
-                log.responseStatus(INTERNAL_SERVER_ERROR_500)
-                        .addParameter("actualCopies", copied)
-                        .addParameter("expectedCopies", manifest.getFilesToCopy().size())
-                        .warn("the number of copied files does not match expected in value of the manifest");
-
-                response.status(INTERNAL_SERVER_ERROR_500);
-                return new Result("Move failed. Copied " + copied + " of " + manifest.getFilesToCopy().size(), true, transaction);
+            int deleted = publisherService.addFilesToDelete(transaction, manifest);
+            int deleteExpected = manifest.getUrisToDelete().size();
+            if (deleted != deleteExpected) {
+                throw new PublishException(format(DELETE_RESULT_ERR, copied, deleteExpected), transaction);
             }
 
             // success
@@ -116,21 +86,15 @@ public class SendManifest extends BaseHandler {
 
             response.status(OK_200);
             return new Result(format("Copied %d files. Deleted %s files.", copied, deleted), false, transaction);
-
-        } catch (Exception e) {
-            log.responseStatus(INTERNAL_SERVER_ERROR_500).error(e, "unexpected error");
-            response.status(INTERNAL_SERVER_ERROR_500);
-            return new Result(ExceptionUtils.getStackTrace(e), true, transaction);
         } finally {
             log.info("updating transaction");
             try {
+                transactionsService.update(transaction);
                 Transactions.update(transaction);
-            } catch (Exception e) {
-                log.responseStatus(INTERNAL_SERVER_ERROR_500).error(e, "unexpected error while updating transaction");
-                response.status(INTERNAL_SERVER_ERROR_500);
-                new Result("unexpected error while updating transaction", true, transaction);
+            } catch (PublishException e) {
+                throw new PublishException("failed to update transaction", e, transaction,
+                        HttpStatus.SC_INTERNAL_SERVER_ERROR);
             }
         }
     }
-
 }

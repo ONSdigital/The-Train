@@ -1,7 +1,6 @@
 package com.github.onsdigital.thetrain.handlers;
 
-import com.github.onsdigital.thetrain.exception.BadRequestException;
-import com.github.onsdigital.thetrain.exception.InternalServerError;
+import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.logging.LogBuilder;
@@ -10,7 +9,6 @@ import com.github.onsdigital.thetrain.service.TransactionsService;
 import spark.Request;
 import spark.Response;
 
-import java.io.IOException;
 import java.nio.file.Path;
 
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
@@ -41,17 +39,12 @@ public class CommitTransaction extends BaseHandler {
 
             // Get the website Path to publish to
             Path website = publisherService.websitePath();
-            if (website == null) {
-                log.error("website path was null");
-                throw new InternalServerError("transaction commit error - website path is null", transaction.id());
-            }
-
             log.websitePath(website).info("request valid proceeding with committing transaction");
 
             boolean commitSuccessful = publisherService.commit(transaction, website);
             if (!commitSuccessful) {
                 log.transactionID(transaction.id()).error("commit transaction was unsuccessful");
-                throw new InternalServerError("commiting publish to website was unsuccessful", transaction.id());
+                throw new PublishException("commiting publish to website was unsuccessful", transaction);
             }
 
             // no errors return success response
@@ -59,11 +52,6 @@ public class CommitTransaction extends BaseHandler {
             response.status(OK_200);
             return new Result("Transaction committed.", false, transaction);
 
-        } catch (IOException e) {
-            throw new BadRequestException("commit transaction unsuccessful", e);
-        } catch (Exception e) {
-            log.error(e, "unexpected error while attempting to create new transaction");
-            throw new InternalServerError(e);
         } finally {
             log.info("persisting changes to transaction");
             transactionsService.update(transaction);
