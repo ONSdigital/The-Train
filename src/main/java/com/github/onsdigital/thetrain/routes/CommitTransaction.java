@@ -15,15 +15,24 @@ import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
 /**
- * Endpoint to commit an existing {@link Transaction}.
+ * {@link spark.Route} implementation for handling commit publishing transaction requests.
  */
 public class CommitTransaction extends BaseHandler {
 
     static final String COMMIT_UNSUCCESSFUL_ERR = "commiting publish to website was unsuccessful";
+    static final String COMMIT_SUCCESSFUL_MSG = "commiting publish to website completed successfulLY";
+    static final String REQUEST_VALID_MSG = "request valid proceeding with committing transaction";
+    static final String RESULT_SUCCESS_MSG = "Transaction committed.";
 
     private TransactionsService transactionsService;
     private PublisherService publisherService;
 
+    /**
+     * Ccnstruct a new Commit transaction {@link spark.Route}.
+     *
+     * @param transactionsService the {@link TransactionsService} to use.
+     * @param publisherService    the {@link PublisherService} to use.
+     */
     public CommitTransaction(TransactionsService transactionsService, PublisherService publisherService) {
         this.transactionsService = transactionsService;
         this.publisherService = publisherService;
@@ -39,20 +48,19 @@ public class CommitTransaction extends BaseHandler {
             log.transactionID(transaction.id());
 
             Path website = publisherService.websitePath();
-            log.websitePath(website).info("request valid proceeding with committing transaction");
+            log.websitePath(website).info(REQUEST_VALID_MSG);
 
-            boolean commitSuccessful = publisherService.commit(transaction, website);
-            if (!commitSuccessful) {
-                log.transactionID(transaction.id()).error("commit transaction was unsuccessful");
+            boolean isSuccess = publisherService.commit(transaction, website);
+            if (!isSuccess) {
+                log.transactionID(transaction.id()).error(COMMIT_UNSUCCESSFUL_ERR);
                 throw new PublishException(COMMIT_UNSUCCESSFUL_ERR, transaction);
             }
 
-            log.responseStatus(OK_200).info("commiting publish to website completed successfully");
+            log.responseStatus(OK_200).info(COMMIT_SUCCESSFUL_MSG);
             response.status(OK_200);
-            return new Result("Transaction committed.", false, transaction);
+            return new Result(RESULT_SUCCESS_MSG, false, transaction);
 
         } finally {
-            log.info("persisting changes to transaction");
             transactionsService.update(transaction);
         }
     }
