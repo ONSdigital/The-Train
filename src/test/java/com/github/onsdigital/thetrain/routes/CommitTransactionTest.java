@@ -17,6 +17,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
@@ -75,6 +76,24 @@ public class CommitTransactionTest {
             verify(transactionsService, times(1)).getTransaction(request);
             verify(transactionsService, times(1)).update(null);
             verifyZeroInteractions(publisherService);
+            throw e;
+        }
+    }
+
+    @Test(expected = PublishException.class)
+    public void testPublisherServiceGetWebsiteError() throws Exception {
+        when(transactionsService.getTransaction(request)).thenReturn(transaction);
+
+        when(publisherService.websitePath()).thenThrow(publishException);
+
+        try {
+            route.handle(request, response);
+        } catch (BadRequestException e) {
+            assertThat(e.getMessage(), equalTo(publishException.getMessage()));
+            verify(transactionsService, times(1)).getTransaction(request);
+            verify(transactionsService, times(1)).update(null);
+            verify(publisherService, times(1)).websitePath();
+            verifyNoMoreInteractions(transactionsService, publisherService);
             throw e;
         }
     }
