@@ -13,7 +13,7 @@ public class Configuration {
     public static final String TRANSACTION_STORE = "TRANSACTION_STORE";
     public static final String WEBSITE_LEGACY = "thetrain.website";
     public static final String WEBSITE = "WEBSITE";
-    public static final String THREAD_POOL_SIZE = "POOL_SIZE";
+    public static final String PUBLISHING_THREAD_POOL_SIZE = "PUBLISHING_THREAD_POOL_SIZE";
 
     /**
      * Gets a configuration value from {@link System#getProperty(String)}, falling back to {@link System#getenv()}
@@ -36,10 +36,10 @@ public class Configuration {
 
     public static int threadPoolSize() {
         try {
-            return Integer.parseInt(System.getenv(THREAD_POOL_SIZE));
+            return Integer.parseInt(System.getenv(PUBLISHING_THREAD_POOL_SIZE));
         } catch (NumberFormatException e) {
             logBuilder()
-                    .addParameter("envVar", THREAD_POOL_SIZE)
+                    .addParameter("envVar", PUBLISHING_THREAD_POOL_SIZE)
                     .error(e, "fail to parse environment variable to integer");
             throw e;
         }

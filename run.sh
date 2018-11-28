@@ -5,7 +5,7 @@ export content_path="target/website"
 export transactions_path="target/transactions"
 export DP_COLOURED_LOGGING=true
 export DP_LOGGING_FORMAT=pretty_json
-export POOL_SIZE=100
+export PUBLISHING_THREAD_POOL_SIZE=100
 
 JAVA_OPTS="-Xmx1024m -Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=n"
 
