@@ -11,7 +11,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -20,9 +19,9 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class Transaction {
 
-    private final transient ReentrantLock addLock = new ReentrantLock();
-    private final transient ReentrantLock deleteLock = new ReentrantLock();
-    private final transient ReentrantLock errorsLock = new ReentrantLock();
+    private final transient Object uriInfosLock = new Object();
+    private final transient Object uriDeletesLock = new Object();
+    private final transient Object errorsLock = new Object();
 
     public static final String STARTED = "started";
     public static final String PUBLISHING = "publishing";
@@ -78,36 +77,34 @@ public class Transaction {
      * @return An unmodifiable set of the URIs in this transaction.
      */
     public Set<UriInfo> uris() {
-        return Collections.unmodifiableSet(uriInfos);
+        synchronized (uriInfosLock) {
+            return Collections.unmodifiableSet(uriInfos);
+        }
     }
 
     /**
      * @return An unmodifiable set of the URIs to delete in this transaction.
      */
     public Set<UriInfo> urisToDelete() {
-        return Collections.unmodifiableSet(uriDeletes);
+        synchronized (uriDeletesLock) {
+            return Collections.unmodifiableSet(uriDeletes);
+        }
     }
 
     /**
      * @param uriInfo The URI to add to the set of URIs.
      */
     public void addUri(UriInfo uriInfo) {
-        addLock.lock();
-        try {
-            this.uriInfos.add(uriInfo);
+        synchronized (uriInfosLock) {
+            uriInfos.add(uriInfo);
             status = PUBLISHING;
-        } finally {
-            addLock.unlock();
         }
     }
 
     public void addUris(List<UriInfo> infos) {
-        addLock.lock();
-        try {
-            this.uriInfos.addAll(uriInfos);
+        synchronized (uriInfosLock) {
+            uriInfos.addAll(infos);
             status = PUBLISHING;
-        } finally {
-            addLock.unlock();
         }
     }
 
@@ -117,20 +114,14 @@ public class Transaction {
      * @param uriInfo
      */
     public void addUriDelete(UriInfo uriInfo) {
-        deleteLock.lock();
-        try {
-            this.uriDeletes.add(uriInfo);
-        } finally {
-            deleteLock.unlock();
+        synchronized (uriDeletesLock) {
+            uriDeletes.add(uriInfo);
         }
     }
 
     public void addUriDeletes(List<UriInfo> deletes) {
-        deleteLock.lock();
-        try {
-            this.uriDeletes.addAll(deletes);
-        } finally {
-            deleteLock.unlock();
+        synchronized (uriDeletesLock) {
+            uriDeletes.addAll(deletes);
         }
     }
 
@@ -147,29 +138,30 @@ public class Transaction {
      * @return If {@link #errors} contains anything, or if any {@link UriInfo#error error} field in {@link #uriInfos} is not blank, true.
      */
     public boolean hasErrors() {
-        boolean result = errors.size() > 0;
-        for (UriInfo uriInfo : uriInfos) {
-            result |= StringUtils.isNotBlank(uriInfo.error());
+        synchronized (errorsLock) {
+            boolean result = errors.size() > 0;
+            for (UriInfo uriInfo : uriInfos) {
+                result |= StringUtils.isNotBlank(uriInfo.error());
+            }
+            return result;
         }
-        return result;
     }
 
     /**
      * @return An unmodifiable set of the URIs in this transaction.
      */
     public List<String> errors() {
-        return Collections.unmodifiableList(errors);
+        synchronized (errorsLock) {
+            return Collections.unmodifiableList(errors);
+        }
     }
 
     /**
      * @param error An error debug to be added to this transaction.
      */
     public void addError(String error) {
-        this.errorsLock.lock();
-        try {
-            this.errors.add(error);
-        } finally {
-            this.errorsLock.unlock();
+        synchronized (errorsLock) {
+            errors.add(error);
         }
     }
 
@@ -193,8 +185,8 @@ public class Transaction {
 
     @Override
     public String toString() {
-        return id + " (" + uriInfos.size() + " URIs)";
+        synchronized (uriInfosLock) {
+            return id + " (" + uriInfos.size() + " URIs)";
+        }
     }
-
-
 }
