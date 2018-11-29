@@ -9,6 +9,7 @@ import com.github.davidcarboni.thetrain.json.request.Manifest;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -18,20 +19,28 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
-/**
- * Test for {@link Publisher}.
- */
 public class PublisherTest {
 
     Transaction transaction;
 
+
+    @BeforeClass
+    public static void preSetup() throws Exception {
+        Publisher.init(20);
+    }
+
     @Before
     public void setUp() throws Exception {
         transaction = Transactions.create();
-    }
 
+    }
 
     @Test
     public void shouldPublishFile() throws IOException {
@@ -44,11 +53,11 @@ public class PublisherTest {
 
         // When
         // We publish the file
-        Publisher.addFile(transaction, uri, Random.inputStream(5000));
+        Publisher.getInstance().addFile(transaction, uri, Random.inputStream(5000));
 
         // Then
         // The transaction should exist and be populated with values
-        Path path = Publisher.getFile(transaction, uri);
+        Path path = Publisher.getInstance().getFile(transaction, uri);
         assertNotNull(path);
 
         // there is a file in the backup directory that is the same as the website file
@@ -74,7 +83,7 @@ public class PublisherTest {
 
         // When
         // We publish the file
-        Publisher.addFile(transaction, uri, Files.newInputStream(file));
+        Publisher.getInstance().addFile(transaction, uri, Files.newInputStream(file));
 
         // Then
         // The published file should have the same hash as the original
@@ -100,11 +109,11 @@ public class PublisherTest {
 
         // When
         // Files being published
-        Publisher.copyFileIntoTransaction(transaction, source, target, website);
+        Publisher.getInstance().copyFileIntoTransaction(transaction, source, target, website);
 
         // Then
         // The moved files should be in the transaction in the target location.
-        Path path = Publisher.getFile(transaction, target);
+        Path path = Publisher.getInstance().getFile(transaction, target);
         assertNotNull(path);
         assertTrue(Files.exists(path));
         assertFalse(transaction.hasErrors());
@@ -128,11 +137,11 @@ public class PublisherTest {
 
         // When
         // Files being published
-        Publisher.copyFileIntoTransaction(transaction, source, target, website);
+        Publisher.getInstance().copyFileIntoTransaction(transaction, source, target, website);
 
         // Then
         // The moved files should be in the transaction in the target location.
-        Path path = Publisher.getFile(transaction, target);
+        Path path = Publisher.getInstance().getFile(transaction, target);
         assertNull(path);
     }
 
@@ -146,11 +155,11 @@ public class PublisherTest {
 
         // When
         // We publish the file
-        Publisher.addFile(transaction, uri, data());
+        Publisher.getInstance().addFile(transaction, uri, data());
 
         // Then
         // The transaction should exist and be populated with values
-        Path path = Publisher.getFile(transaction, uri);
+        Path path = Publisher.getInstance().getFile(transaction, uri);
         assertNotNull(path);
     }
 
@@ -161,11 +170,11 @@ public class PublisherTest {
         // Given
         // A published file
         String uri = "/greeneggs.txt";
-        Publisher.addFile(transaction, uri, data());
+        Publisher.getInstance().addFile(transaction, uri, data());
 
         // When
         // We get the file
-        Path path = Publisher.getFile(transaction, "greeneggs.txt");
+        Path path = Publisher.getInstance().getFile(transaction, "greeneggs.txt");
 
         // Then
         // The transaction should exist and be populated with values
@@ -184,15 +193,15 @@ public class PublisherTest {
 
         // When
         // We publish the files
-        Publisher.addFile(transaction, zero, data());
-        Publisher.addFile(transaction, one, data());
-        Publisher.addFile(transaction, two, data());
+        Publisher.getInstance().addFile(transaction, zero, data());
+        Publisher.getInstance().addFile(transaction, one, data());
+        Publisher.getInstance().addFile(transaction, two, data());
 
         // Then
         // The transaction should exist and be populated with values
-        Path pathZero = Publisher.getFile(transaction, "/zero.txt");
-        Path pathOne = Publisher.getFile(transaction, "/one.txt");
-        Path pathTwo = Publisher.getFile(transaction, "/two.txt");
+        Path pathZero = Publisher.getInstance().getFile(transaction, "/zero.txt");
+        Path pathOne = Publisher.getInstance().getFile(transaction, "/one.txt");
+        Path pathTwo = Publisher.getInstance().getFile(transaction, "/two.txt");
         assertNotNull(pathZero);
         assertNotNull(pathOne);
         assertNotNull(pathTwo);
@@ -209,13 +218,13 @@ public class PublisherTest {
 
         // When
         // We publish data to those URIs
-        Publisher.addFile(transaction, sub, data());
-        Publisher.addFile(transaction, subsub, data());
+        Publisher.getInstance().addFile(transaction, sub, data());
+        Publisher.getInstance().addFile(transaction, subsub, data());
 
         // Then
         // The data should be present at the requested URIs
-        Path pathSub = Publisher.getFile(transaction, sub);
-        Path pathSubsub = Publisher.getFile(transaction, subsub);
+        Path pathSub = Publisher.getInstance().getFile(transaction, sub);
+        Path pathSubsub = Publisher.getInstance().getFile(transaction, subsub);
         assertNotNull(pathSub);
         assertNotNull(pathSubsub);
     }
@@ -239,12 +248,12 @@ public class PublisherTest {
         Path originalSource = tempFile();
         Files.copy(originalSource, PathUtils.toPath(update, website));
 
-        Publisher.addFile(transaction, create, data());
-        Publisher.addFile(transaction, update, data());
+        Publisher.getInstance().addFile(transaction, create, data());
+        Publisher.getInstance().addFile(transaction, update, data());
 
         // When
         // We commit the transaction
-        Publisher.commit(transaction, website);
+        Publisher.getInstance().commit(transaction, website);
 
         // Then
         // The published files should be on the website
@@ -287,10 +296,10 @@ public class PublisherTest {
 
         Manifest manifest = new Manifest();
         manifest.addUriToDelete(uri);
-        Publisher.addFilesToDelete(transaction, manifest);
+        Publisher.getInstance().addFilesToDelete(transaction, manifest);
 
         // When we commit the transaction
-        Publisher.commit(transaction, website);
+        Publisher.getInstance().commit(transaction, website);
 
         // Then the file is deleted from the website
         assertFalse(Files.exists(targetPath));
@@ -305,7 +314,7 @@ public class PublisherTest {
         Manifest manifest = new Manifest();
 
         // When we attempt to add the files to delete to the transaction.
-        int filesToDelete = Publisher.addFilesToDelete(transaction, manifest);
+        int filesToDelete = Publisher.getInstance().addFilesToDelete(transaction, manifest);
 
         // Then the return value is zero and no exception is thrown.
         assertEquals(0, filesToDelete);
@@ -326,12 +335,12 @@ public class PublisherTest {
         String uri = "/file-" + Random.id() + ".txt";
         Path source = tempFile();
         String sha = Hash.sha(source);
-        Publisher.addFile(transaction, uri, Files.newInputStream(source));
+        Publisher.getInstance().addFile(transaction, uri, Files.newInputStream(source));
 
 
         // When
         // We commit the transaction
-        Publisher.commit(transaction, website);
+        Publisher.getInstance().commit(transaction, website);
 
 
         // Then
@@ -352,12 +361,12 @@ public class PublisherTest {
 
         // Files being published
         String file = "/file-" + Random.id() + ".txt";
-        Publisher.addFile(transaction, file, data());
+        Publisher.getInstance().addFile(transaction, file, data());
 
 
         // When
         // We roll back the transaction
-        Publisher.rollback(transaction);
+        Publisher.getInstance().rollback(transaction);
 
 
         // Then
@@ -381,7 +390,7 @@ public class PublisherTest {
         manifest.addUriToDelete("/some/other/uri");
 
         // When we add files to delete to the transaction.
-        int filesToDelete = Publisher.addFilesToDelete(this.transaction, manifest);
+        int filesToDelete = Publisher.getInstance().addFilesToDelete(this.transaction, manifest);
 
         // Then the returned number of deletes is as expected
         assertEquals(manifest.getUrisToDelete().size(), filesToDelete);
@@ -410,7 +419,7 @@ public class PublisherTest {
         Files.move(tempFile(), target); // create published file in website directory
 
         // When we add files to delete to the transaction.
-        int filesToDelete = Publisher.addFilesToDelete(this.transaction, manifest);
+        int filesToDelete = Publisher.getInstance().addFilesToDelete(this.transaction, manifest);
 
         // Then the returned number of deletes is as expected
         assertEquals(manifest.getUrisToDelete().size(), filesToDelete);

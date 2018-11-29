@@ -1,13 +1,9 @@
 package com.github.davidcarboni.thetrain.json;
 
-import com.github.davidcarboni.cryptolite.KeyWrapper;
-import com.github.davidcarboni.cryptolite.Keys;
 import com.github.davidcarboni.cryptolite.Random;
 import com.github.davidcarboni.thetrain.helpers.DateConverter;
-import com.github.davidcarboni.thetrain.logging.LogBuilder;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.crypto.SecretKey;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -16,15 +12,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
-
 
 /**
  * Details of a single transaction, including any files transferred and any errors encountered.
- * <p/>
  * NB a {@link Transaction} is the unit of synchronization, so methods that manipulate the collections in this class synchronize on <code>this</code>.
  */
 public class Transaction {
+
+    private final transient Object uriInfosLock = new Object();
+    private final transient Object uriDeletesLock = new Object();
+    private final transient Object errorsLock = new Object();
 
     public static final String STARTED = "started";
     public static final String PUBLISHING = "publishing";
@@ -35,15 +32,14 @@ public class Transaction {
 
     // Whilst an ID collision is technically possible it's a
     // theoretical rather than a practical consideration.
-    String id = Random.id();
-    String status = STARTED;
-    String startDate = DateConverter.toString(new Date());
-    String endDate;
+    private String id = Random.id();
+    private String status = STARTED;
+    private String startDate = DateConverter.toString(new Date());
+    private String endDate;
 
-    Set<UriInfo> uriInfos = new HashSet<>();
-    Set<UriInfo> uriDeletes = new HashSet<>();
-
-    List<String> errors = new ArrayList<>();
+    private Set<UriInfo> uriInfos = new HashSet<>();
+    private Set<UriInfo> uriDeletes = new HashSet<>();
+    private List<String> errors = new ArrayList<>();
 
     /**
      * The actual files on disk in this transaction.
@@ -73,28 +69,41 @@ public class Transaction {
         return endDate;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
     /**
      * @return An unmodifiable set of the URIs in this transaction.
      */
     public Set<UriInfo> uris() {
-        return Collections.unmodifiableSet(uriInfos);
+        synchronized (uriInfosLock) {
+            return Collections.unmodifiableSet(uriInfos);
+        }
     }
 
     /**
      * @return An unmodifiable set of the URIs to delete in this transaction.
      */
     public Set<UriInfo> urisToDelete() {
-        return Collections.unmodifiableSet(uriDeletes);
+        synchronized (uriDeletesLock) {
+            return Collections.unmodifiableSet(uriDeletes);
+        }
     }
 
     /**
      * @param uriInfo The URI to add to the set of URIs.
      */
     public void addUri(UriInfo uriInfo) {
-        synchronized (this) {
-            Set<UriInfo> uriInfos = new HashSet<>(this.uriInfos);
+        synchronized (uriInfosLock) {
             uriInfos.add(uriInfo);
-            this.uriInfos = uriInfos;
+            status = PUBLISHING;
+        }
+    }
+
+    public void addUris(List<UriInfo> infos) {
+        synchronized (uriInfosLock) {
+            uriInfos.addAll(infos);
             status = PUBLISHING;
         }
     }
@@ -105,11 +114,14 @@ public class Transaction {
      * @param uriInfo
      */
     public void addUriDelete(UriInfo uriInfo) {
-        synchronized (this) {
-            Set<UriInfo> uriDeletes = new HashSet<>(this.uriDeletes);
+        synchronized (uriDeletesLock) {
             uriDeletes.add(uriInfo);
-            this.uriDeletes = uriDeletes;
-            status = PUBLISHING;
+        }
+    }
+
+    public void addUriDeletes(List<UriInfo> deletes) {
+        synchronized (uriDeletesLock) {
+            uriDeletes.addAll(deletes);
         }
     }
 
@@ -126,28 +138,30 @@ public class Transaction {
      * @return If {@link #errors} contains anything, or if any {@link UriInfo#error error} field in {@link #uriInfos} is not blank, true.
      */
     public boolean hasErrors() {
-        boolean result = errors.size() > 0;
-        for (UriInfo uriInfo : uriInfos) {
-            result |= StringUtils.isNotBlank(uriInfo.error());
+        synchronized (errorsLock) {
+            boolean result = errors.size() > 0;
+            for (UriInfo uriInfo : uriInfos) {
+                result |= StringUtils.isNotBlank(uriInfo.error());
+            }
+            return result;
         }
-        return result;
     }
 
     /**
      * @return An unmodifiable set of the URIs in this transaction.
      */
     public List<String> errors() {
-        return Collections.unmodifiableList(errors);
+        synchronized (errorsLock) {
+            return Collections.unmodifiableList(errors);
+        }
     }
 
     /**
      * @param error An error debug to be added to this transaction.
      */
     public void addError(String error) {
-        synchronized (this) {
-            List<String> errors = new ArrayList<>(this.errors);
+        synchronized (errorsLock) {
             errors.add(error);
-            this.errors = errors;
         }
     }
 
@@ -171,8 +185,8 @@ public class Transaction {
 
     @Override
     public String toString() {
-        return id + " (" + uriInfos.size() + " URIs)";
+        synchronized (uriInfosLock) {
+            return id + " (" + uriInfos.size() + " URIs)";
+        }
     }
-
-
 }

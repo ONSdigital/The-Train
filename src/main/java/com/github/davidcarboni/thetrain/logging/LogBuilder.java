@@ -7,7 +7,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Provides a convenient builder pattern interface for logging and adding log parameters.
@@ -20,6 +24,7 @@ public class LogBuilder extends LogMessageBuilder {
 
     protected LogBuilder(String eventDescription) {
         super(eventDescription);
+        setNamespace("the-train");
     }
 
     /**
@@ -141,6 +146,20 @@ public class LogBuilder extends LogMessageBuilder {
     public LogBuilder responseStatus(int status) {
         addParameter("responseStatus", status);
         return this;
+    }
+
+    public LogBuilder metrics(LocalDateTime start, MetricEvents event) {
+        addParameter("metrics", createMetrics(start, event));
+        return this;
+    }
+
+    private Map<String, Object> createMetrics(LocalDateTime start, MetricEvents event) {
+        Duration duration = Duration.between(start, LocalDateTime.now());
+        Map<String, Object> metrics = new HashMap<>();
+        metrics.put("durationMillis", duration.toMillis());
+        metrics.put("event", event.getName());
+        metrics.put("description", event.getDescription());
+        return metrics;
     }
 
     /**
