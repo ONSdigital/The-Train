@@ -17,7 +17,7 @@ import static org.eclipse.jetty.http.HttpStatus.OK_200;
  */
 public class RollbackTransaction extends BaseHandler {
 
-    static final String ROLLBACK_SUCESS_MSG = "Transaction rolled back.";
+    static final String ROLLBACK_SUCCESS_MSG = "Transaction rolled back.";
     static final String ROLLBACK_UNSUCESSFUL_ERR = "rollback transaction was unsuccessful";
 
     private TransactionsService transactionsService;
@@ -51,9 +51,9 @@ public class RollbackTransaction extends BaseHandler {
 
             log.info("rollback transaction completed successfully");
             response.status(OK_200);
-            return new Result(ROLLBACK_SUCESS_MSG, false, transaction);
+            return new Result(ROLLBACK_SUCCESS_MSG, false, transaction);
         } finally {
-            log.info("updating transaction");
+            log.info("rollback persisting changes to transaction");
             transactionsService.update(transaction);
         }
     }

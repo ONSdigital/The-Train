@@ -8,7 +8,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import spark.Request;
 
-import java.io.IOException;
 import java.util.concurrent.Future;
 
 import static java.lang.String.format;
@@ -22,6 +21,7 @@ public class TransactionsServiceImpl implements TransactionsService {
     public static final String TRANS_ASYNC_UPDATE_ERR = "error async updating transacion";
     public static final String TRANS_UPDATE_ERR = "error updating transacion";
     public static final String TRANS_CONTAINS_ERRS = "transaction cannot be committed because errors have been reported";
+    public static final String TRANS_LIST_FILES_ERR = "error listing transaction files";
 
     @Override
     public Transaction create() throws PublishException {
@@ -73,8 +73,12 @@ public class TransactionsServiceImpl implements TransactionsService {
     }
 
     @Override
-    public void listFiles(Transaction transaction) throws IOException {
-        Transactions.listFiles(transaction);
+    public void listFiles(Transaction transaction) throws PublishException {
+        try {
+            Transactions.listFiles(transaction);
+        } catch (Exception e) {
+            throw new PublishException(TRANS_LIST_FILES_ERR, e, transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        }
     }
 
     @Override

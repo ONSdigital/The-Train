@@ -19,7 +19,7 @@ public interface TransactionsService {
 
     void update(Transaction transaction) throws PublishException;
 
-    void listFiles(Transaction transaction) throws IOException;
+    void listFiles(Transaction transaction) throws PublishException;
 
     Future<Boolean> tryUpdateAsync(final Transaction transaction) throws PublishException;
 }
