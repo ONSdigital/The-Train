@@ -2,22 +2,12 @@ package com.github.onsdigital.thetrain.routes;
 
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import com.github.onsdigital.thetrain.exception.PublishException;
-import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
 import com.github.onsdigital.thetrain.json.Result;
-import com.github.onsdigital.thetrain.json.Transaction;
-import com.github.onsdigital.thetrain.service.PublisherService;
-import com.github.onsdigital.thetrain.service.TransactionsService;
 import com.github.onsdigital.thetrain.storage.TransactionUpdate;
 import org.apache.http.HttpStatus;
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import spark.Request;
-import spark.Response;
 import spark.Route;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Date;
@@ -34,39 +24,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-public class AddFileToTransactionTest {
-
-    @Mock
-    private Request request;
-
-    @Mock
-    private HttpServletRequest raw;
-
-    @Mock
-    private Response response;
-
-    @Mock
-    private TransactionsService transactionsService;
-
-    @Mock
-    private PublisherService publisherService;
-
-    @Mock
-    private FileUploadHelper fileUploadHelper;
-
-    @Mock
-    private Transaction transaction;
+public class AddFileToTransactionTest extends BaseRouteTest {
 
     private Route route;
     private String testURI = "/a/b/c";
-    private String transactionID = "666";
 
-    @Before
-    public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
-
+    @Override
+    public void customSetUp() throws Exception {
         when(transaction.id())
-                .thenReturn(transactionID);
+                .thenReturn(TRANSACTION_ID);
 
         route = new AddFileToTransaction(transactionsService, publisherService, fileUploadHelper);
     }
@@ -116,7 +82,7 @@ public class AddFileToTransactionTest {
 
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
 
-        when(fileUploadHelper.getFileInputStream(raw, transactionID)).thenThrow(new BadRequestException("Test"));
+        when(fileUploadHelper.getFileInputStream(raw, TRANSACTION_ID)).thenThrow(new BadRequestException("Test"));
 
         try {
             route.handle(request, response);
@@ -124,7 +90,7 @@ public class AddFileToTransactionTest {
             assertThat(e.getMessage(), equalTo("Test"));
 
             verify(transactionsService, times(1)).getTransaction(request);
-            verify(fileUploadHelper, times(1)).getFileInputStream(raw, transactionID);
+            verify(fileUploadHelper, times(1)).getFileInputStream(raw, TRANSACTION_ID);
             verifyZeroInteractions(publisherService);
             throw e;
         }
@@ -141,7 +107,7 @@ public class AddFileToTransactionTest {
 
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
 
-        when(fileUploadHelper.getFileInputStream(raw, transactionID)).thenReturn(stream);
+        when(fileUploadHelper.getFileInputStream(raw, TRANSACTION_ID)).thenReturn(stream);
 
         when(publisherService.addContentToTransaction(eq(transaction), eq(testURI), any(InputStream.class), any(Date.class)))
                 .thenThrow(cause);
@@ -154,7 +120,7 @@ public class AddFileToTransactionTest {
             assertThat(e.getCause(), equalTo(cause));
 
             verify(transactionsService, times(1)).getTransaction(request);
-            verify(fileUploadHelper, times(1)).getFileInputStream(raw, transactionID);
+            verify(fileUploadHelper, times(1)).getFileInputStream(raw, TRANSACTION_ID);
             verify(publisherService, times(1)).addContentToTransaction(
                     eq(transaction), eq(testURI), any(InputStream.class), any(Date.class));
             throw e;
@@ -173,7 +139,7 @@ public class AddFileToTransactionTest {
 
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
 
-        when(fileUploadHelper.getFileInputStream(raw, transactionID)).thenReturn(stream);
+        when(fileUploadHelper.getFileInputStream(raw, TRANSACTION_ID)).thenReturn(stream);
 
         when(publisherService.addContentToTransaction(eq(transaction), eq(testURI), any(InputStream.class), any(Date.class)))
                 .thenReturn(update);
@@ -185,7 +151,7 @@ public class AddFileToTransactionTest {
             assertThat(e.getStatus(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
             verify(transactionsService, times(1)).getTransaction(request);
-            verify(fileUploadHelper, times(1)).getFileInputStream(raw, transactionID);
+            verify(fileUploadHelper, times(1)).getFileInputStream(raw, TRANSACTION_ID);
             verify(publisherService, times(1)).addContentToTransaction(
                     eq(transaction), eq(testURI), any(InputStream.class), any(Date.class));
             throw e;
@@ -204,7 +170,7 @@ public class AddFileToTransactionTest {
 
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
 
-        when(fileUploadHelper.getFileInputStream(raw, transactionID)).thenReturn(stream);
+        when(fileUploadHelper.getFileInputStream(raw, TRANSACTION_ID)).thenReturn(stream);
 
         when(publisherService.addContentToTransaction(eq(transaction), eq(testURI), any(InputStream.class), any(Date.class)))
                 .thenReturn(update);
@@ -216,7 +182,7 @@ public class AddFileToTransactionTest {
         assertFalse(actual.error);
 
         verify(transactionsService, times(1)).getTransaction(request);
-        verify(fileUploadHelper, times(1)).getFileInputStream(raw, transactionID);
+        verify(fileUploadHelper, times(1)).getFileInputStream(raw, TRANSACTION_ID);
         verify(publisherService, times(1)).addContentToTransaction(
                 eq(transaction), eq(testURI), any(InputStream.class), any(Date.class));
         verify(transactionsService, times(1)).tryUpdateAsync(transaction);

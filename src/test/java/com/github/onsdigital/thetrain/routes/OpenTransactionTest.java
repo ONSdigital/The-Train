@@ -2,15 +2,8 @@ package com.github.onsdigital.thetrain.routes;
 
 import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.json.Result;
-import com.github.onsdigital.thetrain.json.Transaction;
-import com.github.onsdigital.thetrain.service.TransactionsService;
 import org.apache.http.HttpStatus;
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import spark.Request;
-import spark.Response;
 import spark.Route;
 
 import static com.github.onsdigital.thetrain.routes.OpenTransaction.SUCCESS_MSG;
@@ -21,26 +14,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class OpenTransactionTest {
-
-    @Mock
-    private Request request;
-
-    @Mock
-    private Response response;
-
-    @Mock
-    private TransactionsService transactionsService;
-
-    @Mock
-    private Transaction transaction;
+public class OpenTransactionTest extends BaseRouteTest {
 
     private Route route;
 
-    @Before
-    public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
-
+    @Override
+    public void customSetUp() throws Exception {
         when(transaction.id())
                 .thenReturn("666");
 
