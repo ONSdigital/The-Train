@@ -35,6 +35,8 @@ import java.util.concurrent.Future;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
+
 /**
  * Class for handling publishing actions.
  */
@@ -50,8 +52,6 @@ public class Publisher {
      */
     public static void init(int threadPoolSzie) {
         pool = Executors.newFixedThreadPool(threadPoolSzie);
-        LogBuilder.logBuilder().addParameter("threads", threadPoolSzie).info("initialised publisher thread pool");
-
         Runtime.getRuntime().addShutdownHook(new ShutdownTask(pool));
         getInstance();
     }
@@ -65,7 +65,7 @@ public class Publisher {
                 if (instance == null) {
                     int bufferSize = 100 * 1024;
                     instance = new Publisher(bufferSize);
-                    LogBuilder.logBuilder().addParameter("bufferSize", bufferSize).info("initialised new publisher instance");
+                    logBuilder().addParameter("bufferSize", bufferSize).info("initialised new publisher instance");
                 }
             }
         }
@@ -89,7 +89,7 @@ public class Publisher {
         ) {
             destChannel.transferFrom(srcChannel, 0, srcChannel.size());
         } catch (IOException e) {
-            LogBuilder.logBuilder()
+            logBuilder()
                     .addParameter("src", src.toString())
                     .addParameter("dest", dest.toString())
                     .error(e, "unexpected error while attempting to copy files");
@@ -107,7 +107,7 @@ public class Publisher {
             ) {
                 dest.transferFrom(src, 0, Long.MAX_VALUE);
             } catch (Exception e) {
-                LogBuilder.logBuilder()
+                logBuilder()
                         .addParameter("targetPath", target.toString())
                         .error(e, "unexpected error transfering inputstream content to transaction via file channel");
                 return false;
@@ -177,7 +177,7 @@ public class Publisher {
             }
 
         } catch (IOException e) {
-            LogBuilder.logBuilder()
+            logBuilder()
                     .transactionID(transaction.id())
                     .error(e, "addFiles threw unexpected error");
             throw e;
@@ -198,11 +198,11 @@ public class Publisher {
 
         transaction.addUris(infos);
 
-        LogBuilder.logBuilder().metrics(start, MetricEvents.ADD_FILES)
+        logBuilder().metrics(start, MetricEvents.ADD_FILES)
                 .transactionID(transaction.id())
                 .info("step completed");
 
-        LogBuilder.logBuilder()
+        logBuilder()
                 .addParameter("largeFileSynchronouss", big)
                 .addParameter("smallFileAsynchronous", small)
                 .addParameter("total", small + big)
@@ -306,7 +306,7 @@ public class Publisher {
         // all good update transaction
         transaction.addUris(results);
 
-        LogBuilder.logBuilder().metrics(start, MetricEvents.COPY_FILES)
+        logBuilder().metrics(start, MetricEvents.COPY_FILES)
                 .transactionID(transaction.id())
                 .info("step completed");
         return filesMoved;
@@ -322,7 +322,7 @@ public class Publisher {
      */
     public int addFilesToDelete(Transaction transaction, Manifest manifest) throws IOException {
         LocalDateTime start = LocalDateTime.now();
-        LogBuilder logBuilder = LogBuilder.logBuilder();
+        LogBuilder logBuilder = logBuilder();
 
         List<UriInfo> deletedURIS = new ArrayList<>();
         Path website = Website.path();
@@ -350,7 +350,7 @@ public class Publisher {
             transaction.addUriDeletes(deletedURIS);
         }
 
-        LogBuilder.logBuilder().metrics(start, MetricEvents.ADD_DELETE_FILES)
+        logBuilder().metrics(start, MetricEvents.ADD_DELETE_FILES)
                 .transactionID(transaction.id())
                 .info("step completed");
 
@@ -361,7 +361,7 @@ public class Publisher {
      * Copy an existing file from the website into the given transaction.
      */
     TransactionUpdate copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
-        LogBuilder logBuilder = LogBuilder.logBuilder();
+        LogBuilder logBuilder = logBuilder();
         LocalDateTime start = LocalDateTime.now();
         boolean moved = false;
         TransactionUpdate result = new TransactionUpdate();
@@ -398,7 +398,7 @@ public class Publisher {
         uriInfo.stop();
         uriInfo.setAction(action);
 
-        LogBuilder.logBuilder().metrics(start, MetricEvents.COPY_FILE)
+        logBuilder().metrics(start, MetricEvents.COPY_FILE)
                 .transactionID(transaction.id())
                 .info("step completed");
 
@@ -444,7 +444,7 @@ public class Publisher {
                 futures.add(pool.submit(() -> commitFile(uri, transaction, website)));
             }
         } catch (IOException e) {
-            LogBuilder.logBuilder().transactionID(transaction.id()).error(e, "commit threw unexpected exception");
+            logBuilder().transactionID(transaction.id()).error(e, "commit threw unexpected exception");
             throw e;
         }
 
@@ -453,7 +453,7 @@ public class Publisher {
             try {
                 result &= future.get().booleanValue();
             } catch (InterruptedException | ExecutionException e) {
-                LogBuilder.logBuilder().transactionID(transaction.id()).error(e, "Error on commit of file");
+                logBuilder().transactionID(transaction.id()).error(e, "Error on commit of file");
                 throw new IOException("Error on commit of file", e);
             }
         }
@@ -464,7 +464,7 @@ public class Publisher {
             Transactions.end(transaction);
         }
 
-        LogBuilder.logBuilder().metrics(start, MetricEvents.COMMIT)
+        logBuilder().metrics(start, MetricEvents.COMMIT)
                 .transactionID(transaction.id())
                 .info("step completed");
 
@@ -473,7 +473,7 @@ public class Publisher {
 
     private void applyTransactionDeletes(Transaction transaction, Path website) throws IOException {
         LocalDateTime start = LocalDateTime.now();
-        LogBuilder logBuilder = LogBuilder.logBuilder();
+        LogBuilder logBuilder = logBuilder();
 
         // Apply any deletes that are defined in the transaction first to ensure we do not delete updated files.
         for (UriInfo uriInfo : transaction.urisToDelete()) {
@@ -486,7 +486,7 @@ public class Publisher {
 
             FileUtils.deleteDirectory(target.toFile());
 
-            LogBuilder.logBuilder().metrics(start, MetricEvents.APPLY_DELETES)
+            logBuilder().metrics(start, MetricEvents.APPLY_DELETES)
                     .transactionID(transaction.id())
                     .info("step completed");
         }

@@ -1,5 +1,7 @@
 package com.github.onsdigital.thetrain;
 
+import com.github.onsdigital.thetrain.configuration.AppConfiguration;
+import com.github.onsdigital.thetrain.configuration.ConfigurationException;
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.exception.handler.BadRequestExceptionHandler;
@@ -8,6 +10,8 @@ import com.github.onsdigital.thetrain.exception.handler.PublishExceptionHandler;
 import com.github.onsdigital.thetrain.filters.AfterFilter;
 import com.github.onsdigital.thetrain.filters.BeforeFilter;
 import com.github.onsdigital.thetrain.filters.QuietFilter;
+import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
+import com.github.onsdigital.thetrain.response.JsonTransformer;
 import com.github.onsdigital.thetrain.routes.AddFileToTransaction;
 import com.github.onsdigital.thetrain.routes.CommitTransaction;
 import com.github.onsdigital.thetrain.routes.GetTransaction;
@@ -15,8 +19,6 @@ import com.github.onsdigital.thetrain.routes.OpenTransaction;
 import com.github.onsdigital.thetrain.routes.RollbackTransaction;
 import com.github.onsdigital.thetrain.routes.SendManifest;
 import com.github.onsdigital.thetrain.routes.VerifyTransaction;
-import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
-import com.github.onsdigital.thetrain.response.JsonTransformer;
 import com.github.onsdigital.thetrain.service.PublisherService;
 import com.github.onsdigital.thetrain.service.PublisherServiceImpl;
 import com.github.onsdigital.thetrain.service.TransactionsService;
@@ -42,14 +44,20 @@ public class App {
     static Map<String, String> ROUTES;
 
     public static void main(String[] args) {
-        start();
+        try {
+            start();
+        } catch (Exception e) {
+            logBuilder().error(e, "start up failed");
+            System.exit(100);
+        }
     }
 
-    private static void start() {
+    private static void start() throws Exception {
         logBuilder().info("starting the-train");
-        port(8084);
 
-        Publisher.init(100);
+        AppConfiguration config = AppConfiguration.get();
+        port(config.port());
+        Publisher.init(config.publishThreadPoolSize());
 
         ROUTES = new HashMap<>();
 
@@ -63,7 +71,7 @@ public class App {
         regusterRoutes();
 
         logBuilder().addParameter("routes", ROUTES)
-                .addParameter("PORT", 8084)
+                .addParameter("PORT", config.port())
                 .info("registered routes");
     }
 
