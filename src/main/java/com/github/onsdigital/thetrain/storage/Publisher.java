@@ -125,7 +125,7 @@ public class Publisher {
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public boolean addFiles(final Transaction transaction, String uri, final ZipInputStream zip) throws IOException {
+    public boolean addFiles(final Transaction transaction, String uri, final ZipInputStream zip, Path websitePath) throws IOException {
         LocalDateTime start = LocalDateTime.now();
         boolean result = true;
         ZipEntry entry;
@@ -155,7 +155,8 @@ public class Publisher {
 
                 // If entry data fit into the buffer, go asynchronous:
                 if (count < buffer.length) {
-                    smallFileWrites.add(pool.submit(() -> addContentToTransaction(transaction, targetUri, data, startDate)));
+                    smallFileWrites.add(pool.submit(() ->
+                            addContentToTransaction(transaction, targetUri, data, startDate, websitePath)));
                     small++;
                 } else {
                     // Large file, so read from (data + "more from the zip")
@@ -169,7 +170,7 @@ public class Publisher {
                     // - Dave L.
                     //ShaInputStream input = new ShaInputStream(new UnionInputStream(data, zip));
                     InputStream input = new UnionInputStream(data, zip);
-                    TransactionUpdate update = addContentToTransaction(transaction, targetUri, input, startDate);
+                    TransactionUpdate update = addContentToTransaction(transaction, targetUri, input, startDate, websitePath);
                     result &= update.isSuccess();
                     big++;
                 }
@@ -219,8 +220,8 @@ public class Publisher {
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public boolean addFile(Transaction transaction, String uri, InputStream input) throws IOException {
-        TransactionUpdate update = addContentToTransaction(transaction, uri, input, new Date());
+    public boolean addFile(Transaction transaction, String uri, InputStream input, Path websitePath) throws IOException {
+        TransactionUpdate update = addContentToTransaction(transaction, uri, input, new Date(), websitePath);
         if (update.isSuccess()) {
             transaction.addUri(update.getUriInfo());
             return true;
@@ -238,11 +239,12 @@ public class Publisher {
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public TransactionUpdate addContentToTransaction(Transaction transaction, String uri, InputStream input, Date startDate)
+    public TransactionUpdate addContentToTransaction(Transaction transaction, String uri, InputStream input,
+                                                     Date startDate, Path websitePath)
             throws IOException {
         Path content = Transactions.content(transaction);
         Path target = PathUtils.toPath(uri, content);
-        String action = backupExistingFile(transaction, uri);
+        String action = backupExistingFile(transaction, uri, websitePath);
 
         TransactionUpdate result = new TransactionUpdate();
         UriInfo uriInfo = new UriInfo(uri, startDate);
@@ -265,10 +267,9 @@ public class Publisher {
      * @return
      * @throws IOException
      */
-    private String backupExistingFile(Transaction transaction, String uri) throws IOException {
+    private String backupExistingFile(Transaction transaction, String uri, Path website) throws IOException {
         // Back up the existing file, if present
         String action = UriInfo.CREATE;
-        Path website = Website.path();
         Path target = PathUtils.toPath(uri, website);
         if (Files.exists(target)) {
             Path backup = PathUtils.toPath(uri, Transactions.backup(transaction));
@@ -320,12 +321,11 @@ public class Publisher {
      * @param manifest
      * @return
      */
-    public int addFilesToDelete(Transaction transaction, Manifest manifest) throws IOException {
+    public int addFilesToDelete(Transaction transaction, Manifest manifest, Path website) throws IOException {
         LocalDateTime start = LocalDateTime.now();
         LogBuilder logBuilder = logBuilder();
 
         List<UriInfo> deletedURIS = new ArrayList<>();
-        Path website = Website.path();
 
         if (manifest.getUrisToDelete() != null) {
 
@@ -370,7 +370,7 @@ public class Publisher {
         Path target = PathUtils.toPath(targetUri, Transactions.content(transaction));
         Path finalWebsiteTarget = PathUtils.toPath(targetUri, websitePath);
 
-        String action = backupExistingFile(transaction, targetUri);
+        String action = backupExistingFile(transaction, targetUri, websitePath);
 
         if (!Files.exists(source)) {
             logBuilder

@@ -65,30 +65,11 @@ public class CommitTransactionTest extends BaseRouteTest {
     }
 
     @Test(expected = PublishException.class)
-    public void testPublisherServiceGetWebsiteError() throws Exception {
-        when(transactionsService.getTransaction(request)).thenReturn(transaction);
-
-        when(publisherService.websitePath()).thenThrow(publishException);
-
-        try {
-            route.handle(request, response);
-        } catch (PublishException e) {
-            assertThat(e.getMessage(), equalTo(publishException.getMessage()));
-            verify(transactionsService, times(1)).getTransaction(request);
-            verify(transactionsService, times(1)).update(transaction);
-            verify(publisherService, times(1)).websitePath();
-            verifyNoMoreInteractions(transactionsService, publisherService);
-            throw e;
-        }
-    }
-
-    @Test(expected = PublishException.class)
     public void testPublisherServiceCommitError() throws Exception {
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
 
-        when(publisherService.websitePath()).thenReturn(websitePath);
 
-        when(publisherService.commit(transaction, websitePath)).thenThrow(publishException);
+        when(publisherService.commit(transaction)).thenThrow(publishException);
 
         try {
             route.handle(request, response);
@@ -96,8 +77,7 @@ public class CommitTransactionTest extends BaseRouteTest {
             assertThat(e.getMessage(), equalTo(publishException.getMessage()));
             verify(transactionsService, times(1)).getTransaction(request);
             verify(transactionsService, times(1)).update(transaction);
-            verify(publisherService, times(1)).websitePath();
-            verify(publisherService, times(1)).commit(transaction, websitePath);
+            verify(publisherService, times(1)).commit(transaction);
             throw e;
         }
     }
@@ -106,9 +86,7 @@ public class CommitTransactionTest extends BaseRouteTest {
     public void testPublisherServiceCommitUnsuccessful() throws Exception {
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
 
-        when(publisherService.websitePath()).thenReturn(websitePath);
-
-        when(publisherService.commit(transaction, websitePath)).thenReturn(false);
+        when(publisherService.commit(transaction)).thenReturn(false);
 
         try {
             route.handle(request, response);
@@ -116,8 +94,7 @@ public class CommitTransactionTest extends BaseRouteTest {
             assertThat(e.getMessage(), equalTo(COMMIT_UNSUCCESSFUL_ERR));
             verify(transactionsService, times(1)).getTransaction(request);
             verify(transactionsService, times(1)).update(transaction);
-            verify(publisherService, times(1)).websitePath();
-            verify(publisherService, times(1)).commit(transaction, websitePath);
+            verify(publisherService, times(1)).commit(transaction);
             throw e;
         }
     }
@@ -126,9 +103,7 @@ public class CommitTransactionTest extends BaseRouteTest {
     public void testCommitTransactionSuccess() throws Exception {
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
 
-        when(publisherService.websitePath()).thenReturn(websitePath);
-
-        when(publisherService.commit(transaction, websitePath)).thenReturn(true);
+        when(publisherService.commit(transaction)).thenReturn(true);
 
         Result result = (Result) route.handle(request, response);
 
@@ -138,7 +113,6 @@ public class CommitTransactionTest extends BaseRouteTest {
 
         verify(transactionsService, times(1)).getTransaction(request);
         verify(transactionsService, times(1)).update(transaction);
-        verify(publisherService, times(1)).websitePath();
-        verify(publisherService, times(1)).commit(transaction, websitePath);
+        verify(publisherService, times(1)).commit(transaction);
     }
 }

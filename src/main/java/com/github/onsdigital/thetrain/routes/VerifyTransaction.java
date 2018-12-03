@@ -4,7 +4,6 @@ import com.github.onsdigital.thetrain.helpers.Hash;
 import com.github.onsdigital.thetrain.helpers.PathUtils;
 import com.github.onsdigital.thetrain.json.FileHash;
 import com.github.onsdigital.thetrain.logging.LogBuilder;
-import com.github.onsdigital.thetrain.storage.Website;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import spark.Request;
@@ -14,10 +13,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
+import static java.util.Objects.requireNonNull;
 import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
 import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
 
 public class VerifyTransaction extends BaseHandler {
+
+    private Path websiteContentPath;
+
+    public VerifyTransaction(Path websiteContentPath) {
+        this.websiteContentPath = requireNonNull(websiteContentPath);
+    }
 
     @Override
     public Object handle(Request request, Response response) throws Exception {
@@ -52,9 +58,9 @@ public class VerifyTransaction extends BaseHandler {
                 return result;
             }
 
-            Path path = PathUtils.toPath(result.uri, Website.path());
+            Path path = PathUtils.toPath(result.uri, websiteContentPath);
             if (!Files.exists(path)) {
-                log.websitePath(Website.path())
+                log.websitePath(websiteContentPath)
                         .responseStatus(BAD_REQUEST_400)
                         .warn("bad request: verify: file does not exist in website destination");
 

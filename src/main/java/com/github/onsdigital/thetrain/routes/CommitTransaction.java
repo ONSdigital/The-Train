@@ -9,8 +9,6 @@ import com.github.onsdigital.thetrain.service.TransactionsService;
 import spark.Request;
 import spark.Response;
 
-import java.nio.file.Path;
-
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
@@ -47,10 +45,7 @@ public class CommitTransaction extends BaseHandler {
             transaction = transactionsService.getTransaction(request);
             log.transactionID(transaction.id());
 
-            Path website = publisherService.websitePath();
-            log.websitePath(website).info(REQUEST_VALID_MSG);
-
-            boolean isSuccess = publisherService.commit(transaction, website);
+            boolean isSuccess = publisherService.commit(transaction);
             if (!isSuccess) {
                 log.transactionID(transaction.id()).error(COMMIT_UNSUCCESSFUL_ERR);
                 throw new PublishException(COMMIT_UNSUCCESSFUL_ERR, transaction);

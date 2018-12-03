@@ -8,7 +8,6 @@ import com.github.onsdigital.thetrain.logging.LogBuilder;
 import com.github.onsdigital.thetrain.service.PublisherService;
 import com.github.onsdigital.thetrain.service.TransactionsService;
 import com.github.onsdigital.thetrain.storage.Transactions;
-import com.github.onsdigital.thetrain.storage.Website;
 import com.google.gson.Gson;
 import org.apache.http.HttpStatus;
 import spark.Request;
@@ -18,6 +17,7 @@ import java.nio.file.Path;
 
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
 /**
@@ -33,14 +33,17 @@ public class SendManifest extends BaseHandler {
 
     private TransactionsService transactionsService;
     private PublisherService publisherService;
+    private Path websiteContentPath;
 
     /**
      * Construct a new send manifest Route
      */
-    public SendManifest(TransactionsService transactionsService, PublisherService publisherService) {
+    public SendManifest(TransactionsService transactionsService, PublisherService publisherService,
+                        Path websiteContentPath) {
         this.gson = new Gson();
         this.transactionsService = transactionsService;
         this.publisherService = publisherService;
+        this.websiteContentPath = requireNonNull(websiteContentPath);
     }
 
     @Override
@@ -57,16 +60,9 @@ public class SendManifest extends BaseHandler {
 
             log.info("request valid starting commit manifest for transaction");
 
-            // Get the website Path to publish to
-            Path websitePath = Website.path();
-            if (websitePath == null) {
-                throw new PublishException("unexpected error website path is null", transaction,
-                        HttpStatus.SC_INTERNAL_SERVER_ERROR);
-            }
+            log.websitePath(websiteContentPath).info("copying manifest files to website and adding files to delete");
 
-            log.websitePath(websitePath).info("copying manifest files to website and adding files to delete");
-
-            int copied = publisherService.copyFilesIntoTransaction(transaction, manifest, websitePath);
+            int copied = publisherService.copyFilesIntoTransaction(transaction, manifest);
             int copyExpected = manifest.getFilesToCopy().size();
             if (copied != copyExpected) {
                 throw new PublishException(format(COPY_RESULT_ERR, copied, copyExpected), transaction);

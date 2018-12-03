@@ -3,7 +3,6 @@ package com.github.onsdigital.thetrain.storage;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.onsdigital.thetrain.helpers.Configuration;
 import com.github.onsdigital.thetrain.helpers.PathUtils;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.logging.LogBuilder;
@@ -14,7 +13,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +21,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
+import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
+
+// TODO FIX ME - Make this class a singleton with non static methods.
 
 /**
  * Class for working with {@link Transaction} instances.
@@ -33,19 +35,30 @@ public class Transactions {
     static final String CONTENT = "content";
     static final String BACKUP = "backup";
 
-    static Path transactionStore;
-    static final ObjectMapper objectMapper;
-    static final Map<String, Transaction> transactionMap;
-    static final Map<String, ExecutorService> transactionExecutorMap;
+    private static Path transactionStore;
+    private static ObjectMapper objectMapper;
+    private static Map<String, Transaction> transactionMap;
+    private static Map<String, ExecutorService> transactionExecutorMap;
 
+    public static void init(Path transactionStorePath) {
+        transactionStore = transactionStorePath;
 
-    static {
         objectMapper = new ObjectMapper();
         objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE);
         objectMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
 
         transactionMap = new ConcurrentHashMap<>();
         transactionExecutorMap = new ConcurrentHashMap<>();
+
+        logBuilder().info("transaction store initialisation completed");
+    }
+
+    public static Map<String, Transaction> getTransactionMap() {
+        return transactionMap;
+    }
+
+    public static Map<String, ExecutorService> getTransactionExecutorMap() {
+        return transactionExecutorMap;
     }
 
     /**
@@ -57,7 +70,7 @@ public class Transactions {
     public static Transaction create() throws IOException {
 
         Transaction transaction = new Transaction();
-        LogBuilder log = LogBuilder.logBuilder().transactionID(transaction.id());
+        LogBuilder log = logBuilder().transactionID(transaction.id());
 
         // Generate the file structure
         Path path = path(transaction.id());
@@ -106,7 +119,7 @@ public class Transactions {
      */
 
     public static Transaction get(String id) throws IOException {
-        LogBuilder log = LogBuilder.logBuilder().transactionID(id);
+        LogBuilder log = logBuilder().transactionID(id);
         Transaction result = null;
 
         try {
@@ -190,7 +203,7 @@ public class Transactions {
                             // do nothing
                         }
                     } catch (IOException exception) {
-                        LogBuilder.logBuilder().error(exception, "tryUpdateAsync: unexpected error encountered");
+                        logBuilder().error(exception, "tryUpdateAsync: unexpected error encountered");
                     }
 
                     return result;
@@ -208,7 +221,7 @@ public class Transactions {
      * @throws IOException If an error occurs in reading the transaction Json.
      */
     public static void update(Transaction transaction) throws IOException {
-        LogBuilder log = LogBuilder.logBuilder();
+        LogBuilder log = logBuilder();
         if (transaction != null && transactionMap.containsKey(transaction.id())) {
             // The transaction passed in should always be an instance from the map
             // otherwise there's potential to lose updates.
@@ -249,7 +262,7 @@ public class Transactions {
             if (Files.exists(path)) {
                 result = path;
             } else {
-                LogBuilder.logBuilder()
+                logBuilder()
                         .transactionID(transaction.id())
                         .addParameter("path", path.toString())
                         .warn("content path does not exist");
@@ -285,7 +298,7 @@ public class Transactions {
     static Path path(String id) throws IOException {
         Path result = null;
         if (StringUtils.isNotBlank(id)) {
-            result = store().resolve(id);
+            result = transactionStore.resolve(id);
         }
         return result;
     }
@@ -297,13 +310,13 @@ public class Transactions {
      * @return The {@link Path} to the storage directory for all transactions.
      * @throws IOException If an error occurs.
      */
-    static Path store() throws IOException {
+/*    static Path store() throws IOException {
         LogBuilder logBuilder = LogBuilder.logBuilder();
 
         if (transactionStore == null) {
 
             // Production configuration
-            String transactionStorePath = Configuration.transactionStore();
+            String transactionStorePath = AppConfiguration.transactionStore();
             if (StringUtils.isNotBlank(transactionStorePath)) {
                 Path path = Paths.get(transactionStorePath);
                 if (Files.isDirectory(path)) {
@@ -328,5 +341,5 @@ public class Transactions {
 
         }
         return transactionStore;
-    }
+    }*/
 }

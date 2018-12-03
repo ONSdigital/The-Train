@@ -1,10 +1,10 @@
 package com.github.onsdigital.thetrain;
 
 import com.github.davidcarboni.cryptolite.Random;
+import com.github.onsdigital.thetrain.configuration.AppConfiguration;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.storage.Publisher;
 import com.github.onsdigital.thetrain.storage.Transactions;
-import com.github.onsdigital.thetrain.storage.Website;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -102,7 +102,7 @@ public class Generator {
      * @param args Not used.
      * @throws IOException If an error occurs.
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
 
         // Generate a Transaction containing some content
         Transaction transaction = Transactions.create();
@@ -113,17 +113,17 @@ public class Generator {
         System.out.println("Moved to: " + Transactions.content(transaction));
 
         // Simulate the content already being on the website
-        //Files.delete(website.path());
-        FileUtils.copyDirectory(Transactions.content(transaction).toFile(), Website.path().toFile());
+        Path websitePath = AppConfiguration.get().websitePath();
+        FileUtils.copyDirectory(Transactions.content(transaction).toFile(), websitePath.toFile());
 
         // Attempt to commit
-        Publisher.getInstance().commit(transaction, Website.path());
-        System.out.println("Committed to " + Website.path());
+        Publisher.getInstance().commit(transaction, websitePath);
+        System.out.println("Committed to " + websitePath);
 
         // Print out
         System.out.println();
         System.out.println("Content : " + Transactions.content(transaction));
-        System.out.println("website : " + Website.path());
+        System.out.println("website : " + websitePath);
         System.out.println("Backup  : " + Transactions.backup(transaction));
     }
 }

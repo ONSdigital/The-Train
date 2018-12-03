@@ -6,27 +6,19 @@ import com.github.onsdigital.thetrain.json.request.Manifest;
 import com.github.onsdigital.thetrain.storage.TransactionUpdate;
 
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.Date;
 import java.util.zip.ZipInputStream;
 
 public interface PublisherService {
 
     /**
-     * @return get the website path configuration.
-     * @throws PublishException error getting the config value.
-     */
-    Path websitePath() throws PublishException;
-
-    /**
      * Commit the transaction.
      *
      * @param transaction the transaction to commit.
-     * @param website     the website path value.
      * @return true if successful false if failed
      * @throws PublishException error while attempting to commit the transaction.
      */
-    boolean commit(Transaction transaction, Path website) throws PublishException;
+    boolean commit(Transaction transaction) throws PublishException;
 
     /**
      * Attempt to rollback a transaction.
@@ -42,11 +34,10 @@ public interface PublisherService {
      *
      * @param transaction the target transaction.
      * @param manifest    the manifest you wish to use.
-     * @param websitePath the website path config.
      * @return the number of files copied.
      * @throws PublishException error while attempting to copy the files into the transaction.
      */
-    int copyFilesIntoTransaction(Transaction transaction, Manifest manifest, Path websitePath) throws PublishException;
+    int copyFilesIntoTransaction(Transaction transaction, Manifest manifest) throws PublishException;
 
     /**
      * Add the files to be deleted to the transaction.

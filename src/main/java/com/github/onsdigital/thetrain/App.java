@@ -1,7 +1,6 @@
 package com.github.onsdigital.thetrain;
 
 import com.github.onsdigital.thetrain.configuration.AppConfiguration;
-import com.github.onsdigital.thetrain.configuration.ConfigurationException;
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.exception.handler.BadRequestExceptionHandler;
@@ -24,9 +23,11 @@ import com.github.onsdigital.thetrain.service.PublisherServiceImpl;
 import com.github.onsdigital.thetrain.service.TransactionsService;
 import com.github.onsdigital.thetrain.service.TransactionsServiceImpl;
 import com.github.onsdigital.thetrain.storage.Publisher;
+import com.github.onsdigital.thetrain.storage.Transactions;
 import spark.ResponseTransformer;
 import spark.Route;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,10 +57,14 @@ public class App {
         logBuilder().info("starting the-train");
 
         AppConfiguration config = AppConfiguration.get();
-        port(config.port());
+
+        // init services.
         Publisher.init(config.publishThreadPoolSize());
+        Transactions.init(config.transactionStore());
 
         ROUTES = new HashMap<>();
+
+        port(config.port());
 
         before("/*", new BeforeFilter());
 
@@ -68,7 +73,13 @@ public class App {
 
         registerExeptionHandlers(afterFilter);
 
-        regusterRoutes();
+        // objects needed by routes
+        ResponseTransformer transformer = JsonTransformer.get();
+        TransactionsService transactionsService = new TransactionsServiceImpl();
+        FileUploadHelper fileUploadHelper = new FileUploadHelper();
+        PublisherService publisherService = new PublisherServiceImpl(Publisher.getInstance(), config.websitePath());
+
+        registerRoutes(transformer, fileUploadHelper, transactionsService, publisherService, config.websitePath());
 
         logBuilder().addParameter("routes", ROUTES)
                 .addParameter("PORT", config.port())
@@ -85,12 +96,9 @@ public class App {
         exception(Exception.class, (e, req, resp) -> new CatchAllHandler(afterFilter).handle(e, req, resp));
     }
 
-    private static void regusterRoutes() {
-        ResponseTransformer transformer = JsonTransformer.get();
-        TransactionsService transactionsService = new TransactionsServiceImpl();
-        PublisherService publisherService = new PublisherServiceImpl();
-        FileUploadHelper fileUploadHelper = new FileUploadHelper();
-
+    private static void registerRoutes(ResponseTransformer transformer, FileUploadHelper fileUploadHelper,
+                                       TransactionsService transactionsService, PublisherService publisherService,
+                                       Path websitePath) {
         Route openTransaction = new OpenTransaction(transactionsService);
         registerPostHandler("/begin", openTransaction, transformer);
 
@@ -100,7 +108,7 @@ public class App {
         Route commit = new CommitTransaction(transactionsService, publisherService);
         registerPostHandler("/commit", commit, transformer);
 
-        Route sendManifest = new SendManifest(transactionsService, publisherService);
+        Route sendManifest = new SendManifest(transactionsService, publisherService, websitePath);
         registerPostHandler("/CommitManifest", sendManifest, transformer);
 
         Route rollback = new RollbackTransaction(transactionsService, publisherService);
@@ -109,8 +117,9 @@ public class App {
         Route getTransaction = new GetTransaction(transactionsService);
         registerGetHandler("/transaction", getTransaction, transformer);
 
-        Route verify = new VerifyTransaction();
+        Route verify = new VerifyTransaction(websitePath);
         registerGetHandler("/veify", verify, transformer);
+
     }
 
     private static void registerPostHandler(String uri, Route route, ResponseTransformer transformer) {

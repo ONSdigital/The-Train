@@ -5,6 +5,7 @@ import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.json.UriInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -18,12 +19,22 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test for {@link Transactions}.
  */
 public class TransactionsTest {
+
+    @Before
+    public void setUp() throws IOException {
+        Path transactionStore = Files.createTempDirectory("transaction-store");
+        Transactions.init(transactionStore);
+    }
 
     /**
      * Tests that a transaction is created with an ID and start date and can be read using the ID.
@@ -87,9 +98,9 @@ public class TransactionsTest {
 
         // Then
         // Re-reading the Transaction should load the updates
-        synchronized (Transactions.transactionMap) {
+        synchronized (Transactions.getTransactionMap()) {
             // So we can run tests in parallel
-            Transactions.transactionMap.clear();
+            Transactions.getTransactionMap().clear();
             Transaction read = Transactions.get(transaction.id());
             assertEquals(1, read.errors().size());
             assertEquals(1, read.uris().size());
@@ -108,8 +119,8 @@ public class TransactionsTest {
         // A transaction
         Transaction transaction = Transactions.create();
 
-        assertTrue(Transactions.transactionMap.containsKey(transaction.id()));
-        assertTrue(Transactions.transactionExecutorMap.containsKey(transaction.id()));
+        assertTrue(Transactions.getTransactionMap().containsKey(transaction.id()));
+        assertTrue(Transactions.getTransactionExecutorMap().containsKey(transaction.id()));
 
         // When
         // We end the transaction
@@ -117,8 +128,8 @@ public class TransactionsTest {
 
         // Then
         // The transaction maps should not contain entries for the transaction
-        assertFalse(Transactions.transactionMap.containsKey(transaction.id()));
-        assertFalse(Transactions.transactionExecutorMap.containsKey(transaction.id()));
+        assertFalse(Transactions.getTransactionMap().containsKey(transaction.id()));
+        assertFalse(Transactions.getTransactionExecutorMap().containsKey(transaction.id()));
     }
 
     /**
@@ -221,9 +232,9 @@ public class TransactionsTest {
         pool.awaitTermination(10, SECONDS);
 
         // Clear the transaction map so we can double-check the Json serialised correctly when it's re-read:
-        synchronized (Transactions.transactionMap) {
+        synchronized (Transactions.getTransactionMap()) {
             // So we can run tests in parallel
-            Transactions.transactionMap.clear();
+            Transactions.getTransactionMap().clear();
         }
 
         // We should have added all URI infos to the Transaction and not lost any

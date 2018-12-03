@@ -12,7 +12,6 @@ public interface TransactionsService {
 
     Transaction create() throws PublishException;
 
-
     Transaction getTransaction(String transactionID) throws BadRequestException, PublishException;
 
     Transaction getTransaction(Request request) throws BadRequestException, PublishException;
