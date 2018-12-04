@@ -19,10 +19,6 @@ import java.util.Set;
  */
 public class Transaction {
 
-    private final transient Object uriInfosLock = new Object();
-    private final transient Object uriDeletesLock = new Object();
-    private final transient Object errorsLock = new Object();
-
     public static final String STARTED = "started";
     public static final String PUBLISHING = "publishing";
     public static final String COMMIT_FAILED = "commit failed";
@@ -77,7 +73,7 @@ public class Transaction {
      * @return An unmodifiable set of the URIs in this transaction.
      */
     public Set<UriInfo> uris() {
-        synchronized (uriInfosLock) {
+        synchronized (this) {
             return Collections.unmodifiableSet(uriInfos);
         }
     }
@@ -86,7 +82,7 @@ public class Transaction {
      * @return An unmodifiable set of the URIs to delete in this transaction.
      */
     public Set<UriInfo> urisToDelete() {
-        synchronized (uriDeletesLock) {
+        synchronized (this) {
             return Collections.unmodifiableSet(uriDeletes);
         }
     }
@@ -95,7 +91,7 @@ public class Transaction {
      * @param newUri The URI to add to the set of URIs.
      */
     public void addUri(UriInfo newUri) {
-        synchronized (uriInfosLock) {
+        synchronized (this) {
             Set<UriInfo> updated = new HashSet<>(this.uriInfos);
             updated.add(newUri);
 
@@ -105,7 +101,7 @@ public class Transaction {
     }
 
     public void addUris(List<UriInfo> addedUris) {
-        synchronized (uriInfosLock) {
+        synchronized (this) {
             Set<UriInfo> updated = new HashSet<>(this.uriInfos);
             updated.addAll(addedUris);
 
@@ -120,7 +116,7 @@ public class Transaction {
      * @param delete
      */
     public void addUriDelete(UriInfo delete) {
-        synchronized (uriDeletesLock) {
+        synchronized (this) {
             Set<UriInfo> updated = new HashSet<>(this.uriDeletes);
             updated.add(delete);
 
@@ -130,7 +126,7 @@ public class Transaction {
     }
 
     public void addUriDeletes(List<UriInfo> deletes) {
-        synchronized (uriDeletesLock) {
+        synchronized (this) {
             Set<UriInfo> updated = new HashSet<>(this.uriDeletes);
             updated.addAll(deletes);
 
@@ -152,7 +148,7 @@ public class Transaction {
      * @return If {@link #errors} contains anything, or if any {@link UriInfo#error error} field in {@link #uriInfos} is not blank, true.
      */
     public boolean hasErrors() {
-        synchronized (errorsLock) {
+        synchronized (this) {
             boolean result = errors.size() > 0;
             for (UriInfo uriInfo : uriInfos) {
                 result |= StringUtils.isNotBlank(uriInfo.error());
@@ -165,7 +161,7 @@ public class Transaction {
      * @return An unmodifiable set of the URIs in this transaction.
      */
     public List<String> errors() {
-        synchronized (errorsLock) {
+        synchronized (this) {
             return Collections.unmodifiableList(errors);
         }
     }
@@ -174,7 +170,7 @@ public class Transaction {
      * @param error An error debug to be added to this transaction.
      */
     public void addError(String error) {
-        synchronized (errorsLock) {
+        synchronized (this) {
             List<String> updated = new ArrayList<>(this.errors);
             updated.add(error);
 
@@ -203,7 +199,7 @@ public class Transaction {
 
     @Override
     public String toString() {
-        synchronized (uriInfosLock) {
+        synchronized (this) {
             return id + " (" + uriInfos.size() + " URIs)";
         }
     }
