@@ -15,7 +15,7 @@ public class AfterFilter implements Filter, QuietFilter {
                 .addParameter("method", request.requestMethod())
                 .responseStatus(response.status())
                 .transactionID(request.raw().getParameter("transactionId"))
-                .info("request completed");
+                .debug("request completed");
     }
 
     public void handleQuietly(Request request, Response response) {
@@ -29,7 +29,7 @@ public class AfterFilter implements Filter, QuietFilter {
             return;
         }
 
-        log.info("request completed successfully");
+        log.debug("request completed successfully");
     }
 
 }

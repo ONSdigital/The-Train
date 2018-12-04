@@ -2,7 +2,6 @@ package com.github.onsdigital.thetrain.routes;
 
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
-import com.github.onsdigital.thetrain.logging.LogBuilder;
 import com.github.onsdigital.thetrain.service.TransactionsService;
 import spark.Request;
 import spark.Response;
@@ -22,11 +21,8 @@ public class OpenTransaction extends BaseHandler {
 
     @Override
     public Object handle(Request request, Response response) throws Exception {
-        LogBuilder log = logBuilder();
-
-        log.info("creating new publishing transaction");
         Transaction transaction = transactionsService.create();
-        log.transactionID(transaction.id()).info("transaction created successfully");
+        logBuilder().transactionID(transaction.id()).info("transaction created successfully");
 
         response.status(OK_200);
         return new Result(SUCCESS_MSG, false, transaction);

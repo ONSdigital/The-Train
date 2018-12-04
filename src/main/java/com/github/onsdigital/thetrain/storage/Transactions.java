@@ -80,11 +80,11 @@ public class Transactions {
             objectMapper.writeValue(output, transaction);
             Files.createDirectory(path.resolve(CONTENT));
             Files.createDirectory(path.resolve(BACKUP));
-            log.info("transaction written to disk successfully");
+            log.debug("transaction written to disk successfully");
 
             transactionMap.put(transaction.id(), transaction);
 
-            log.info("transaction added to in-memory storage");
+            log.debug("transaction added to in-memory storage");
 
             if (!transactionExecutorMap.containsKey(transaction.id())) {
                 transactionExecutorMap.put(transaction.id(), Executors.newSingleThreadExecutor());
@@ -136,7 +136,7 @@ public class Transactions {
                         }
                     }
                 } else {
-                    log.info("retrieving transaction from in-memory storage");
+                    log.debug("retrieving transaction from in-memory storage");
                     result = transactionMap.get(id);
                 }
             }

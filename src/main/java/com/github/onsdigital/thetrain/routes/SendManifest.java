@@ -54,13 +54,8 @@ public class SendManifest extends BaseHandler {
         Manifest manifest = getManifest(request);
 
         try {
-
             transaction = transactionsService.getTransaction(request);
             log.transactionID(transaction);
-
-            log.info("request valid starting commit manifest for transaction");
-
-            log.websitePath(websiteContentPath).info("copying manifest files to website and adding files to delete");
 
             int copied = publisherService.copyFilesIntoTransaction(transaction, manifest);
             int copyExpected = manifest.getFilesToCopy().size();

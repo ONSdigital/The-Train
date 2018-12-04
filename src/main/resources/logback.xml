@@ -6,13 +6,11 @@
         </encoder>
     </appender>
 
-    <logger name="com.github.onsdigital" level="debug" additivity="false">
+    <logger name="com.github.onsdigital" level="info" additivity="false">
         <appender-ref ref="DP_LOGGER"/>
     </logger>
 
-    <logger name="com.github.davidcarboni.restolino" level="trace" additivity="false"></logger>
-
-    <root level="debug">
+    <root level="info">
         <appender-ref ref="DP_LOGGER"/>
     </root>
 

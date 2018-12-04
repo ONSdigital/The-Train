@@ -27,6 +27,6 @@ public class BeforeFilter implements Filter {
         logBuilder().uri(request.uri())
                 .addParameter("method", request.requestMethod())
                 .addParameter("params", request.raw().getParameterMap())
-                .info("inbound request");
+                .debug("inbound request");
     }
 }

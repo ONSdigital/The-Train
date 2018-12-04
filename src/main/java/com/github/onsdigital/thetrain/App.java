@@ -41,21 +41,19 @@ import static spark.Spark.post;
 
 public class App {
 
-
     static Map<String, String> ROUTES;
 
     public static void main(String[] args) {
         try {
-            start();
+            logBuilder().info("starting the-train");
+            allAboard();
         } catch (Exception e) {
-            logBuilder().error(e, "start up failed");
+            logBuilder().error(e, "unexpected error while attempting to start the-train");
             System.exit(100);
         }
     }
 
-    private static void start() throws Exception {
-        logBuilder().info("starting the-train");
-
+    private static void allAboard() throws Exception {
         AppConfiguration config = AppConfiguration.get();
 
         // init services.
@@ -96,6 +94,9 @@ public class App {
         exception(Exception.class, (e, req, resp) -> new CatchAllHandler(afterFilter).handle(e, req, resp));
     }
 
+    /**
+     * Register the {@link Route}'s
+     */
     private static void registerRoutes(ResponseTransformer transformer, FileUploadHelper fileUploadHelper,
                                        TransactionsService transactionsService, PublisherService publisherService,
                                        Path websitePath) {
