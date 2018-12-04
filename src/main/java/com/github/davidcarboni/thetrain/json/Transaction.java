@@ -92,18 +92,24 @@ public class Transaction {
     }
 
     /**
-     * @param uriInfo The URI to add to the set of URIs.
+     * @param newUri The URI to add to the set of URIs.
      */
-    public void addUri(UriInfo uriInfo) {
+    public void addUri(UriInfo newUri) {
         synchronized (uriInfosLock) {
-            uriInfos.add(uriInfo);
+            Set<UriInfo> updated = new HashSet<>(this.uriInfos);
+            updated.add(newUri);
+
+            uriInfos = updated;
             status = PUBLISHING;
         }
     }
 
-    public void addUris(List<UriInfo> infos) {
+    public void addUris(List<UriInfo> addedUris) {
         synchronized (uriInfosLock) {
-            uriInfos.addAll(infos);
+            Set<UriInfo> updated = new HashSet<>(this.uriInfos);
+            updated.addAll(addedUris);
+
+            uriInfos = updated;
             status = PUBLISHING;
         }
     }
@@ -111,17 +117,25 @@ public class Transaction {
     /**
      * Add a delete command to the transaction.
      *
-     * @param uriInfo
+     * @param delete
      */
-    public void addUriDelete(UriInfo uriInfo) {
+    public void addUriDelete(UriInfo delete) {
         synchronized (uriDeletesLock) {
-            uriDeletes.add(uriInfo);
+            Set<UriInfo> updated = new HashSet<>(this.uriDeletes);
+            updated.add(delete);
+
+            uriDeletes = updated;
+            status = PUBLISHING;
         }
     }
 
     public void addUriDeletes(List<UriInfo> deletes) {
         synchronized (uriDeletesLock) {
-            uriDeletes.addAll(deletes);
+            Set<UriInfo> updated = new HashSet<>(this.uriDeletes);
+            updated.addAll(deletes);
+
+            uriDeletes = updated;
+            status = PUBLISHING;
         }
     }
 
@@ -161,6 +175,10 @@ public class Transaction {
      */
     public void addError(String error) {
         synchronized (errorsLock) {
+            List<String> updated = new ArrayList<>(this.errors);
+            updated.add(error);
+
+            this.errors = updated;
             errors.add(error);
         }
     }
