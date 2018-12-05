@@ -175,7 +175,6 @@ public class Transaction {
             updated.add(error);
 
             this.errors = updated;
-            errors.add(error);
         }
     }
 
