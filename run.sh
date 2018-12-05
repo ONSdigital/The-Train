@@ -1,10 +1,8 @@
 #!/bin/bash
 mkdir -p target/website
 mkdir -p target/transactions
-export WEBSITE="/Users/dave/Desktop/zebedee-data/content/zebedee/master"
-export TRANSACTION_STORE="/Users/dave/Desktop/zebedee-data/content/zebedee/transactions"
-export PUBLISHING_THREAD_POOL_SIZE=100
-export PORT=8084
+export content_path="target/website"
+export transactions_path="target/transactions"
 export DP_COLOURED_LOGGING=true
 export DP_LOGGING_FORMAT=pretty_json
 export PUBLISHING_THREAD_POOL_SIZE=100
