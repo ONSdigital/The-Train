@@ -5,16 +5,21 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test for {@link Transaction}.
@@ -35,8 +40,8 @@ public class TransactionTest {
         // Then
         // A random ID should be generated and the start date should be set
         assertTrue(StringUtils.isNotBlank(transaction.id()));
-        assertTrue(StringUtils.isNotBlank(transaction.startDate));
-        assertEquals(Transaction.STARTED, transaction.status);
+        assertTrue(StringUtils.isNotBlank(transaction.startDate()));
+        assertEquals(Transaction.STARTED, transaction.getStatus());
     }
 
     @Test
@@ -54,41 +59,52 @@ public class TransactionTest {
         // Then
         // We should have one URI info in the collection
         assertEquals(1, transaction.uris().size());
-        assertEquals(Transaction.PUBLISHING, transaction.status);
+        assertEquals(Transaction.PUBLISHING, transaction.getStatus());
     }
 
     @Test
-    public void shouldAddUrisConcurrently() throws InterruptedException {
+    public void shouldAddUrisConcurrently() throws InterruptedException, ExecutionException {
+        ExecutorService pool = null;
 
-        // Given
-        // A transaction and lots of URI infos
-        final Transaction transaction = new Transaction();
-        Set<UriInfo> uriInfos = new HashSet<>();
-        for (int i = 0; i < 2000; i++) {
-            uriInfos.add(new UriInfo("/" + Random.id()));
-        }
-        ExecutorService pool = Executors.newFixedThreadPool(100);
+        try {
+            pool = Executors.newFixedThreadPool(100);
 
-        // When
-        // We add all the URI infos to the Transaction
-        for (final com.github.davidcarboni.thetrain.json.UriInfo uriInfo : uriInfos) {
-            pool.submit(new Runnable() {
-                @Override
-                public void run() {
-                    transaction.addUri(uriInfo);
-                }
-            });
-        }
+            final Transaction transaction = new Transaction();
+            final int totalUris = 5000;
 
-        // Then
-        // We should have added all URI infos to the Transaction and not lost any
-        pool.shutdown();
-        pool.awaitTermination(10, SECONDS);
-        assertEquals(uriInfos.size(), transaction.uris().size());
-        for (com.github.davidcarboni.thetrain.json.UriInfo uriInfo : transaction.uris()) {
-            Assert.assertTrue(uriInfos.contains(uriInfo));
+            Set<UriInfo> uriInfos = IntStream.range(0, totalUris)
+                    .boxed()
+                    .map(String::valueOf)
+                    .map(s -> new UriInfo("/" + s))
+                    .collect(Collectors.toSet());
+
+
+            List<Callable<Boolean>> jobs = uriInfos.stream()
+                    .map(uri -> (Callable<Boolean>) () -> {
+                        transaction.addUri(uri);
+                        return true;
+                    }).collect(Collectors.toList());
+
+
+            for (Future<Boolean> f : pool.invokeAll(jobs)) {
+                assertTrue(f.get());
+            }
+
+            Set<UriInfo> actual = transaction.uris();
+            uriInfos.stream()
+                    .filter(e -> !actual.contains(e))
+                    .findAny()
+                    .ifPresent(e -> fail("expected uri was missing from transaction uris: " + e));
+
+            assertEquals(totalUris, actual.size());
+        } finally {
+            if (pool != null) {
+                pool.shutdown();
+                pool.awaitTermination(10, SECONDS);
+            }
         }
     }
+
 
     @Test(expected = UnsupportedOperationException.class)
     public void shouldNotBeAbleToModifyUris() {
@@ -124,35 +140,42 @@ public class TransactionTest {
     }
 
     @Test
-    public void shouldAddErrorsConcurrently() throws InterruptedException {
+    public void shouldAddErrorsConcurrently() throws InterruptedException, ExecutionException {
+        ExecutorService pool = null;
+        try {
+            pool = Executors.newFixedThreadPool(100);
 
-        // Given
-        // A transaction and lots of error messages
-        final Transaction transaction = new Transaction();
-        List<String> errors = new ArrayList<>();
-        for (int i = 0; i < 2000; i++) {
-            errors.add(Random.id());
-        }
-        ExecutorService pool = Executors.newFixedThreadPool(100);
+            final int totalErrors = 5000;
 
-        // When
-        // We add all the error messages to the Transaction
-        for (final String error : errors) {
-            pool.submit(new Runnable() {
-                @Override
-                public void run() {
-                    transaction.addError(error);
-                }
-            });
-        }
+            List<String> testErrors = IntStream.range(0, totalErrors)
+                    .boxed()
+                    .map(String::valueOf)
+                    .collect(Collectors.toList());
 
-        // Then
-        // We should have added all error messages to the Transaction and not lost any
-        pool.shutdown();
-        pool.awaitTermination(10, SECONDS);
-        assertEquals(errors.size(), transaction.errors().size());
-        for (String error : transaction.errors()) {
-            Assert.assertTrue(errors.contains(error));
+            final Transaction transaction = new Transaction();
+
+            List<Callable<Boolean>> jobs = testErrors.stream()
+                    .map(e -> (Callable<Boolean>) () -> {
+                        transaction.addError(e);
+                        return true;
+                    }).collect(Collectors.toList());
+
+
+            for (Future<Boolean> f : pool.invokeAll(jobs)) {
+                assertTrue(f.get());
+            }
+
+            assertEquals(totalErrors, transaction.errors().size());
+
+            testErrors.stream()
+                    .filter(e -> !transaction.errors().contains(e))
+                    .findAny()
+                    .ifPresent(e -> fail("expected error was missing from transaction errors: " + e));
+        } finally {
+            if (pool != null) {
+                pool.shutdown();
+                pool.awaitTermination(10, SECONDS);
+            }
         }
     }
 
@@ -187,10 +210,10 @@ public class TransactionTest {
 
         // Then
         // We should have end dates and the expected status strings
-        assertEquals(Transaction.COMMITTED, ok.status);
-        assertEquals(Transaction.COMMIT_FAILED, error.status);
-        assertTrue(StringUtils.isNotBlank(ok.endDate));
-        assertTrue(StringUtils.isNotBlank(error.endDate));
+        assertEquals(Transaction.COMMITTED, ok.getStatus());
+        assertEquals(Transaction.COMMIT_FAILED, error.getStatus());
+        assertTrue(StringUtils.isNotBlank(ok.endDate()));
+        assertTrue(StringUtils.isNotBlank(error.endDate()));
     }
 
     @Test
@@ -208,9 +231,9 @@ public class TransactionTest {
 
         // Then
         // We should have end dates and the expected status strings
-        assertEquals(Transaction.ROLLED_BACK, ok.status);
-        assertEquals(Transaction.ROLLBACK_FAILED, error.status);
-        assertTrue(StringUtils.isNotBlank(ok.endDate));
-        assertTrue(StringUtils.isNotBlank(error.endDate));
+        assertEquals(Transaction.ROLLED_BACK, ok.getStatus());
+        assertEquals(Transaction.ROLLBACK_FAILED, error.getStatus());
+        assertTrue(StringUtils.isNotBlank(ok.endDate()));
+        assertTrue(StringUtils.isNotBlank(error.endDate()));
     }
 }

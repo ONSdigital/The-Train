@@ -6,7 +6,6 @@ import com.github.davidcarboni.thetrain.json.Result;
 import com.github.davidcarboni.thetrain.json.Transaction;
 import com.github.davidcarboni.thetrain.logging.LogBuilder;
 import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -14,7 +13,6 @@ import javax.ws.rs.POST;
 import java.io.IOException;
 
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
-import static org.eclipse.jetty.http.HttpStatus.BAD_REQUEST_400;
 import static org.eclipse.jetty.http.HttpStatus.INTERNAL_SERVER_ERROR_500;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 

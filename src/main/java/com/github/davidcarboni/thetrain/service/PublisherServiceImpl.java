@@ -16,11 +16,11 @@ public class PublisherServiceImpl implements PublisherService {
 
     @Override
     public boolean commit(Transaction transaction, Path website) throws IOException {
-        return Publisher.commit(transaction, website);
+        return Publisher.getInstance().commit(transaction, website);
     }
 
     @Override
     public boolean rollback(Transaction transaction) throws IOException {
-        return Publisher.rollback(transaction);
+        return Publisher.getInstance().rollback(transaction);
     }
 }
