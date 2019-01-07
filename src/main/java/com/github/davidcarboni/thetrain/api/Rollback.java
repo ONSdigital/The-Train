@@ -46,16 +46,7 @@ public class Rollback extends Endpoint {
             log.transactionID(transactionId);
 
             // Transaction object
-            String encryptionPassword = request.getParameter(ENCRYPTION_PASSWORD_KEY);
-            if (StringUtils.isEmpty(encryptionPassword)) {
-                log.responseStatus(BAD_REQUEST_400)
-                        .warn("bad request: rollback requires encryptionPassword but none was provided");
-
-                response.setStatus(BAD_REQUEST_400);
-                return new Result("rollback requires encryptionPassword but none was provided", true, null);
-            }
-
-            transaction = getTransactionsService().get(transactionId, encryptionPassword);
+            transaction = getTransactionsService().get(transactionId);
             if (transaction == null) {
                 log.responseStatus(BAD_REQUEST_400)
                         .warn("bad request: transaction with specified ID was not found");
