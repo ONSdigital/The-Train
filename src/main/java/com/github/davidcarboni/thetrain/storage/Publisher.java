@@ -118,6 +118,8 @@ public class Publisher {
                         .addParameter("targetPath", target.toString())
                         .error(e, "unexpected error transfering inputstream content to transaction via file channel");
                 return false;
+            } finally {
+                logBuilder().uri(target.toString()).info("exiting addStreamContentToTransaction");
             }
         }
         return true;
@@ -275,7 +277,6 @@ public class Publisher {
         result.setUriInfo(uriInfo);
         return result;
     }
-
     /**
      * When making a change to a file on the website, we copy the existing file into a backup
      *

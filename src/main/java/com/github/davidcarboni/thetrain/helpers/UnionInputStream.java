@@ -150,7 +150,7 @@ public class UnionInputStream extends InputStream {
      * @throws IOException if an I/O error occurs.
      */
     public void close() throws IOException {
-        logBuilder().info("union input stream close called");
+        logBuilder().info("calling close on union input stream");
         IOUtils.closeQuietly(a);
         IOUtils.closeQuietly(b);
     }
