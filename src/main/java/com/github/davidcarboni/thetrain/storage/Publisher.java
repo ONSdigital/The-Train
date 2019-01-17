@@ -104,6 +104,36 @@ public class Publisher {
         }
     }
 
+
+    private boolean addStreamContentToTransaction(Path target, InputStream input) throws IOException {
+        if (target != null) {
+            ReadableByteChannel src = null;
+            FileOutputStream fos = null;
+            FileChannel dest = null;
+
+            Files.createDirectories(target.getParent());
+            try {
+                src = Channels.newChannel(input);
+                fos = new FileOutputStream(target.toFile());
+                dest = fos.getChannel();
+
+                dest.transferFrom(src, 0, Long.MAX_VALUE);
+            } catch (Exception e) {
+                logBuilder()
+                        .addParameter("targetPath", target.toString())
+                        .error(e, "unexpected error transfering inputstream content to transaction via file channel");
+                return false;
+            } finally {
+                src.close();
+                fos.close();
+                dest.close();
+                logBuilder().uri(target.toString()).info("exiting addStreamContentToTransaction");
+            }
+        }
+        return true;
+    }
+
+/*
     private boolean addStreamContentToTransaction(Path target, InputStream input) throws IOException {
         if (target != null) {
             Files.createDirectories(target.getParent());
@@ -123,7 +153,7 @@ public class Publisher {
             }
         }
         return true;
-    }
+    }*/
 
     /**
      * Adds a set of files contained in a zip to the given transaction. The start date for each file transfer is the instant when each {@link ZipEntry} is accessed.
