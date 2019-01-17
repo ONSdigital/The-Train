@@ -175,12 +175,24 @@ public class Publisher {
                     //
                     // - Dave L.
                     //ShaInputStream input = new ShaInputStream(new UnionInputStream(data, zip));
-                    InputStream input = new UnionInputStream(data, zip);
-                    TransactionUpdate update = addContentToTransaction(transaction, targetUri, input, startDate);
-                    result &= update.isSuccess();
-                    big++;
+                    try {
+                        InputStream input = new UnionInputStream(data, zip);
+                        TransactionUpdate update = addContentToTransaction(transaction, targetUri, input, startDate);
+                        result &= update.isSuccess();
+                        big++;
+                    } catch (Exception e) {
+                        logBuilder()
+                                .uri(uri)
+                                .error(e, "Large zip file error: " + e.getCause().getMessage());
+                        throw new IOException(e);
+                    }
                 }
-                zip.closeEntry();
+                logBuilder().uri(uri).info("calling close on zip entry");
+                try {
+                    zip.closeEntry();
+                }catch (Exception e) {
+                    logBuilder().uri(uri).error(e, "zip.closeEntry threw exception");
+                }
             }
 
         } catch (IOException e) {

@@ -5,6 +5,8 @@ import org.apache.commons.io.IOUtils;
 import java.io.IOException;
 import java.io.InputStream;
 
+import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
+
 /**
  * This class is inspired by {@link java.io.SequenceInputStream SequenceInputStream},
  * but this class does not close the underlying streams until {@link #close()} is called.
@@ -148,6 +150,7 @@ public class UnionInputStream extends InputStream {
      * @throws IOException if an I/O error occurs.
      */
     public void close() throws IOException {
+        logBuilder().info("union input stream close called");
         IOUtils.closeQuietly(a);
         IOUtils.closeQuietly(b);
     }
