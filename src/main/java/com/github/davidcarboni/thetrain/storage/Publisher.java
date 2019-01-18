@@ -194,9 +194,12 @@ public class Publisher {
 
                 // If entry data fit into the buffer, go asynchronous:
                 if (count < buffer.length) {
+                    logBuilder().uri(entry.getName()).info("addFiles: adding small file");
                     smallFileWrites.add(pool.submit(() -> addContentToTransaction(transaction, targetUri, data, startDate)));
                     small++;
                 } else {
+
+                    logBuilder().uri(entry.getName()).info("addFiles: adding large file");
                     // Large file, so read from (data + "more from the zip")
 
                     // TODO: Defect: These streams should be closed however closing the UnionInputStream will close
@@ -243,6 +246,9 @@ public class Publisher {
                 result &= res.isSuccess();
                 infos.add(res.getUriInfo());
             } catch (InterruptedException | ExecutionException e) {
+                throw new IOException("Error completing small file write", e);
+            } catch (Exception e) {
+                logBuilder().error(e, "addFiles: check small files future returned an exception");
                 throw new IOException("Error completing small file write", e);
             }
         }
