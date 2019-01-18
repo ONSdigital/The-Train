@@ -158,24 +158,24 @@ public class Publisher {
     /**
      * Adds a set of files contained in a zip to the given transaction. The start date for each file transfer is the instant when each {@link ZipEntry} is accessed.
      *
-     * @param transaction The transaction to add the file to
-     * @param uri         The target URI for the file
-     * @param zip         The zipped files
+     * @param transaction    The transaction to add the file to
+     * @param uri            The target URI for the file
+     * @param zipInputStream The zipped files
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public boolean addFiles(final Transaction transaction, String uri, final ZipInputStream zip) throws IOException {
+    public boolean addFiles(final Transaction transaction, String uri, final ZipInputStream zipInputStream) throws IOException {
         LocalDateTime start = LocalDateTime.now();
         boolean result = true;
         ZipEntry entry;
 
         // Small files are written asynchronously from byte array buffers:
         List<Future<TransactionUpdate>> smallFileWrites = new ArrayList<>();
-        int big = 0;
-        int small = 0;
+        int largeZipEntries = 0;
+        int smallZipEntries = 0;
 
         try {
-            while ((entry = zip.getNextEntry()) != null && !entry.isDirectory()) {
+            while ((entry = zipInputStream.getNextEntry()) != null && !entry.isDirectory()) {
 
                 final Date startDate = new Date();
                 final String targetUri = PathUtils.stripTrailingSlash(uri) + PathUtils.setLeadingSlash(entry.getName());
@@ -183,51 +183,18 @@ public class Publisher {
                 // Read small files into a buffer and write them asynchronously
                 // NB the size can be -1 if it is unknown, so we read into a buffer to see how much data we're dealing with.
                 byte[] buffer = new byte[bufferSize];
-                int read;
-                int count = 0;
-                do {
-                    read = zip.read(buffer, count, buffer.length - count);
-                    if (read != -1) count += read;
-                } while (read != -1 && count < bufferSize);
-
-                final InputStream data = new ByteArrayInputStream(buffer, 0, count);
+                int count = bob(zipInputStream, buffer);
+                final InputStream zipInChunk = new ByteArrayInputStream(buffer, 0, count);
 
                 // If entry data fit into the buffer, go asynchronous:
                 if (count < buffer.length) {
-                    logBuilder().uri(entry.getName()).info("addFiles: adding small file");
-                    smallFileWrites.add(pool.submit(() -> addContentToTransaction(transaction, targetUri, data, startDate)));
-                    small++;
+                    smallFileWrites.add(processSmallZipEntry(entry, transaction, targetUri, zipInChunk, startDate));
+                    smallZipEntries++;
                 } else {
-
-                    logBuilder().uri(entry.getName()).info("addFiles: adding large file");
-                    // Large file, so read from (data + "more from the zip")
-
-                    // TODO: Defect: These streams should be closed however closing the UnionInputStream will close
-                    // the underlying zip stream - which breaks the app.
-                    // It's probably possible to fix this but it would mean a big refactor (and this code is mental)
-                    // - its been this way for 2+ years and hasn't broken anything and the train's day are number so we
-                    // are taking the view - leave it and do it properly when we replace the Train.
-                    //
-                    // - Dave L.
-                    //ShaInputStream input = new ShaInputStream(new UnionInputStream(data, zip));
-                    try {
-                        InputStream input = new UnionInputStream(data, zip);
-                        TransactionUpdate update = addContentToTransaction(transaction, targetUri, input, startDate);
-                        result &= update.isSuccess();
-                        big++;
-                    } catch (Exception e) {
-                        logBuilder()
-                                .uri(uri)
-                                .error(e, "Large zip file error: " + e.getCause().getMessage());
-                        throw new IOException(e);
-                    }
+                    result &= processLargeZipEntry(entry, zipInChunk, zipInputStream, transaction, targetUri, startDate);
+                    largeZipEntries++;
                 }
-                logBuilder().uri(uri).info("calling close on zip entry");
-                try {
-                    zip.closeEntry();
-                }catch (Exception e) {
-                    logBuilder().uri(uri).error(e, "zip.closeEntry threw exception");
-                }
+                zipInputStream.closeEntry();
             }
 
         } catch (IOException e) {
@@ -238,20 +205,7 @@ public class Publisher {
         }
 
         List<UriInfo> infos = new ArrayList<>();
-        // Process results of any asynchronous writes
-        for (Future<TransactionUpdate> smallFileWrite : smallFileWrites) {
-            try {
-
-                TransactionUpdate res = smallFileWrite.get();
-                result &= res.isSuccess();
-                infos.add(res.getUriInfo());
-            } catch (InterruptedException | ExecutionException e) {
-                throw new IOException("Error completing small file write", e);
-            } catch (Exception e) {
-                logBuilder().error(e, "addFiles: check small files future returned an exception");
-                throw new IOException("Error completing small file write", e);
-            }
-        }
+        result &= checkSmallFileFutures(smallFileWrites, infos);
 
         transaction.addUris(infos);
 
@@ -260,12 +214,65 @@ public class Publisher {
                 .info("step completed");
 
         logBuilder()
-                .addParameter("largeFileSynchronouss", big)
-                .addParameter("smallFileAsynchronous", small)
-                .addParameter("total", small + big)
+                .addParameter("largeFileSynchronouss", largeZipEntries)
+                .addParameter("smallFileAsynchronous", smallZipEntries)
+                .addParameter("total", smallZipEntries + largeZipEntries)
                 .info("unzip results");
         return result;
     }
+
+    private int bob(ZipInputStream zipInputStream, byte[] buffer) throws IOException {
+        // Read small files into a buffer
+        // NB the size can be -1 if it is unknown, so we read into a buffer to see how much data we're dealing with.
+        //byte[] buffer = new byte[bufferSize];
+        int read;
+        int count = 0;
+        do {
+            read = zipInputStream.read(buffer, count, buffer.length - count);
+            if (read != -1) count += read;
+        } while (read != -1 && count < bufferSize);
+        return count;
+    }
+
+    private Future<TransactionUpdate> processSmallZipEntry(ZipEntry entry, Transaction transaction, String targetUri, InputStream data,
+                                                           Date startDate) {
+        logBuilder().uri(entry.getName()).info("addFiles: adding small file");
+        return pool.submit(() -> addContentToTransaction(transaction, targetUri, data, startDate));
+    }
+
+    private boolean processLargeZipEntry(ZipEntry entry, InputStream bufferedData, ZipInputStream zipInputStream,
+                                         Transaction transaction, String targetUri, Date startDate) throws IOException {
+        try {
+            logBuilder().uri(entry.getName()).info("addFiles: adding large file");
+            InputStream unionInputStream = new UnionInputStream(bufferedData, zipInputStream);
+            TransactionUpdate update = addContentToTransaction(transaction, targetUri, unionInputStream, startDate);
+            return update.isSuccess();
+        } catch (Exception e) {
+            logBuilder()
+                    .uri(targetUri)
+                    .error(e, "Large zip file error: " + e.getCause().getMessage());
+            throw new IOException(e);
+        }
+    }
+
+    private boolean checkSmallFileFutures(List<Future<TransactionUpdate>> smallFileWrites, List<UriInfo> infos) throws IOException {
+        boolean futureResults = true;
+
+        for (Future<TransactionUpdate> smallFileWrite : smallFileWrites) {
+            try {
+                TransactionUpdate res = smallFileWrite.get();
+                futureResults &= res.isSuccess();
+                infos.add(res.getUriInfo());
+            } catch (InterruptedException | ExecutionException e) {
+                throw new IOException("Error completing small file write", e);
+            } catch (Exception e) {
+                logBuilder().error(e, "addFiles: check small files future returned an exception");
+                throw new IOException("Error completing small file write", e);
+            }
+        }
+        return futureResults;
+    }
+
 
     /**
      * Adds a file to the given transaction. The start date for the file transfer is assumed to be the current instant.
@@ -313,6 +320,7 @@ public class Publisher {
         result.setUriInfo(uriInfo);
         return result;
     }
+
     /**
      * When making a change to a file on the website, we copy the existing file into a backup
      *
