@@ -107,40 +107,11 @@ public class Publisher {
 
     private boolean addStreamContentToTransaction(Path target, InputStream input) throws IOException {
         if (target != null) {
-            ReadableByteChannel src = null;
-            FileOutputStream fos = null;
-            FileChannel dest = null;
-
-            Files.createDirectories(target.getParent());
-            try {
-                src = Channels.newChannel(input);
-                fos = new FileOutputStream(target.toFile());
-                dest = fos.getChannel();
-
-                dest.transferFrom(src, 0, Long.MAX_VALUE);
-            } catch (Exception e) {
-                logBuilder()
-                        .addParameter("targetPath", target.toString())
-                        .error(e, "unexpected error transfering inputstream content to transaction via file channel");
-                return false;
-            } finally {
-                src.close();
-                fos.close();
-                dest.close();
-                logBuilder().uri(target.toString()).info("exiting addStreamContentToTransaction");
-            }
-        }
-        return true;
-    }
-
-/*
-    private boolean addStreamContentToTransaction(Path target, InputStream input) throws IOException {
-        if (target != null) {
             Files.createDirectories(target.getParent());
             try (
                     ReadableByteChannel src = Channels.newChannel(input);
                     FileOutputStream fos = new FileOutputStream(target.toFile());
-                    FileChannel dest = fos.getChannel()
+                    FileChannel dest = fos.getChannel();
             ) {
                 dest.transferFrom(src, 0, Long.MAX_VALUE);
             } catch (Exception e) {
@@ -148,12 +119,10 @@ public class Publisher {
                         .addParameter("targetPath", target.toString())
                         .error(e, "unexpected error transfering inputstream content to transaction via file channel");
                 return false;
-            } finally {
-                logBuilder().uri(target.toString()).info("exiting addStreamContentToTransaction");
             }
         }
         return true;
-    }*/
+    }
 
     /**
      * Adds a set of files contained in a zip to the given transaction. The start date for each file transfer is the instant when each {@link ZipEntry} is accessed.
@@ -183,15 +152,15 @@ public class Publisher {
                 // Read small files into a buffer and write them asynchronously
                 // NB the size can be -1 if it is unknown, so we read into a buffer to see how much data we're dealing with.
                 byte[] buffer = new byte[bufferSize];
-                int count = bob(zipInputStream, buffer);
-                final InputStream zipInChunk = new ByteArrayInputStream(buffer, 0, count);
+                int count = populateBuffer(zipInputStream, buffer);
+                final InputStream zipChunk = new ByteArrayInputStream(buffer, 0, count);
 
                 // If entry data fit into the buffer, go asynchronous:
                 if (count < buffer.length) {
-                    smallFileWrites.add(processSmallZipEntry(entry, transaction, targetUri, zipInChunk, startDate));
+                    smallFileWrites.add(asyncProcessSmallZipEntry(entry, transaction, targetUri, zipChunk, startDate));
                     smallZipEntries++;
                 } else {
-                    result &= processLargeZipEntry(entry, zipInChunk, zipInputStream, transaction, targetUri, startDate);
+                    result &= processLargeZipEntry(entry, transaction, targetUri, zipChunk, startDate, zipInputStream);
                     largeZipEntries++;
                 }
                 zipInputStream.closeEntry();
@@ -221,7 +190,7 @@ public class Publisher {
         return result;
     }
 
-    private int bob(ZipInputStream zipInputStream, byte[] buffer) throws IOException {
+    private int populateBuffer(ZipInputStream zipInputStream, byte[] buffer) throws IOException {
         // Read small files into a buffer
         // NB the size can be -1 if it is unknown, so we read into a buffer to see how much data we're dealing with.
         //byte[] buffer = new byte[bufferSize];
@@ -234,17 +203,18 @@ public class Publisher {
         return count;
     }
 
-    private Future<TransactionUpdate> processSmallZipEntry(ZipEntry entry, Transaction transaction, String targetUri, InputStream data,
-                                                           Date startDate) {
+    private Future<TransactionUpdate> asyncProcessSmallZipEntry(ZipEntry entry, Transaction transaction, String targetUri,
+                                                                InputStream zipChunk, Date startDate) {
         logBuilder().uri(entry.getName()).info("addFiles: adding small file");
-        return pool.submit(() -> addContentToTransaction(transaction, targetUri, data, startDate));
+        return pool.submit(() -> addContentToTransaction(transaction, targetUri, zipChunk, startDate));
     }
 
-    private boolean processLargeZipEntry(ZipEntry entry, InputStream bufferedData, ZipInputStream zipInputStream,
-                                         Transaction transaction, String targetUri, Date startDate) throws IOException {
-        try {
-            logBuilder().uri(entry.getName()).info("addFiles: adding large file");
-            InputStream unionInputStream = new UnionInputStream(bufferedData, zipInputStream);
+    private boolean processLargeZipEntry(ZipEntry entry, Transaction transaction, String targetUri,
+                                         InputStream zipChunk, Date startDate, ZipInputStream zipInputStream)
+            throws IOException {
+        logBuilder().uri(entry.getName()).info("addFiles: adding large file");
+
+        try (InputStream unionInputStream = new UnionInputStream(zipChunk, zipInputStream)) {
             TransactionUpdate update = addContentToTransaction(transaction, targetUri, unionInputStream, startDate);
             return update.isSuccess();
         } catch (Exception e) {

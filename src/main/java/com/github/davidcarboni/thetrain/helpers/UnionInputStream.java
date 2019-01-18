@@ -152,6 +152,7 @@ public class UnionInputStream extends InputStream {
     public void close() throws IOException {
         logBuilder().info("calling close on union input stream");
         IOUtils.closeQuietly(a);
-        IOUtils.closeQuietly(b);
+        // TODO explain why this is not closed.
+        //IOUtils.closeQuietly(b);
     }
 }
