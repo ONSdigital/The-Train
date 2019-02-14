@@ -3,11 +3,6 @@ job "the-train" {
   region      = "eu"
   type        = "service"
 
-  constraint {
-    attribute = "${meta.has_disk}"
-    value     = true
-  }
-
   update {
     min_healthy_time = "30s"
     healthy_deadline = "2m"
@@ -25,8 +20,7 @@ job "the-train" {
 
     constraint {
       attribute = "${node.class}"
-      operator  = "regexp"
-      value     = "web.*"
+      value     = "web-mount"
     }
 
     restart {

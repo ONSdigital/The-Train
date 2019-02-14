@@ -117,7 +117,7 @@ public class Generator {
         FileUtils.copyDirectory(Transactions.content(transaction).toFile(), Website.path().toFile());
 
         // Attempt to commit
-        Publisher.commit(transaction, com.github.davidcarboni.thetrain.storage.Website.path());
+        Publisher.getInstance().commit(transaction, com.github.davidcarboni.thetrain.storage.Website.path());
         System.out.println("Committed to " + Website.path());
 
         // Print out

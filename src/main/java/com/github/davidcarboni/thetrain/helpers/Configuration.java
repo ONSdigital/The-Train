@@ -1,7 +1,5 @@
 package com.github.davidcarboni.thetrain.helpers;
 
-import com.github.davidcarboni.cryptolite.Keys;
-import com.github.davidcarboni.thetrain.logging.LogBuilder;
 import org.apache.commons.lang3.StringUtils;
 
 import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
@@ -11,10 +9,11 @@ import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
  */
 public class Configuration {
 
-    static final String TRANSACTION_STORE_LEGACY = "thetrain.transactions";
-    static final String TRANSACTION_STORE = "TRANSACTION_STORE";
-    static final String WEBSITE_LEGACY = "thetrain.website";
-    static final String WEBSITE = "WEBSITE";
+    public static final String TRANSACTION_STORE_LEGACY = "thetrain.transactions";
+    public static final String TRANSACTION_STORE = "TRANSACTION_STORE";
+    public static final String WEBSITE_LEGACY = "thetrain.website";
+    public static final String WEBSITE = "WEBSITE";
+    public static final String PUBLISHING_THREAD_POOL_SIZE = "PUBLISHING_THREAD_POOL_SIZE";
 
     /**
      * Gets a configuration value from {@link System#getProperty(String)}, falling back to {@link System#getenv()}
@@ -35,4 +34,14 @@ public class Configuration {
         return StringUtils.defaultIfBlank(System.getenv(TRANSACTION_STORE), get(TRANSACTION_STORE_LEGACY));
     }
 
+    public static int threadPoolSize() {
+        try {
+            return Integer.parseInt(System.getenv(PUBLISHING_THREAD_POOL_SIZE));
+        } catch (NumberFormatException e) {
+            logBuilder()
+                    .addParameter("envVar", PUBLISHING_THREAD_POOL_SIZE)
+                    .error(e, "fail to parse environment variable to integer");
+            throw e;
+        }
+    }
 }
