@@ -9,6 +9,7 @@ import com.github.onsdigital.thetrain.service.TransactionsService;
 import spark.Request;
 import spark.Response;
 
+import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
@@ -51,7 +52,7 @@ public class CommitTransaction extends BaseHandler {
                 throw new PublishException(COMMIT_UNSUCCESSFUL_ERR, transaction);
             }
 
-            log.responseStatus(OK_200).info(COMMIT_SUCCESSFUL_MSG);
+            info().data("transaction_id", transaction.id()).log(COMMIT_SUCCESSFUL_MSG);
             response.status(OK_200);
             return new Result(RESULT_SUCCESS_MSG, false, transaction);
 

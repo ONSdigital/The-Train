@@ -6,7 +6,7 @@ import com.github.onsdigital.thetrain.service.TransactionsService;
 import spark.Request;
 import spark.Response;
 
-import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
+import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
 import static java.lang.String.format;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
@@ -26,10 +26,7 @@ public class GetTransaction extends BaseHandler {
         Transaction transaction = transactionsService.getTransaction(request);
 
         response.status(OK_200);
-        logBuilder().responseStatus(OK_200)
-                .transactionID(transaction)
-                .info(GET_TRANS_SUCCESS_LOG);
-
+        info().data("transaction_id", transaction.id()).log(GET_TRANS_SUCCESS_LOG);
         return new Result(format(GET_TRANS_SUCCESS_RESULT, transaction.id()), false, transaction);
     }
 }

@@ -15,6 +15,7 @@ import spark.Response;
 
 import java.nio.file.Path;
 
+import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -70,15 +71,14 @@ public class SendManifest extends BaseHandler {
             }
 
             // success
-            log.responseStatus(OK_200)
-                    .addParameter("copied", copied)
-                    .addParameter("deleted", deleted)
-                    .info("copying manifest files to website and adding files to delete completed successfully");
+            info().data("files_copied", copied)
+                    .data("files_deleted", deleted)
+                    .data("transaction_id", transaction.id())
+                    .log("copying manifest files to website and adding files to delete completed successfully");
 
             response.status(OK_200);
             return new Result(format("Copied %d files. Deleted %s files.", copied, deleted), false, transaction);
         } finally {
-            log.info("updating transaction");
             try {
                 transactionsService.update(transaction);
                 Transactions.update(transaction);

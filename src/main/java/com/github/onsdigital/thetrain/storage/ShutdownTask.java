@@ -1,8 +1,8 @@
 package com.github.onsdigital.thetrain.storage;
 
-import com.github.onsdigital.thetrain.logging.LogBuilder;
-
 import java.util.concurrent.ExecutorService;
+
+import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
 
 public class ShutdownTask extends Thread {
 
@@ -15,7 +15,7 @@ public class ShutdownTask extends Thread {
     @Override
     public void run() {
         super.run();
-        LogBuilder.logBuilder().info("shutting down Publisher Thread Pool");
+        info().log("shutting down Publisher Thread Pool");
         pool.shutdown();
     }
 }

@@ -40,13 +40,6 @@
             <version>2.8.0</version>
         </dependency>
 
-        <!-- Restolino -->
-        <!--        <dependency>
-                    <groupId>com.github.davidcarboni</groupId>
-                    <artifactId>restolino</artifactId>
-                    <version>0.1.8</version>
-                </dependency>-->
-
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>servlet-api</artifactId>
@@ -127,7 +120,7 @@
         <dependency>
             <groupId>com.github.ONSdigital</groupId>
             <artifactId>dp-logging</artifactId>
-            <version>master-SNAPSHOT</version>
+            <version>master-25d3e73a4c-1</version>
         </dependency>
 
         <!-- Test -->

@@ -7,7 +7,6 @@ import com.github.onsdigital.thetrain.json.UriInfo;
 import com.github.onsdigital.thetrain.json.request.FileCopy;
 import com.github.onsdigital.thetrain.json.request.Manifest;
 import com.github.onsdigital.thetrain.logging.LogBuilder;
-import com.github.onsdigital.thetrain.logging.MetricEvents;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -35,6 +34,8 @@ import java.util.concurrent.Future;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import static com.github.onsdigital.logging.v2.event.SimpleEvent.error;
+import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 
 /**
@@ -65,7 +66,7 @@ public class Publisher {
                 if (instance == null) {
                     int bufferSize = 100 * 1024;
                     instance = new Publisher(bufferSize);
-                    logBuilder().addParameter("bufferSize", bufferSize).info("initialised new publisher instance");
+                    info().data("buffer_size", bufferSize).log("initialised new publisher instance");
                 }
             }
         }
@@ -119,24 +120,25 @@ public class Publisher {
     /**
      * Adds a set of files contained in a zip to the given transaction. The start date for each file transfer is the instant when each {@link ZipEntry} is accessed.
      *
-     * @param transaction The transaction to add the file to
-     * @param uri         The target URI for the file
-     * @param zip         The zipped files
+     * @param transaction    The transaction to add the file to
+     * @param uri            The target URI for the file
+     * @param zipInputStream The zipped files
      * @return The hash of the file once included in the transaction.
      * @throws IOException If a filesystem error occurs.
      */
-    public boolean addFiles(final Transaction transaction, String uri, final ZipInputStream zip, Path websitePath) throws IOException {
+    public boolean addFiles(final Transaction transaction, String uri, final ZipInputStream zipInputStream,
+                            Path websitePath) throws IOException {
         LocalDateTime start = LocalDateTime.now();
         boolean result = true;
         ZipEntry entry;
 
         // Small files are written asynchronously from byte array buffers:
         List<Future<TransactionUpdate>> smallFileWrites = new ArrayList<>();
-        int big = 0;
-        int small = 0;
+        int largeZipEntries = 0;
+        int smallZipEntries = 0;
 
         try {
-            while ((entry = zip.getNextEntry()) != null && !entry.isDirectory()) {
+            while ((entry = zipInputStream.getNextEntry()) != null && !entry.isDirectory()) {
 
                 final Date startDate = new Date();
                 final String targetUri = PathUtils.stripTrailingSlash(uri) + PathUtils.setLeadingSlash(entry.getName());
@@ -144,37 +146,20 @@ public class Publisher {
                 // Read small files into a buffer and write them asynchronously
                 // NB the size can be -1 if it is unknown, so we read into a buffer to see how much data we're dealing with.
                 byte[] buffer = new byte[bufferSize];
-                int read;
-                int count = 0;
-                do {
-                    read = zip.read(buffer, count, buffer.length - count);
-                    if (read != -1) count += read;
-                } while (read != -1 && count < bufferSize);
-
-                final InputStream data = new ByteArrayInputStream(buffer, 0, count);
+                int count = populateBuffer(zipInputStream, buffer);
+                final InputStream zipChunk = new ByteArrayInputStream(buffer, 0, count);
 
                 // If entry data fit into the buffer, go asynchronous:
                 if (count < buffer.length) {
-                    smallFileWrites.add(pool.submit(() ->
-                            addContentToTransaction(transaction, targetUri, data, startDate, websitePath)));
-                    small++;
+                    smallFileWrites.add(asyncProcessSmallZipEntry(entry, transaction, targetUri, zipChunk, startDate,
+                            websitePath));
+                    smallZipEntries++;
                 } else {
-                    // Large file, so read from (data + "more from the zip")
-
-                    // TODO: Defect: These streams should be closed however closing the UnionInputStream will close
-                    // the underlying zip stream - which breaks the app.
-                    // It's probably possible to fix this but it would mean a big refactor (and this code is mental)
-                    // - its been this way for 2+ years and hasn't broken anything and the train's day are number so we
-                    // are taking the view - leave it and do it properly when we replace the Train.
-                    //
-                    // - Dave L.
-                    //ShaInputStream input = new ShaInputStream(new UnionInputStream(data, zip));
-                    InputStream input = new UnionInputStream(data, zip);
-                    TransactionUpdate update = addContentToTransaction(transaction, targetUri, input, startDate, websitePath);
-                    result &= update.isSuccess();
-                    big++;
+                    result &= processLargeZipEntry(entry, transaction, targetUri, zipChunk, startDate,
+                            zipInputStream, websitePath);
+                    largeZipEntries++;
                 }
-                zip.closeEntry();
+                zipInputStream.closeEntry();
             }
 
         } catch (IOException e) {
@@ -185,31 +170,70 @@ public class Publisher {
         }
 
         List<UriInfo> infos = new ArrayList<>();
-        // Process results of any asynchronous writes
-        for (Future<TransactionUpdate> smallFileWrite : smallFileWrites) {
-            try {
-
-                TransactionUpdate res = smallFileWrite.get();
-                result &= res.isSuccess();
-                infos.add(res.getUriInfo());
-            } catch (InterruptedException | ExecutionException e) {
-                throw new IOException("Error completing small file write", e);
-            }
-        }
+        result &= checkSmallFileFutures(smallFileWrites, infos);
 
         transaction.addUris(infos);
 
-        logBuilder().metrics(start, MetricEvents.ADD_FILES)
-                .transactionID(transaction.id())
-                .info("step completed");
+        info().data("transaction_id", transaction.id())
+                .log("step completed");
 
-        logBuilder()
-                .addParameter("largeFileSynchronouss", big)
-                .addParameter("smallFileAsynchronous", small)
-                .addParameter("total", small + big)
-                .info("unzip results");
+        info().data("largeFileSynchronouss", largeZipEntries)
+                .data("smallFileAsynchronous", smallZipEntries)
+                .data("total", (smallZipEntries + largeZipEntries))
+                .log("unzip results");
         return result;
     }
+
+    private int populateBuffer(ZipInputStream zipInputStream, byte[] buffer) throws IOException {
+        // Read small files into a buffer
+        // NB the size can be -1 if it is unknown, so we read into a buffer to see how much data we're dealing with.
+        //byte[] buffer = new byte[bufferSize];
+        int read;
+        int count = 0;
+        do {
+            read = zipInputStream.read(buffer, count, buffer.length - count);
+            if (read != -1) count += read;
+        } while (read != -1 && count < bufferSize);
+        return count;
+    }
+
+    private Future<TransactionUpdate> asyncProcessSmallZipEntry(ZipEntry entry, Transaction transaction, String targetUri,
+                                                                InputStream zipChunk, Date startDate, Path websitePath) {
+        info().data("uri", entry.getName()).log("addFiles: adding small file");
+        return pool.submit(() -> addContentToTransaction(transaction, targetUri, zipChunk, startDate, websitePath));
+    }
+
+    private boolean processLargeZipEntry(ZipEntry entry, Transaction transaction, String targetUri,
+                                         InputStream zipChunk, Date startDate, ZipInputStream zipInputStream, Path websitePath)
+            throws IOException {
+        info().data("uri", entry.getName()).log("addFiles: adding large file");
+
+        try (InputStream unionInputStream = new UnionInputStream(zipChunk, zipInputStream)) {
+            TransactionUpdate update = addContentToTransaction(transaction, targetUri, unionInputStream, startDate, websitePath);
+            return update.isSuccess();
+        } catch (Exception e) {
+            throw error().data("uri", targetUri).logException(new IOException(e), "Large zip file error");
+        }
+    }
+
+    private boolean checkSmallFileFutures(List<Future<TransactionUpdate>> smallFileWrites, List<UriInfo> infos) throws IOException {
+        boolean futureResults = true;
+
+        for (Future<TransactionUpdate> smallFileWrite : smallFileWrites) {
+            try {
+                TransactionUpdate res = smallFileWrite.get();
+                futureResults &= res.isSuccess();
+                infos.add(res.getUriInfo());
+            } catch (InterruptedException | ExecutionException e) {
+                throw new IOException("Error completing small file write", e);
+            } catch (Exception e) {
+                logBuilder().error(e, "addFiles: check small files future returned an exception");
+                throw new IOException("Error completing small file write", e);
+            }
+        }
+        return futureResults;
+    }
+
 
     /**
      * Adds a file to the given transaction. The start date for the file transfer is assumed to be the current instant.
@@ -306,10 +330,6 @@ public class Publisher {
 
         // all good update transaction
         transaction.addUris(results);
-
-        logBuilder().metrics(start, MetricEvents.COPY_FILES)
-                .transactionID(transaction.id())
-                .info("step completed");
         return filesMoved;
     }
 
@@ -323,7 +343,6 @@ public class Publisher {
      */
     public int addFilesToDelete(Transaction transaction, Manifest manifest, Path website) throws IOException {
         LocalDateTime start = LocalDateTime.now();
-        LogBuilder logBuilder = logBuilder();
 
         List<UriInfo> deletedURIS = new ArrayList<>();
 
@@ -337,23 +356,17 @@ public class Publisher {
                 Path targetDirectory = target;
                 if (Files.exists(targetDirectory)) {
                     Path backupDirectory = PathUtils.toPath(uri, Transactions.backup(transaction));
-                    logBuilder.addParameter("directory", target.toString())
-                            .info("backing up directory before deletion");
+                    info().data("directory", target.toString())
+                            .log("backing up directory before deletion");
 
                     FileUtils.copyDirectory(targetDirectory.toFile(), backupDirectory.toFile());
                 } else {
-                    logBuilder.addParameter("directory", target.toString())
-                            .info("cannot backup directory as it does not exist, skipping");
+                    info().data("directory", target.toString()).log("cannot backup directory as it does not exist, skipping");
                 }
                 deletedURIS.add(uriInfo);
             }
             transaction.addUriDeletes(deletedURIS);
         }
-
-        logBuilder().metrics(start, MetricEvents.ADD_DELETE_FILES)
-                .transactionID(transaction.id())
-                .info("step completed");
-
         return deletedURIS.size();
     }
 
@@ -373,17 +386,17 @@ public class Publisher {
         String action = backupExistingFile(transaction, targetUri, websitePath);
 
         if (!Files.exists(source)) {
-            logBuilder
-                    .transactionID(transaction.id())
-                    .addParameter("path", source.toString()).info("could not move file because it does not exist");
+            info().data("transaction_id", transaction.id())
+                    .data("path", source.toString())
+                    .log("could not move file because it does not exist");
             return result;
         }
 
         // if the file already exists it has already been copied so ignore it.
         // doing this allows the publish to be reattempted if it fails without trying to copy files over existing files.
         if (Files.exists(finalWebsiteTarget)) {
-            logBuilder.addParameter("path", finalWebsiteTarget.toString())
-                    .info("could not move file as it already exists");
+            info().data("path", finalWebsiteTarget.toString())
+                    .log("could not move file as it already exists");
             return result;
         }
 
@@ -397,10 +410,6 @@ public class Publisher {
         UriInfo uriInfo = new UriInfo(targetUri, new Date());
         uriInfo.stop();
         uriInfo.setAction(action);
-
-        logBuilder().metrics(start, MetricEvents.COPY_FILE)
-                .transactionID(transaction.id())
-                .info("step completed");
 
         result.setUriInfo(uriInfo);
         return result;
@@ -464,10 +473,6 @@ public class Publisher {
             Transactions.end(transaction);
         }
 
-        logBuilder().metrics(start, MetricEvents.COMMIT)
-                .transactionID(transaction.id())
-                .info("step completed");
-
         return result;
     }
 
@@ -480,15 +485,9 @@ public class Publisher {
             String uri = uriInfo.uri();
             Path target = PathUtils.toPath(uri, website);
 
-            logBuilder.addParameter("path", target.toString())
-                    .transactionID(transaction.id())
-                    .info("deleting directory");
+            info().data("path", target.toString()).data("transaction_id", transaction.id()).log("deleting directory");
 
             FileUtils.deleteDirectory(target.toFile());
-
-            logBuilder().metrics(start, MetricEvents.APPLY_DELETES)
-                    .transactionID(transaction.id())
-                    .info("step completed");
         }
     }
 

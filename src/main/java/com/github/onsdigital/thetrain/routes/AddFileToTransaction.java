@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.zip.ZipInputStream;
 
+import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 
 public class AddFileToTransaction extends BaseHandler {
@@ -57,7 +58,7 @@ public class AddFileToTransaction extends BaseHandler {
 
         transactionsService.tryUpdateAsync(transaction);
 
-        log.info("file added to publish transaction successfully");
+        info().log("file added to publish transaction successfully");
         return new Result("Published to " + uri, false, transaction);
     }
 
@@ -79,7 +80,7 @@ public class AddFileToTransaction extends BaseHandler {
         if (!isSuccess) {
             throw new PublishException("error processing zip request", transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
-        logBuilder().info("file unzipped and added successfully");
+        info().log("file unzipped and added successfully");
     }
 
     /**
@@ -107,6 +108,6 @@ public class AddFileToTransaction extends BaseHandler {
             throw new PublishException(ADD_FILE_ERR_MSG, transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
 
-        logBuilder().transactionID(transaction).uri(uri).info("file successfully added to transaction");
+        info().data("transaction_id", transaction.id()).data("uri", uri).log("file successfully added to transaction");
     }
 }

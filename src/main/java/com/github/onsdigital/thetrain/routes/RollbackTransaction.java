@@ -9,6 +9,7 @@ import com.github.onsdigital.thetrain.service.TransactionsService;
 import spark.Request;
 import spark.Response;
 
+import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
@@ -49,11 +50,11 @@ public class RollbackTransaction extends BaseHandler {
             // TODO no idea what this is doing... keeping it here to avoid breaking something
             transactionsService.listFiles(transaction);
 
-            log.info("rollback transaction completed successfully");
+            info().data("transaction_id", transaction.id()).log("rollback transaction completed successfully");
             response.status(OK_200);
             return new Result(ROLLBACK_SUCCESS_MSG, false, transaction);
         } finally {
-            log.info("rollback persisting changes to transaction");
+            info().data("transaction_id", transaction.id()).log("rollback persisting changes to transaction");
             transactionsService.update(transaction);
         }
     }

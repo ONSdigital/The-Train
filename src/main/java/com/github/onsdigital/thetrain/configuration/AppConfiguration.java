@@ -6,7 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
+import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
 import static java.lang.String.format;
 
 /**
@@ -42,11 +42,11 @@ public class AppConfiguration {
         this.publishThreadPoolSize = loadPublishPoolSizeConfig();
         this.port = loadPortConfig();
 
-        logBuilder().addParameter(TRANSACTION_STORE_ENV_KEY, transactionStore)
-                .addParameter(WEBSITE_ENV_KEY, websitePath)
-                .addParameter(THREAD_POOL_SIZE_ENV_KEY, publishThreadPoolSize)
-                .addParameter(PORT_ENV_KEY, port)
-                .info("successfully load application configuration");
+        info().data(TRANSACTION_STORE_ENV_KEY, transactionStore)
+                .data(WEBSITE_ENV_KEY, websitePath)
+                .data(THREAD_POOL_SIZE_ENV_KEY, publishThreadPoolSize)
+                .data(PORT_ENV_KEY, port)
+                .log("successfully load application configuration");
     }
 
     /**

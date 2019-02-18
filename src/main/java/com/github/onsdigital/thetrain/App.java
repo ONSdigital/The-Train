@@ -1,5 +1,14 @@
 package com.github.onsdigital.thetrain;
 
+import com.github.onsdigital.logging.v2.DPLogger;
+import com.github.onsdigital.logging.v2.Logger;
+import com.github.onsdigital.logging.v2.LoggerImpl;
+import com.github.onsdigital.logging.v2.LoggingException;
+import com.github.onsdigital.logging.v2.config.Builder;
+import com.github.onsdigital.logging.v2.serializer.JacksonLogSerialiser;
+import com.github.onsdigital.logging.v2.serializer.LogSerialiser;
+import com.github.onsdigital.logging.v2.storage.LogStore;
+import com.github.onsdigital.logging.v2.storage.MDCLogStore;
 import com.github.onsdigital.thetrain.configuration.AppConfiguration;
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import com.github.onsdigital.thetrain.exception.PublishException;
@@ -31,7 +40,8 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
+import static com.github.onsdigital.logging.v2.event.SimpleEvent.fatal;
+import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
 import static spark.Spark.after;
 import static spark.Spark.before;
 import static spark.Spark.exception;
@@ -44,11 +54,27 @@ public class App {
     static Map<String, String> ROUTES;
 
     public static void main(String[] args) {
+        LogSerialiser serialiser = new JacksonLogSerialiser(true);
+        LogStore store = new MDCLogStore(serialiser);
+        Logger logger = new LoggerImpl("the-train");
+
         try {
-            logBuilder().info("starting the-train");
+            DPLogger.init(new Builder()
+                    .logger(logger)
+                    .logStore(store)
+                    .serialiser(serialiser)
+                    .dataNamespace("train.data")
+                    .create());
+        } catch (LoggingException ex) {
+            System.err.println(ex);
+            System.exit(100);
+        }
+
+        try {
+            info().log("starting the-train");
             allAboard();
         } catch (Exception e) {
-            logBuilder().error(e, "unexpected error while attempting to start the-train");
+            fatal(e).log("unexpected error while attempting to start the-train");
             System.exit(100);
         }
     }
@@ -79,9 +105,7 @@ public class App {
 
         registerRoutes(transformer, fileUploadHelper, transactionsService, publisherService, config.websitePath());
 
-        logBuilder().addParameter("routes", ROUTES)
-                .addParameter("PORT", config.port())
-                .info("registered routes");
+        info().data("routes", ROUTES).data("PORT", config.port()).log("registered API routes");
     }
 
     private static void registerExeptionHandlers(QuietFilter afterFilter) {

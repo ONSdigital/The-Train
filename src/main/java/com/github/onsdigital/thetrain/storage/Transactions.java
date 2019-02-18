@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
 import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 
 // TODO FIX ME - Make this class a singleton with non static methods.
@@ -50,7 +51,7 @@ public class Transactions {
         transactionMap = new ConcurrentHashMap<>();
         transactionExecutorMap = new ConcurrentHashMap<>();
 
-        logBuilder().info("transaction store initialisation completed");
+        info().log("transaction store initialisation completed");
     }
 
     public static Map<String, Transaction> getTransactionMap() {
@@ -126,7 +127,7 @@ public class Transactions {
             if (StringUtils.isNotBlank(id)) {
 
                 if (!transactionMap.containsKey(id)) {
-                    log.info("transaction does not exist in in-memory storage, attempting to read from file system");
+                    info().log("transaction does not exist in in-memory storage, attempting to read from file system");
                     // Generate the file structure
                     Path transactionPath = path(id);
                     if (transactionPath != null && Files.exists(transactionPath)) {
@@ -231,12 +232,12 @@ public class Transactions {
                 Path transactionPath = path(transaction.id());
                 if (transactionPath != null && Files.exists(transactionPath)) {
                     final Path json = transactionPath.resolve(JSON);
-                    log.addParameter("path", json.toString())
-                            .info("writing transaction file");
+
+                    info().data("path", json.toString()).log("writing transaction file");
 
                     try (OutputStream output = Files.newOutputStream(json)) {
                         objectMapper.writeValue(output, read);
-                        log.info("writing transaction file completed successfully");
+                        info().log("writing transaction file completed successfully");
                     } catch (Exception e) {
                         log.addParameter("path", json.toString())
                                 .error(e, "error while writing transaction to file");
