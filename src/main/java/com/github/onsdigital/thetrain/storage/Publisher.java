@@ -98,13 +98,14 @@ public class Publisher {
         }
     }
 
+
     private boolean addStreamContentToTransaction(Path target, InputStream input) throws IOException {
         if (target != null) {
             Files.createDirectories(target.getParent());
             try (
                     ReadableByteChannel src = Channels.newChannel(input);
                     FileOutputStream fos = new FileOutputStream(target.toFile());
-                    FileChannel dest = fos.getChannel()
+                    FileChannel dest = fos.getChannel();
             ) {
                 dest.transferFrom(src, 0, Long.MAX_VALUE);
             } catch (Exception e) {
@@ -233,7 +234,6 @@ public class Publisher {
         }
         return futureResults;
     }
-
 
     /**
      * Adds a file to the given transaction. The start date for the file transfer is assumed to be the current instant.

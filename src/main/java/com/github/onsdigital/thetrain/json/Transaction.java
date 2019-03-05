@@ -157,7 +157,9 @@ public class Transaction {
      * @return An unmodifiable set of the URIs in this transaction.
      */
     public List<String> errors() {
-        return Collections.unmodifiableList(errors);
+        synchronized (this) {
+            return Collections.unmodifiableList(errors);
+        }
     }
 
     /**
