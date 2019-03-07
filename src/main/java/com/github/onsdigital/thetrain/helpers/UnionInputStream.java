@@ -5,7 +5,7 @@ import org.apache.commons.io.IOUtils;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static com.github.davidcarboni.thetrain.logging.LogBuilder.logBuilder;
+import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
 
 /**
  * This class is inspired by {@link java.io.SequenceInputStream SequenceInputStream},
