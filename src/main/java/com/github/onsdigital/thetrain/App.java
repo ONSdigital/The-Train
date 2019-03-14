@@ -67,15 +67,15 @@ public class App {
                     .create());
         } catch (LoggingException ex) {
             System.err.println(ex);
-            System.exit(100);
+            System.exit(1);
         }
 
         try {
             info().log("starting the-train");
             allAboard();
         } catch (Exception e) {
-            fatal(e).log("unexpected error while attempting to start the-train");
-            System.exit(100);
+            fatal(e).exception(e).log("unexpected error while attempting to start the-train");
+            System.exit(1);
         }
     }
 
