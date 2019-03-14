@@ -54,7 +54,7 @@ public class App {
     static Map<String, String> ROUTES;
 
     public static void main(String[] args) {
-        LogSerialiser serialiser = new JacksonLogSerialiser(true); // TODO MAKE SURE THIS IS REMOVED
+        LogSerialiser serialiser = new JacksonLogSerialiser();
         LogStore store = new MDCLogStore(serialiser);
         Logger logger = new LoggerImpl("the-train");
 
