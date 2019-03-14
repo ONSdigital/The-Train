@@ -5,7 +5,6 @@ import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
-import com.github.onsdigital.thetrain.logging.LogBuilder;
 import com.github.onsdigital.thetrain.service.PublisherService;
 import com.github.onsdigital.thetrain.service.TransactionsService;
 import com.github.onsdigital.thetrain.storage.TransactionUpdate;
@@ -18,8 +17,7 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.zip.ZipInputStream;
 
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
-import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 
 public class AddFileToTransaction extends BaseHandler {
 
@@ -42,13 +40,9 @@ public class AddFileToTransaction extends BaseHandler {
     @Override
     public Object handle(Request request, Response response) throws Exception {
         Date startDate = new Date();
-        LogBuilder log = logBuilder();
 
         Transaction transaction = transactionsService.getTransaction(request);
-        log.transactionID(transaction.id());
-
         String uri = getURI(request);
-        log.uri(uri);
 
         if (isZipped(request)) {
             handleZipRequest(request, transaction, uri);
@@ -58,7 +52,10 @@ public class AddFileToTransaction extends BaseHandler {
 
         transactionsService.tryUpdateAsync(transaction);
 
-        info().log("file added to publish transaction successfully");
+        info().transactionID(transaction.id())
+                .data("uri", uri)
+                .log("file added to publish transaction successfully");
+
         return new Result("Published to " + uri, false, transaction);
     }
 
