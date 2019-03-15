@@ -3,13 +3,12 @@ package com.github.onsdigital.thetrain.exception.handler;
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import com.github.onsdigital.thetrain.filters.QuietFilter;
 import com.github.onsdigital.thetrain.json.Result;
-import com.github.onsdigital.thetrain.logging.LogBuilder;
 import com.google.gson.Gson;
 import spark.ExceptionHandler;
 import spark.Request;
 import spark.Response;
 
-import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
 
 public class BadRequestExceptionHandler implements ExceptionHandler<BadRequestException> {
 
@@ -23,14 +22,7 @@ public class BadRequestExceptionHandler implements ExceptionHandler<BadRequestEx
 
     @Override
     public void handle(BadRequestException e, Request request, Response response) {
-        logBuilder().warn("HANDLING BAD REQUEST EXCEPTION");
-        LogBuilder log = logBuilder().transactionID(e.getTransactionID());
-        if (e.getCause() != null) {
-            log.error(e.getCause(), e.getMessage());
-        } else {
-            log.error(e.getMessage());
-        }
-
+        error().transactionID(e.getTransactionID()).logException(e, "bad request exception");
         response.status(400);
         response.body(gson.toJson(new Result(e.getMessage(), true, null)));
         filter.handleQuietly(request, response);

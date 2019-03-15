@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.onsdigital.thetrain.helpers.PathUtils;
 import com.github.onsdigital.thetrain.json.Transaction;
-import com.github.onsdigital.thetrain.logging.LogBuilder;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -22,8 +21,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
-import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 
 // TODO FIX ME - Make this class a singleton with non static methods.
 
@@ -69,9 +68,7 @@ public class Transactions {
      * @throws IOException If a filesystem error occurs in creating the transaction.
      */
     public static Transaction create() throws IOException {
-
         Transaction transaction = new Transaction();
-        LogBuilder log = logBuilder().transactionID(transaction.id());
 
         // Generate the file structure
         Path path = path(transaction.id());
@@ -81,11 +78,13 @@ public class Transactions {
             objectMapper.writeValue(output, transaction);
             Files.createDirectory(path.resolve(CONTENT));
             Files.createDirectory(path.resolve(BACKUP));
-            log.debug("transaction written to disk successfully");
+            info().transactionID(transaction.id())
+                    .log("transaction written to disk successfully");
 
             transactionMap.put(transaction.id(), transaction);
 
-            log.debug("transaction added to in-memory storage");
+            info().transactionID(transaction.id())
+                    .log("transaction added to in-memory storage");
 
             if (!transactionExecutorMap.containsKey(transaction.id())) {
                 transactionExecutorMap.put(transaction.id(), Executors.newSingleThreadExecutor());
@@ -120,14 +119,14 @@ public class Transactions {
      */
 
     public static Transaction get(String id) throws IOException {
-        LogBuilder log = logBuilder().transactionID(id);
         Transaction result = null;
 
         try {
             if (StringUtils.isNotBlank(id)) {
 
                 if (!transactionMap.containsKey(id)) {
-                    info().log("transaction does not exist in in-memory storage, attempting to read from file system");
+                    info().transactionID(id)
+                            .log("transaction does not exist in in-memory storage, attempting to read from file system");
                     // Generate the file structure
                     Path transactionPath = path(id);
                     if (transactionPath != null && Files.exists(transactionPath)) {
@@ -137,13 +136,13 @@ public class Transactions {
                         }
                     }
                 } else {
-                    log.debug("retrieving transaction from in-memory storage");
+                    info().transactionID(id).log("retrieving transaction from in-memory storage");
                     result = transactionMap.get(id);
                 }
             }
             return result;
         } catch (Exception e) {
-            log.transactionID(id).error(e, "get transaction returned an unexpected error");
+            error().transactionID(id).exception(e).log("get transaction returned an unexpected error");
             throw e;
         }
     }
@@ -204,7 +203,9 @@ public class Transactions {
                             // do nothing
                         }
                     } catch (IOException exception) {
-                        logBuilder().error(exception, "tryUpdateAsync: unexpected error encountered");
+                        error().transactionID(transactionId)
+                                .exception(exception)
+                                .log("tryUpdateAsync: unexpected error encountered");
                     }
 
                     return result;
@@ -222,7 +223,6 @@ public class Transactions {
      * @throws IOException If an error occurs in reading the transaction Json.
      */
     public static void update(Transaction transaction) throws IOException {
-        LogBuilder log = logBuilder();
         if (transaction != null && transactionMap.containsKey(transaction.id())) {
             // The transaction passed in should always be an instance from the map
             // otherwise there's potential to lose updates.
@@ -233,14 +233,14 @@ public class Transactions {
                 if (transactionPath != null && Files.exists(transactionPath)) {
                     final Path json = transactionPath.resolve(JSON);
 
-                    info().data("path", json.toString()).log("writing transaction file");
+                    info().transactionID(transaction.id()).data("path", json.toString()).log("writing transaction file");
 
                     try (OutputStream output = Files.newOutputStream(json)) {
                         objectMapper.writeValue(output, read);
                         info().log("writing transaction file completed successfully");
                     } catch (Exception e) {
-                        log.addParameter("path", json.toString())
-                                .error(e, "error while writing transaction to file");
+                        error().transactionID(transaction.id()).data("path", json.toString())
+                                .log("error while writing transaction to file");
                         throw e;
                     }
                 }
@@ -263,10 +263,7 @@ public class Transactions {
             if (Files.exists(path)) {
                 result = path;
             } else {
-                logBuilder()
-                        .transactionID(transaction.id())
-                        .addParameter("path", path.toString())
-                        .warn("content path does not exist");
+                error().transactionID(transaction.id()).data("path", path.toString()).log("content path does not exist");
             }
         }
         return result;

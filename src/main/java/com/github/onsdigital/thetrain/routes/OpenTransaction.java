@@ -6,7 +6,7 @@ import com.github.onsdigital.thetrain.service.TransactionsService;
 import spark.Request;
 import spark.Response;
 
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
 public class OpenTransaction extends BaseHandler {
@@ -23,7 +23,7 @@ public class OpenTransaction extends BaseHandler {
     public Object handle(Request request, Response response) throws Exception {
         Transaction transaction = transactionsService.create();
 
-        info().data("transaction_id", transaction.id()).log("transaction created successfully");
+        info().transactionID(transaction.id()).log("transaction created successfully");
 
         response.status(OK_200);
         return new Result(SUCCESS_MSG, false, transaction);

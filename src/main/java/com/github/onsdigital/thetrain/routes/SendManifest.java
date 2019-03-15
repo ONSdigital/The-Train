@@ -4,7 +4,6 @@ import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.json.request.Manifest;
-import com.github.onsdigital.thetrain.logging.LogBuilder;
 import com.github.onsdigital.thetrain.service.PublisherService;
 import com.github.onsdigital.thetrain.service.TransactionsService;
 import com.github.onsdigital.thetrain.storage.Transactions;
@@ -15,8 +14,7 @@ import spark.Response;
 
 import java.nio.file.Path;
 
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
-import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
@@ -50,13 +48,10 @@ public class SendManifest extends BaseHandler {
     @Override
     public Object handle(Request request, Response response) throws Exception {
         Transaction transaction = null;
-        LogBuilder log = logBuilder();
-
         Manifest manifest = getManifest(request);
 
         try {
             transaction = transactionsService.getTransaction(request);
-            log.transactionID(transaction);
 
             int copied = publisherService.copyFilesIntoTransaction(transaction, manifest);
             int copyExpected = manifest.getFilesToCopy().size();
@@ -71,9 +66,9 @@ public class SendManifest extends BaseHandler {
             }
 
             // success
-            info().data("files_copied", copied)
+            info().transactionID(transaction.id())
+                    .data("files_copied", copied)
                     .data("files_deleted", deleted)
-                    .data("transaction_id", transaction.id())
                     .log("copying manifest files to website and adding files to delete completed successfully");
 
             response.status(OK_200);

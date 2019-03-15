@@ -40,8 +40,8 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.fatal;
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.fatal;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 import static spark.Spark.after;
 import static spark.Spark.before;
 import static spark.Spark.exception;
@@ -74,7 +74,7 @@ public class App {
             info().log("starting the-train");
             allAboard();
         } catch (Exception e) {
-            fatal(e).exception(e).log("unexpected error while attempting to start the-train");
+            fatal(e).log("unexpected error while attempting to start the-train");
             System.exit(1);
         }
     }
