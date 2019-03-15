@@ -1,7 +1,6 @@
 package com.github.onsdigital.thetrain.exception.handler;
 
 import com.github.onsdigital.thetrain.exception.PublishException;
-import com.github.onsdigital.thetrain.filters.QuietFilter;
 import com.github.onsdigital.thetrain.json.Result;
 import com.google.gson.Gson;
 import spark.ExceptionHandler;

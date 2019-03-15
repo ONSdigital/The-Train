@@ -17,7 +17,6 @@ import com.github.onsdigital.thetrain.exception.handler.CatchAllHandler;
 import com.github.onsdigital.thetrain.exception.handler.PublishExceptionHandler;
 import com.github.onsdigital.thetrain.filters.AfterFilter;
 import com.github.onsdigital.thetrain.filters.BeforeFilter;
-import com.github.onsdigital.thetrain.filters.QuietFilter;
 import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
 import com.github.onsdigital.thetrain.response.JsonTransformer;
 import com.github.onsdigital.thetrain.routes.AddFileToTransaction;

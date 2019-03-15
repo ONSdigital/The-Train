@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -127,12 +128,12 @@ public class Publisher {
      */
     public boolean addFiles(final Transaction transaction, String uri, final ZipInputStream zipInputStream,
                             Path websitePath) throws IOException {
-        LocalDateTime start = LocalDateTime.now();
         boolean result = true;
         ZipEntry entry;
 
         // Small files are written asynchronously from byte array buffers:
         List<Future<TransactionUpdate>> smallFileWrites = new ArrayList<>();
+        List<TransactionUpdate> largeFileWrites = new ArrayList<>();
         int largeZipEntries = 0;
         int smallZipEntries = 0;
 
@@ -150,12 +151,13 @@ public class Publisher {
 
                 // If entry data fit into the buffer, go asynchronous:
                 if (count < buffer.length) {
-                    smallFileWrites.add(asyncProcessSmallZipEntry(entry, transaction, targetUri, zipChunk, startDate,
-                            websitePath));
+                    smallFileWrites.add(asyncProcessSmallZipEntry(entry, transaction, targetUri, zipChunk, startDate, websitePath));
                     smallZipEntries++;
                 } else {
-                    result &= processLargeZipEntry(entry, transaction, targetUri, zipChunk, startDate,
-                            zipInputStream, websitePath);
+                    info().data("uri", targetUri).log("LARGE FILE");
+                    TransactionUpdate update = processLargeZipEntry(entry, transaction, targetUri, zipChunk, startDate, zipInputStream, websitePath);
+                    result &= update.isSuccess();
+                    largeFileWrites.add(update);
                     largeZipEntries++;
                 }
                 zipInputStream.closeEntry();
@@ -168,19 +170,26 @@ public class Publisher {
             throw e;
         }
 
-        List<UriInfo> infos = new ArrayList<>();
-        result &= checkSmallFileFutures(smallFileWrites, infos);
+        List<UriInfo> totalURIInfos = new ArrayList<>();
 
-        transaction.addUris(infos);
+        // check the small file results and get the uri infos for the transation update.
+        result &= checkSmallFileFutures(smallFileWrites, totalURIInfos);
 
-        info().transactionID(transaction.id())
-                .log("step completed");
+        // get the large file uri infos for the transation
+        if (!largeFileWrites.isEmpty()) {
+            totalURIInfos.addAll(largeFileWrites.stream().map(e -> e.getUriInfo()).collect(Collectors.toList()));
+        }
+
+        // add all the uri infos to the transaction
+        transaction.addUris(totalURIInfos);
 
         info().transactionID(transaction.id())
                 .data("largeFileSynchronouss", largeZipEntries)
                 .data("smallFileAsynchronous", smallZipEntries)
                 .data("total", (smallZipEntries + largeZipEntries))
+                .data("success", result)
                 .log("unzip results");
+
         return result;
     }
 
@@ -203,14 +212,13 @@ public class Publisher {
         return pool.submit(() -> addContentToTransaction(transaction, targetUri, zipChunk, startDate, websitePath));
     }
 
-    private boolean processLargeZipEntry(ZipEntry entry, Transaction transaction, String targetUri,
-                                         InputStream zipChunk, Date startDate, ZipInputStream zipInputStream, Path websitePath)
+    private TransactionUpdate processLargeZipEntry(ZipEntry entry, Transaction transaction, String targetUri,
+                                                   InputStream zipChunk, Date startDate, ZipInputStream zipInputStream, Path websitePath)
             throws IOException {
         info().transactionID(transaction.id()).data("uri", entry.getName()).log("addFiles: adding large file");
 
         try (InputStream unionInputStream = new UnionInputStream(zipChunk, zipInputStream)) {
-            TransactionUpdate update = addContentToTransaction(transaction, targetUri, unionInputStream, startDate, websitePath);
-            return update.isSuccess();
+            return addContentToTransaction(transaction, targetUri, unionInputStream, startDate, websitePath);
         } catch (Exception e) {
             throw error().transactionID(transaction.id()).data("uri", targetUri)
                     .logException(new IOException(e), "Large zip file error");

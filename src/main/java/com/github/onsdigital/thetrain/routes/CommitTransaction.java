@@ -40,8 +40,6 @@ public class CommitTransaction extends BaseHandler {
     public Object handle(Request request, Response response) throws Exception {
         Transaction transaction = null;
 
-        if (true) throw new RuntimeException("CABOOOM!");
-
         try {
             transaction = transactionsService.getTransaction(request);
             boolean isSuccess = publisherService.commit(transaction);
