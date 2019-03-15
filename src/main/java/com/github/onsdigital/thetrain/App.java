@@ -17,7 +17,6 @@ import com.github.onsdigital.thetrain.exception.handler.CatchAllHandler;
 import com.github.onsdigital.thetrain.exception.handler.PublishExceptionHandler;
 import com.github.onsdigital.thetrain.filters.AfterFilter;
 import com.github.onsdigital.thetrain.filters.BeforeFilter;
-import com.github.onsdigital.thetrain.filters.QuietFilter;
 import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
 import com.github.onsdigital.thetrain.response.JsonTransformer;
 import com.github.onsdigital.thetrain.routes.AddFileToTransaction;
@@ -95,7 +94,7 @@ public class App {
         AfterFilter afterFilter = new AfterFilter();
         after("/*", afterFilter);
 
-        registerExeptionHandlers(afterFilter);
+        registerExeptionHandlers();
 
         // objects needed by routes
         ResponseTransformer transformer = JsonTransformer.get();
@@ -108,14 +107,12 @@ public class App {
         info().data("routes", ROUTES).data("PORT", config.port()).log("registered API routes");
     }
 
-    private static void registerExeptionHandlers(QuietFilter afterFilter) {
-        exception(BadRequestException.class, (e, req, resp) ->
-                new BadRequestExceptionHandler(afterFilter).handle(e, req, resp));
+    private static void registerExeptionHandlers() {
+        exception(BadRequestException.class, (e, req, resp) -> new BadRequestExceptionHandler().handle(e, req, resp));
 
-        exception(PublishException.class,
-                (e, req, resp) -> new PublishExceptionHandler(afterFilter).handle(e, req, resp));
+        exception(PublishException.class, (e, req, resp) -> new PublishExceptionHandler().handle(e, req, resp));
 
-        exception(Exception.class, (e, req, resp) -> new CatchAllHandler(afterFilter).handle(e, req, resp));
+        exception(Exception.class, (e, req, resp) -> new CatchAllHandler().handle(e, req, resp));
     }
 
     /**
