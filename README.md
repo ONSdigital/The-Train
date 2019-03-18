@@ -6,7 +6,7 @@ Runs an embedded Jetty server that accepts files in parallel over HTTP and commi
 
 ## Basics
 
-FIve APIs are available to control file publishing:
+FIve APIs are available to control file publishing:  
 
  * POST to `/begin` to begin a transaction and get a `transactionId`.
  * POST the files you want to publish to `/publish` to add them to the transaction, specifying `transactionId` and `uri` (destination path within the target directory) parameters in the url. 
