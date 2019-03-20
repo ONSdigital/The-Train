@@ -34,11 +34,22 @@
 
     <dependencies>
 
-        <!-- Restolino -->
         <dependency>
-            <groupId>com.github.davidcarboni</groupId>
-            <artifactId>restolino</artifactId>
-            <version>0.1.8</version>
+            <groupId>com.sparkjava</groupId>
+            <artifactId>spark-core</artifactId>
+            <version>2.8.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <version>2.5</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-http</artifactId>
+            <version>9.4.14.v20181114</version>
         </dependency>
 
 
@@ -61,7 +72,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.7.0</version>
+            <version>2.9.7</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -109,8 +120,7 @@
         <dependency>
             <groupId>com.github.ONSdigital</groupId>
             <artifactId>dp-logging</artifactId>
-            <!--<version>master-SNAPSHOT</version>-->
-            <version>feature~performance-test-SNAPSHOT</version>
+            <version>master-25d3e73a4c-1</version>
         </dependency>
 
         <!-- Test -->
@@ -168,7 +178,8 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>com.github.davidcarboni.restolino.Main</mainClass>
+                            <!--<mainClass>com.github.davidcarboni.restolino.Main</mainClass>-->
+                            <mainClass>com.github.onsdigital.thetrain.App</mainClass>
                             <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                             <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                         </manifest>
