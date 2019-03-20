@@ -151,10 +151,10 @@ public class Publisher {
 
                 // If entry data fit into the buffer, go asynchronous:
                 if (count < buffer.length) {
-                    smallFileWrites.add(asyncProcessSmallZipEntry(entry, transaction, targetUri, zipChunk, startDate, websitePath));
+                    smallFileWrites.add(asyncProcessSmallZipEntry(transaction, targetUri, zipChunk, startDate, websitePath));
                     smallZipEntries++;
                 } else {
-                    info().data("uri", targetUri).log("LARGE FILE");
+                    info().data("uri", targetUri).data("entry_uri", entry.getName()).log("processing large file");
                     TransactionUpdate update = processLargeZipEntry(entry, transaction, targetUri, zipChunk, startDate, zipInputStream, websitePath);
                     result &= update.isSuccess();
                     largeFileWrites.add(update);
@@ -206,9 +206,8 @@ public class Publisher {
         return count;
     }
 
-    private Future<TransactionUpdate> asyncProcessSmallZipEntry(ZipEntry entry, Transaction transaction, String targetUri,
+    private Future<TransactionUpdate> asyncProcessSmallZipEntry(Transaction transaction, String targetUri,
                                                                 InputStream zipChunk, Date startDate, Path websitePath) {
-        info().transactionID(transaction.id()).data("uri", entry.getName()).log("addFiles: adding small file");
         return pool.submit(() -> addContentToTransaction(transaction, targetUri, zipChunk, startDate, websitePath));
     }
 
