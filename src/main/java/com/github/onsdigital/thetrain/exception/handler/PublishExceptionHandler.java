@@ -25,10 +25,9 @@ public class PublishExceptionHandler implements ExceptionHandler<PublishExceptio
 
         TrainEvent err = error().transactionID(e.getTransaction().id()).endHTTP(response.raw());
         if (e.getCause() != null) {
-            err.exception(e.getCause());
+            err.exception(e.getCause()).log("publishing exception: " + e.getCause().getMessage());
         } else {
-            err.exception(e);
+            err.exception(e).log("publishing exception: " + e.getMessage());
         }
-        err.log("publishing exception: " + e.getMessage());
     }
 }
