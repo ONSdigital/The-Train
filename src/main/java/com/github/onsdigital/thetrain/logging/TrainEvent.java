@@ -2,7 +2,8 @@ package com.github.onsdigital.thetrain.logging;
 
 import com.github.onsdigital.logging.v2.event.BaseEvent;
 import com.github.onsdigital.logging.v2.event.Severity;
-import com.github.onsdigital.logging.v2.event.SimpleEvent;
+import com.github.onsdigital.thetrain.json.Transaction;
+import org.apache.commons.lang3.StringUtils;
 
 import static com.github.onsdigital.logging.v2.DPLogger.logConfig;
 
@@ -25,7 +26,16 @@ public class TrainEvent extends BaseEvent<TrainEvent> {
     }
 
     public TrainEvent transactionID(String id) {
-        data("transaction_id", id);
+        if (StringUtils.isNotEmpty(id)) {
+            data("transaction_id", id);
+        }
+        return this;
+    }
+
+    public TrainEvent transactionID(Transaction transaction) {
+        if (transaction != null) {
+            data("transaction_id", transaction.id());
+        }
         return this;
     }
 
