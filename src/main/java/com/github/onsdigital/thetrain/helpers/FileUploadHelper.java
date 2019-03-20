@@ -9,6 +9,10 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
 
 public class FileUploadHelper {
 
@@ -28,13 +32,15 @@ public class FileUploadHelper {
             ServletFileUpload upload = new ServletFileUpload(factory);
 
             // Read the items - this will save the values to temp files
-            for (FileItem item : upload.parseRequest(request)) {
+            List<FileItem> fileItemList = upload.parseRequest(request);
+            for (FileItem item : fileItemList) {
                 if (!item.isFormField()) {
                     result = item.getInputStream();
                 }
             }
 
             if (result == null) {
+                error().data("file_items", fileItemList.stream().map(f -> f.toString()).collect(Collectors.toList())).log("expected request body but was null");
                 throw new BadRequestException("expected request body but was null");
             }
 
