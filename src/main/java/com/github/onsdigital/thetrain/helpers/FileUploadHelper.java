@@ -4,6 +4,7 @@ import com.github.onsdigital.thetrain.exception.BadRequestException;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.io.FileCleaningTracker;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -27,20 +28,16 @@ public class FileUploadHelper {
         try {
             InputStream result = null;
 
-            //info().transactionID(transactionID).log("setting up EncryptedFileItemFactory");
-            //EncryptedFileItemFactory factory = new EncryptedFileItemFactory();
-
-            info().transactionID(transactionID).log("setting up DiskFileItemFactory");
             DiskFileItemFactory factory = new DiskFileItemFactory();
+            factory.setFileCleaningTracker(new FileCleaningTracker());
 
-            info().transactionID(transactionID).log("setting up ServletFileUpload");
             ServletFileUpload upload = new ServletFileUpload(factory);
 
             // Read the items - this will save the values to temp files
             List<FileItem> fileItemList = null;
 
             try {
-                info().transactionID(transactionID).log("parsing request");
+                info().transactionID(transactionID).log("parsing request body for file item list");
                 fileItemList = upload.parseRequest(request);
             } catch (Exception e) {
                 error().exception(e).log("upload.parseRequest(request) threw exception");
@@ -48,10 +45,10 @@ public class FileUploadHelper {
             }
 
             if (fileItemList == null) {
-                throw new BadRequestException("fileItemsList was null");
+                throw new BadRequestException("fileItemsList was null", transactionID);
             }
             if (fileItemList.isEmpty()) {
-                throw new BadRequestException("fileItemsList was empty");
+                throw new BadRequestException("fileItemsList was empty", transactionID);
             }
 
             info().transactionID(transactionID).data("file_items_size", fileItemList.size())
@@ -63,20 +60,25 @@ public class FileUploadHelper {
                         info().data("name", item.getName())
                                 .data("content_type", item.getContentType())
                                 .data("field_name", item.getFieldName())
+                                .data("size", item.getSize())
                                 .log("identified fileItem in request body");
 
                         result = item.getInputStream();
                     } catch (IOException e) {
                         throw error().logException(e, "item.getInputStream() threw IO exception");
                     } catch (Exception e) {
-                        throw error().logException(new BadRequestException(e, "fileItem.getInputstream  an exception nested", transactionID),
-                                "fileItem.getInputstream  an exception");
+                        throw error().logException(new BadRequestException(e, "fileItem.getInputstream exception nested",
+                                transactionID), "fileItem.getInputstream  an exception");
                     }
                 }
             }
 
             if (result == null) {
-                error().data("file_items", fileItemList.stream().map(f -> f.toString()).collect(Collectors.toList())).log("request body but null check failed");
+                error().transactionID(transactionID)
+                        .data("file_items", fileItemList.stream()
+                                .map(f -> f.toString())
+                                .collect(Collectors.toList()))
+                        .log("request body but null check failed");
                 throw new BadRequestException("expected request body but was null");
             }
 

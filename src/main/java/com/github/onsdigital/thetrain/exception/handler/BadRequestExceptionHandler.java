@@ -7,6 +7,10 @@ import spark.ExceptionHandler;
 import spark.Request;
 import spark.Response;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.IntStream;
+
 import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
 
 public class BadRequestExceptionHandler implements ExceptionHandler<BadRequestException> {
@@ -22,9 +26,21 @@ public class BadRequestExceptionHandler implements ExceptionHandler<BadRequestEx
         response.status(400);
         response.body(gson.toJson(new Result(e.getMessage(), true, null)));
 
-        error().transactionID(e.getTransactionID())
-                .exception(e)
-                .endHTTP(response.raw())
-                .log("bad request");
+        List<Throwable> nested = new ArrayList<>();
+        nested.add(e);
+
+        if (e.getCause() != null) {
+            Throwable t = e;
+            while (t.getCause() != null) {
+                nested.add(t.getCause());
+                t = t.getCause();
+            }
+        }
+
+        IntStream.range(0, nested.size()).forEach(i -> {
+            Throwable ex = nested.get(i);
+            String message = String.format("bad request exception %d/%d: %s", i + 1, nested.size(), ex.getMessage());
+            error().transactionID(e.getTransactionID()).exception(ex).log(message);
+        });
     }
 }

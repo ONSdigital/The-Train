@@ -10,6 +10,11 @@ public class BadRequestException extends Exception {
         super(message);
     }
 
+    public BadRequestException(String message, String transactionID) {
+        super(message);
+        this.transactionID = transactionID;
+    }
+
     public BadRequestException(String message, Object... args) {
         super(format(message, args));
     }

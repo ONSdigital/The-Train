@@ -88,7 +88,7 @@ public class AddFileToTransaction extends BaseHandler {
     private void handleNonZipRequest(Request request, Transaction transaction, String uri, Date startDate)
             throws BadRequestException, PublishException {
         boolean isSuccess = false;
-        info().transactionID(transaction.id()).data("uri", uri).log("attempting to add file to transactions");
+        info().transactionID(transaction.id()).data("uri", uri).log("attempting to add single file to transactions");
         try (
                 InputStream data = fileUploadHelper.getFileInputStream(request.raw(), transaction.id());
                 InputStream bis = new BufferedInputStream(data)
