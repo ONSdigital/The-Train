@@ -1,8 +1,8 @@
 package com.github.onsdigital.thetrain.helpers;
 
-import com.github.davidcarboni.encryptedfileupload.EncryptedFileItemFactory;
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 
 import javax.servlet.http.HttpServletRequest;
@@ -27,8 +27,11 @@ public class FileUploadHelper {
         try {
             InputStream result = null;
 
-            info().transactionID(transactionID).log("setting up EncryptedFileItemFactory");
-            EncryptedFileItemFactory factory = new EncryptedFileItemFactory();
+            //info().transactionID(transactionID).log("setting up EncryptedFileItemFactory");
+            //EncryptedFileItemFactory factory = new EncryptedFileItemFactory();
+
+            info().transactionID(transactionID).log("setting up DiskFileItemFactory");
+            DiskFileItemFactory factory = new DiskFileItemFactory();
 
             info().transactionID(transactionID).log("setting up ServletFileUpload");
             ServletFileUpload upload = new ServletFileUpload(factory);
