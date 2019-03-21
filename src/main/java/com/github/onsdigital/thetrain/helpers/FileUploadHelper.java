@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 
 public class FileUploadHelper {
 
@@ -35,12 +36,22 @@ public class FileUploadHelper {
             List<FileItem> fileItemList = upload.parseRequest(request);
             for (FileItem item : fileItemList) {
                 if (!item.isFormField()) {
-                    result = item.getInputStream();
+                    try {
+                        info().data("name", item.getName())
+                                .data("content_type", item.getContentType())
+                                .data("field_name", item.getFieldName())
+                                .log("identified fileItem in request body");
+                        result = item.getInputStream();
+                    } catch (IOException e) {
+                        throw error().logException(e, "item.getInputStream() threw IO exception");
+                    } catch (Exception e) {
+                        throw error().logException(new BadRequestException(e, "", ""),"fileItem.getInputstream  an exception");
+                    }
                 }
             }
 
             if (result == null) {
-                error().data("file_items", fileItemList.stream().map(f -> f.toString()).collect(Collectors.toList())).log("expected request body but was null");
+                error().data("file_items", fileItemList.stream().map(f -> f.toString()).collect(Collectors.toList())).log("");
                 throw new BadRequestException("expected request body but was null");
             }
 
