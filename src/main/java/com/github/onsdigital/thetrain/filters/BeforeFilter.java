@@ -4,7 +4,8 @@ import spark.Filter;
 import spark.Request;
 import spark.Response;
 
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
+
 
 public class BeforeFilter implements Filter {
 

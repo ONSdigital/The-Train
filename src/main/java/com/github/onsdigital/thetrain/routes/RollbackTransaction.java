@@ -3,14 +3,12 @@ package com.github.onsdigital.thetrain.routes;
 import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
-import com.github.onsdigital.thetrain.logging.LogBuilder;
 import com.github.onsdigital.thetrain.service.PublisherService;
 import com.github.onsdigital.thetrain.service.TransactionsService;
 import spark.Request;
 import spark.Response;
 
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
-import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
 
 /**
@@ -37,10 +35,7 @@ public class RollbackTransaction extends BaseHandler {
 
     @Override
     public Object handle(Request request, Response response) throws Exception {
-        LogBuilder log = logBuilder();
-
         Transaction transaction = transactionsService.getTransaction(request);
-        log.transactionID(transaction);
 
         try {
             if (!publisherService.rollback(transaction)) {
@@ -50,11 +45,11 @@ public class RollbackTransaction extends BaseHandler {
             // TODO no idea what this is doing... keeping it here to avoid breaking something
             transactionsService.listFiles(transaction);
 
-            info().data("transaction_id", transaction.id()).log("rollback transaction completed successfully");
+            info().transactionID(transaction.id()).log("rollback transaction completed successfully");
             response.status(OK_200);
             return new Result(ROLLBACK_SUCCESS_MSG, false, transaction);
         } finally {
-            info().data("transaction_id", transaction.id()).log("rollback persisting changes to transaction");
+            info().transactionID(transaction.id()).log("rollback persisting changes to transaction");
             transactionsService.update(transaction);
         }
     }

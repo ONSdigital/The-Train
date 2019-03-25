@@ -5,7 +5,6 @@ import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
-import com.github.onsdigital.thetrain.logging.LogBuilder;
 import com.github.onsdigital.thetrain.service.PublisherService;
 import com.github.onsdigital.thetrain.service.TransactionsService;
 import com.github.onsdigital.thetrain.storage.TransactionUpdate;
@@ -18,8 +17,7 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.zip.ZipInputStream;
 
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
-import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 
 public class AddFileToTransaction extends BaseHandler {
 
@@ -42,23 +40,24 @@ public class AddFileToTransaction extends BaseHandler {
     @Override
     public Object handle(Request request, Response response) throws Exception {
         Date startDate = new Date();
-        LogBuilder log = logBuilder();
 
         Transaction transaction = transactionsService.getTransaction(request);
-        log.transactionID(transaction.id());
-
         String uri = getURI(request);
-        log.uri(uri);
 
-        if (isZipped(request)) {
-            handleZipRequest(request, transaction, uri);
-        } else {
-            handleNonZipRequest(request, transaction, uri, startDate);
+        try {
+            if (isZipped(request)) {
+                handleZipRequest(request, transaction, uri);
+            } else {
+                handleNonZipRequest(request, transaction, uri, startDate);
+            }
+        } finally {
+            transactionsService.tryUpdateAsync(transaction);
         }
 
-        transactionsService.tryUpdateAsync(transaction);
+        info().transactionID(transaction.id())
+                .data("uri", uri)
+                .log("file added to publish transaction successfully");
 
-        info().log("file added to publish transaction successfully");
         return new Result("Published to " + uri, false, transaction);
     }
 
@@ -67,20 +66,20 @@ public class AddFileToTransaction extends BaseHandler {
      */
     private void handleZipRequest(Request request, Transaction transaction, String uri) throws PublishException {
         boolean isSuccess = false;
+        info().transactionID(transaction.id()).data("uri", uri).log("attempting to add zip files to transactions");
         try (
                 InputStream data = fileUploadHelper.getFileInputStream(request.raw(), transaction.id());
                 ZipInputStream input = new ZipInputStream(new BufferedInputStream(data))
         ) {
             isSuccess = publisherService.addFiles(transaction, uri, input);
         } catch (Exception e) {
-            throw new PublishException("error processing zip request", e, transaction,
-                    HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            throw new PublishException("error adding zipped files to transaction", e, transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
 
         if (!isSuccess) {
-            throw new PublishException("error processing zip request", transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            throw new PublishException("error adding zipped files to transaction", transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
-        info().log("file unzipped and added successfully");
+        info().log("succcessfully added zip content to transaction");
     }
 
     /**
@@ -89,12 +88,14 @@ public class AddFileToTransaction extends BaseHandler {
     private void handleNonZipRequest(Request request, Transaction transaction, String uri, Date startDate)
             throws BadRequestException, PublishException {
         boolean isSuccess = false;
+        info().transactionID(transaction.id()).data("uri", uri).log("attempting to add single file to transactions");
         try (
                 InputStream data = fileUploadHelper.getFileInputStream(request.raw(), transaction.id());
                 InputStream bis = new BufferedInputStream(data)
         ) {
             TransactionUpdate update = publisherService.addContentToTransaction(transaction, uri, bis, startDate);
             isSuccess = update.isSuccess();
+            transaction.addUri(update.getUriInfo());
 
         } catch (BadRequestException e) {
             // re-throw
@@ -108,6 +109,6 @@ public class AddFileToTransaction extends BaseHandler {
             throw new PublishException(ADD_FILE_ERR_MSG, transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
 
-        info().data("transaction_id", transaction.id()).data("uri", uri).log("file successfully added to transaction");
+        info().transactionID(transaction.id()).data("uri", uri).log("file successfully added to transaction");
     }
 }

@@ -1,0 +1,243 @@
+swagger: "2.0"
+info:
+  description: "Publishing API ONS website."
+  version: "1.0.0"
+  title: "The-Train"
+  license:
+    name: "Open Government Licence v3.0"
+    url: "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+basePath: "/v1"
+tags:
+- name: "The-Train"
+schemes:
+- "https"
+parameters:
+  publish_manifest:
+    name: manifest
+    description: "A publish manifest"
+    in: body
+    required: true
+    schema:
+      $ref: '#/definitions/Manifest'
+paths:
+  /begin:
+    post:
+      tags:
+      - "Pre-publish"
+      summary: "Create a new publishing transaction"
+      description: "Create a new publishing transaction"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "transaction created successfully"
+          schema:
+            $ref: '#/definitions/Result'
+        500:
+          description: "internal server error"
+  /commitManifest:
+    post:
+      tags:
+      - "Pre-publish"
+      summary: "Send the manifest of the files to copy/move & delete in this transaction"
+      description: "Send the manifest of the files to copy/move & delete in this transaction"
+      parameters:
+      - in: query
+        name: transactionId
+        type: string
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+                filesToCopy:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      source:
+                        type: string
+                      target:
+                        type: string
+                urisToDelete:
+                  type: array
+                  items:
+                    type: string
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "publish manifest sent successfully"
+          schema:
+            $ref: '#/definitions/Result'
+        400:
+          description: "bad request"
+        500:
+          description: "internal server error"
+  /publish:
+    post:
+      tags:
+      - "Publish"
+      consumes:
+        - multipart/form-data
+      summary: "Send content to be added to the publish transaction"
+      description: "Files sent will be added to transaction but will not actually be published on to the public
+      website until the transaction is committed. Several files can be added to a transaction by calling this
+      endpoint multiple times with the each file to be published. Alternatively several files can be sent at once but
+       using the query param zip=true."
+      parameters:
+      - in: query
+        name: transactionId
+        type: string
+        required: true
+        description: "The publishing transactionID"
+      - in: query
+        name: zip
+        type: boolean
+        required: false
+        description: "Indicates the body is a zipped file"
+      - in: formData
+        name: content
+        type: file
+        description: "The content to be published"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "content sucessfully added to the publish transaction"
+          schema:
+            $ref: '#/definitions/Result'
+        400:
+          description: "bad request"
+        500:
+          description: "internal server error"
+  /commit:
+    post:
+      tags:
+      - "Publish"
+      summary: "Commit the publish transaction"
+      description:  "Commit the publish transaction and attemp to move the content from the transaction directory
+      onto the live site."
+      parameters:
+      - in: query
+        name: transactionId
+        type: string
+        required: true
+        description: "The publishing transactionID to commit"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Sucessfully committed the publishing transaction"
+          schema:
+            $ref: '#/definitions/Result'
+        400:
+          description: "bad request"
+        500:
+          description: "internal server error"
+  /rollback:
+    post:
+      tags:
+      - "Publish"
+      summary: "Attempt to rollback the publish transaction"
+      description:  "Attemps to rollback the publish transaction if there has been an error."
+      parameters:
+      - in: query
+        name: transactionId
+        type: string
+        required: true
+        description: "The publishing transactionID to rollback"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Sucessfully rolled back the publishing transaction"
+          schema:
+            $ref: '#/definitions/Result'
+        400:
+          description: "bad request"
+        500:
+          description: "internal server error"
+  /transaction:
+    get:
+      tags:
+      - "Transactions"
+      summary: "Get a transaction "
+      description:  "Get the transaction with the ID provided."
+      parameters:
+      - in: query
+        name: transactionId
+        type: string
+        required: true
+        description: "The ID of the transaction to get"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Get transaction successful"
+          schema:
+            $ref: '#/definitions/Result'
+        400:
+          description: "bad request"
+        500:
+          description: "internal server error"
+definitions:
+  Result:
+    type: object
+    properties:
+      message:
+        type: string
+        description: "message about the request result"
+        example: "New transaction created."
+      error:
+        type: boolean
+        description: "indicates if the request was successful"
+      transaction:
+        type: object
+        properties:
+          id:
+            type: string
+            description: "the created transaction ID"
+          status:
+            type: string
+            description: "the current status of the transaction"
+          startDate:
+            type: string
+            description: "the date the transaction of created"
+            example: "2018-10-19T13:08:03.238+0100"
+          uriInfos:
+            type: array
+            description: "URI information for this transaction"
+            items:
+              type: string
+          uriDeletes:
+            type: array
+            description: "URI delete information for this transaction"
+            items:
+              type: string
+          errors:
+            type: array
+            description: "error information for this transaction"
+            items:
+              type: string
+  Manifest:
+    type: object
+    properties:
+      filesToCopy:
+        type: array
+        description: "a list of file mappings to copy from -> to"
+        items:
+          type: object
+          properties:
+            source:
+              type: string
+            target:
+              type: string
+      urisToDelete:
+        type: array
+        description: "a list of URI's to be deleted"
+        items:
+          type: string
+

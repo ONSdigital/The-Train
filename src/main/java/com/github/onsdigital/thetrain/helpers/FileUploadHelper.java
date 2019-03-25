@@ -1,14 +1,19 @@
 package com.github.onsdigital.thetrain.helpers;
 
-import com.github.davidcarboni.encryptedfileupload.EncryptedFileItemFactory;
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.io.FileCleaningTracker;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 
 public class FileUploadHelper {
 
@@ -23,23 +28,62 @@ public class FileUploadHelper {
         try {
             InputStream result = null;
 
-            // Set up the objects that do all the heavy lifting
-            EncryptedFileItemFactory factory = new EncryptedFileItemFactory();
+            DiskFileItemFactory factory = new DiskFileItemFactory();
+            factory.setFileCleaningTracker(new FileCleaningTracker());
+
             ServletFileUpload upload = new ServletFileUpload(factory);
 
             // Read the items - this will save the values to temp files
-            for (FileItem item : upload.parseRequest(request)) {
+            List<FileItem> fileItemList = null;
+
+            try {
+                info().transactionID(transactionID).log("parsing request body for file item list");
+                fileItemList = upload.parseRequest(request);
+            } catch (Exception e) {
+                error().exception(e).log("upload.parseRequest(request) threw exception");
+                throw new BadRequestException(e, "upload.parseRequest(request) threw exception (wrapped", transactionID);
+            }
+
+            if (fileItemList == null) {
+                throw new BadRequestException("fileItemsList was null", transactionID);
+            }
+            if (fileItemList.isEmpty()) {
+                throw new BadRequestException("fileItemsList was empty", transactionID);
+            }
+
+            info().transactionID(transactionID).data("file_items_size", fileItemList.size())
+                    .log("parsing request successfull");
+
+            for (FileItem item : fileItemList) {
                 if (!item.isFormField()) {
-                    result = item.getInputStream();
+                    try {
+                        info().data("name", item.getName())
+                                .data("content_type", item.getContentType())
+                                .data("field_name", item.getFieldName())
+                                .data("size", item.getSize())
+                                .log("identified fileItem in request body");
+
+                        result = item.getInputStream();
+                    } catch (IOException e) {
+                        throw error().logException(e, "item.getInputStream() threw IO exception");
+                    } catch (Exception e) {
+                        throw error().logException(new BadRequestException(e, "fileItem.getInputstream exception nested",
+                                transactionID), "fileItem.getInputstream  an exception");
+                    }
                 }
             }
 
             if (result == null) {
+                error().transactionID(transactionID)
+                        .data("file_items", fileItemList.stream()
+                                .map(f -> f.toString())
+                                .collect(Collectors.toList()))
+                        .log("request body but null check failed");
                 throw new BadRequestException("expected request body but was null");
             }
 
             return result;
-        } catch (IOException | FileUploadException e) {
+        } catch (IOException e) {
             throw new BadRequestException(e, "error while attempting to get inputstream from request body", transactionID);
         }
     }
