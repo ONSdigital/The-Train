@@ -4,22 +4,12 @@ import spark.Filter;
 import spark.Request;
 import spark.Response;
 
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.error;
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 
-public class AfterFilter implements Filter, QuietFilter {
+public class AfterFilter implements Filter {
 
     @Override
     public void handle(Request request, Response response) throws Exception {
         info().endHTTP(response.raw()).log("request completed");
     }
-
-    public void handleQuietly(Request request, Response response) {
-        if (response.status() >= 400) {
-            error().endHTTP(response.raw()).log("request unsuccessful");
-            return;
-        }
-        info().endHTTP(response.raw()).log("request completed");
-    }
-
 }

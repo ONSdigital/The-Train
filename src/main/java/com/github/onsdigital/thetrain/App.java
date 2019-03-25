@@ -17,7 +17,6 @@ import com.github.onsdigital.thetrain.exception.handler.CatchAllHandler;
 import com.github.onsdigital.thetrain.exception.handler.PublishExceptionHandler;
 import com.github.onsdigital.thetrain.filters.AfterFilter;
 import com.github.onsdigital.thetrain.filters.BeforeFilter;
-import com.github.onsdigital.thetrain.filters.QuietFilter;
 import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
 import com.github.onsdigital.thetrain.response.JsonTransformer;
 import com.github.onsdigital.thetrain.routes.AddFileToTransaction;
@@ -40,8 +39,8 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.fatal;
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.fatal;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 import static spark.Spark.after;
 import static spark.Spark.before;
 import static spark.Spark.exception;
@@ -67,7 +66,7 @@ public class App {
                     .create());
         } catch (LoggingException ex) {
             System.err.println(ex);
-            System.exit(100);
+            System.exit(1);
         }
 
         try {
@@ -75,7 +74,7 @@ public class App {
             allAboard();
         } catch (Exception e) {
             fatal(e).log("unexpected error while attempting to start the-train");
-            System.exit(100);
+            System.exit(1);
         }
     }
 
@@ -95,7 +94,7 @@ public class App {
         AfterFilter afterFilter = new AfterFilter();
         after("/*", afterFilter);
 
-        registerExeptionHandlers(afterFilter);
+        registerExeptionHandlers();
 
         // objects needed by routes
         ResponseTransformer transformer = JsonTransformer.get();
@@ -108,14 +107,12 @@ public class App {
         info().data("routes", ROUTES).data("PORT", config.port()).log("registered API routes");
     }
 
-    private static void registerExeptionHandlers(QuietFilter afterFilter) {
-        exception(BadRequestException.class, (e, req, resp) ->
-                new BadRequestExceptionHandler(afterFilter).handle(e, req, resp));
+    private static void registerExeptionHandlers() {
+        exception(BadRequestException.class, (e, req, resp) -> new BadRequestExceptionHandler().handle(e, req, resp));
 
-        exception(PublishException.class,
-                (e, req, resp) -> new PublishExceptionHandler(afterFilter).handle(e, req, resp));
+        exception(PublishException.class, (e, req, resp) -> new PublishExceptionHandler().handle(e, req, resp));
 
-        exception(Exception.class, (e, req, resp) -> new CatchAllHandler(afterFilter).handle(e, req, resp));
+        exception(Exception.class, (e, req, resp) -> new CatchAllHandler().handle(e, req, resp));
     }
 
     /**

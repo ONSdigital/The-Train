@@ -2,7 +2,7 @@ package com.github.onsdigital.thetrain.storage;
 
 import java.util.concurrent.ExecutorService;
 
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 
 public class ShutdownTask extends Thread {
 

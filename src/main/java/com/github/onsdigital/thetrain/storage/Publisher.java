@@ -6,7 +6,6 @@ import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.json.UriInfo;
 import com.github.onsdigital.thetrain.json.request.FileCopy;
 import com.github.onsdigital.thetrain.json.request.Manifest;
-import com.github.onsdigital.thetrain.logging.LogBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -31,12 +30,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.error;
-import static com.github.onsdigital.logging.v2.event.SimpleEvent.info;
-import static com.github.onsdigital.thetrain.logging.LogBuilder.logBuilder;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 
 /**
  * Class for handling publishing actions.
@@ -90,10 +89,10 @@ public class Publisher {
         ) {
             destChannel.transferFrom(srcChannel, 0, srcChannel.size());
         } catch (IOException e) {
-            logBuilder()
-                    .addParameter("src", src.toString())
-                    .addParameter("dest", dest.toString())
-                    .error(e, "unexpected error while attempting to copy files");
+            error().data("src", src.toString())
+                    .data("dest", dest.toString())
+                    .exception(e)
+                    .log("unexpected error while attempting to copy files");
             throw e;
         }
     }
@@ -109,9 +108,9 @@ public class Publisher {
             ) {
                 dest.transferFrom(src, 0, Long.MAX_VALUE);
             } catch (Exception e) {
-                logBuilder()
-                        .addParameter("targetPath", target.toString())
-                        .error(e, "unexpected error transfering inputstream content to transaction via file channel");
+                error().data("targetPath", target.toString())
+                        .exception(e)
+                        .log("unexpected error transfering inputstream content to transaction via file channel");
                 return false;
             }
         }
@@ -129,12 +128,12 @@ public class Publisher {
      */
     public boolean addFiles(final Transaction transaction, String uri, final ZipInputStream zipInputStream,
                             Path websitePath) throws IOException {
-        LocalDateTime start = LocalDateTime.now();
         boolean result = true;
         ZipEntry entry;
 
         // Small files are written asynchronously from byte array buffers:
         List<Future<TransactionUpdate>> smallFileWrites = new ArrayList<>();
+        List<TransactionUpdate> largeFileWrites = new ArrayList<>();
         int largeZipEntries = 0;
         int smallZipEntries = 0;
 
@@ -152,36 +151,45 @@ public class Publisher {
 
                 // If entry data fit into the buffer, go asynchronous:
                 if (count < buffer.length) {
-                    smallFileWrites.add(asyncProcessSmallZipEntry(entry, transaction, targetUri, zipChunk, startDate,
-                            websitePath));
+                    smallFileWrites.add(asyncProcessSmallZipEntry(transaction, targetUri, zipChunk, startDate, websitePath));
                     smallZipEntries++;
                 } else {
-                    result &= processLargeZipEntry(entry, transaction, targetUri, zipChunk, startDate,
-                            zipInputStream, websitePath);
+                    info().data("uri", targetUri).data("entry_uri", entry.getName()).log("processing large file");
+                    TransactionUpdate update = processLargeZipEntry(entry, transaction, targetUri, zipChunk, startDate, zipInputStream, websitePath);
+                    result &= update.isSuccess();
+                    largeFileWrites.add(update);
                     largeZipEntries++;
                 }
                 zipInputStream.closeEntry();
             }
 
         } catch (IOException e) {
-            logBuilder()
-                    .transactionID(transaction.id())
-                    .error(e, "addFiles threw unexpected error");
+            error().transactionID(transaction.id())
+                    .exception(e)
+                    .log("addFiles threw unexpected error");
             throw e;
         }
 
-        List<UriInfo> infos = new ArrayList<>();
-        result &= checkSmallFileFutures(smallFileWrites, infos);
+        List<UriInfo> totalURIInfos = new ArrayList<>();
 
-        transaction.addUris(infos);
+        // check the small file results and get the uri infos for the transation update.
+        result &= checkSmallFileFutures(smallFileWrites, totalURIInfos);
 
-        info().data("transaction_id", transaction.id())
-                .log("step completed");
+        // get the large file uri infos for the transation
+        if (!largeFileWrites.isEmpty()) {
+            totalURIInfos.addAll(largeFileWrites.stream().map(e -> e.getUriInfo()).collect(Collectors.toList()));
+        }
 
-        info().data("largeFileSynchronouss", largeZipEntries)
+        // add all the uri infos to the transaction
+        transaction.addUris(totalURIInfos);
+
+        info().transactionID(transaction.id())
+                .data("largeFileSynchronouss", largeZipEntries)
                 .data("smallFileAsynchronous", smallZipEntries)
                 .data("total", (smallZipEntries + largeZipEntries))
+                .data("success", result)
                 .log("unzip results");
+
         return result;
     }
 
@@ -198,22 +206,21 @@ public class Publisher {
         return count;
     }
 
-    private Future<TransactionUpdate> asyncProcessSmallZipEntry(ZipEntry entry, Transaction transaction, String targetUri,
+    private Future<TransactionUpdate> asyncProcessSmallZipEntry(Transaction transaction, String targetUri,
                                                                 InputStream zipChunk, Date startDate, Path websitePath) {
-        info().data("uri", entry.getName()).log("addFiles: adding small file");
         return pool.submit(() -> addContentToTransaction(transaction, targetUri, zipChunk, startDate, websitePath));
     }
 
-    private boolean processLargeZipEntry(ZipEntry entry, Transaction transaction, String targetUri,
-                                         InputStream zipChunk, Date startDate, ZipInputStream zipInputStream, Path websitePath)
+    private TransactionUpdate processLargeZipEntry(ZipEntry entry, Transaction transaction, String targetUri,
+                                                   InputStream zipChunk, Date startDate, ZipInputStream zipInputStream, Path websitePath)
             throws IOException {
-        info().data("uri", entry.getName()).log("addFiles: adding large file");
+        info().transactionID(transaction.id()).data("uri", entry.getName()).log("addFiles: adding large file");
 
         try (InputStream unionInputStream = new UnionInputStream(zipChunk, zipInputStream)) {
-            TransactionUpdate update = addContentToTransaction(transaction, targetUri, unionInputStream, startDate, websitePath);
-            return update.isSuccess();
+            return addContentToTransaction(transaction, targetUri, unionInputStream, startDate, websitePath);
         } catch (Exception e) {
-            throw error().data("uri", targetUri).logException(new IOException(e), "Large zip file error");
+            throw error().transactionID(transaction.id()).data("uri", targetUri)
+                    .logException(new IOException(e), "Large zip file error");
         }
     }
 
@@ -228,7 +235,7 @@ public class Publisher {
             } catch (InterruptedException | ExecutionException e) {
                 throw new IOException("Error completing small file write", e);
             } catch (Exception e) {
-                logBuilder().error(e, "addFiles: check small files future returned an exception");
+                error().exception(e).log("addFiles: check small files future returned an exception");
                 throw new IOException("Error completing small file write", e);
             }
         }
@@ -374,7 +381,6 @@ public class Publisher {
      * Copy an existing file from the website into the given transaction.
      */
     TransactionUpdate copyFileIntoTransaction(Transaction transaction, String sourceUri, String targetUri, Path websitePath) throws IOException {
-        LogBuilder logBuilder = logBuilder();
         LocalDateTime start = LocalDateTime.now();
         boolean moved = false;
         TransactionUpdate result = new TransactionUpdate();
@@ -386,7 +392,7 @@ public class Publisher {
         String action = backupExistingFile(transaction, targetUri, websitePath);
 
         if (!Files.exists(source)) {
-            info().data("transaction_id", transaction.id())
+            info().transactionID(transaction.id())
                     .data("path", source.toString())
                     .log("could not move file because it does not exist");
             return result;
@@ -395,7 +401,8 @@ public class Publisher {
         // if the file already exists it has already been copied so ignore it.
         // doing this allows the publish to be reattempted if it fails without trying to copy files over existing files.
         if (Files.exists(finalWebsiteTarget)) {
-            info().data("path", finalWebsiteTarget.toString())
+            info().transactionID(transaction.id())
+                    .data("path", finalWebsiteTarget.toString())
                     .log("could not move file as it already exists");
             return result;
         }
@@ -453,8 +460,7 @@ public class Publisher {
                 futures.add(pool.submit(() -> commitFile(uri, transaction, website)));
             }
         } catch (IOException e) {
-            logBuilder().transactionID(transaction.id()).error(e, "commit threw unexpected exception");
-            throw e;
+            throw error().transactionID(transaction.id()).logException(e, "commit threw unexpected exception");
         }
 
         // Process results of any asynchronous writes
@@ -462,8 +468,8 @@ public class Publisher {
             try {
                 result &= future.get().booleanValue();
             } catch (InterruptedException | ExecutionException e) {
-                logBuilder().transactionID(transaction.id()).error(e, "Error on commit of file");
-                throw new IOException("Error on commit of file", e);
+                throw error().transactionID(transaction.id())
+                        .logException(new IOException("Error on commit of file", e), "Error on commit of file");
             }
         }
 
@@ -478,15 +484,13 @@ public class Publisher {
 
     private void applyTransactionDeletes(Transaction transaction, Path website) throws IOException {
         LocalDateTime start = LocalDateTime.now();
-        LogBuilder logBuilder = logBuilder();
 
         // Apply any deletes that are defined in the transaction first to ensure we do not delete updated files.
         for (UriInfo uriInfo : transaction.urisToDelete()) {
             String uri = uriInfo.uri();
             Path target = PathUtils.toPath(uri, website);
 
-            info().data("path", target.toString()).data("transaction_id", transaction.id()).log("deleting directory");
-
+            info().data("path", target.toString()).transactionID(transaction.id()).log("deleting directory");
             FileUtils.deleteDirectory(target.toFile());
         }
     }
