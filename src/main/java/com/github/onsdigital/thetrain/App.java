@@ -50,10 +50,12 @@ import static spark.Spark.post;
 
 public class App {
 
+    private static final String FORMAT_LOGS_KEY = "FORMAT_LOGGING";
+
     static Map<String, String> ROUTES;
 
     public static void main(String[] args) {
-        LogSerialiser serialiser = new JacksonLogSerialiser();
+        LogSerialiser serialiser = getLogSerialiser();
         LogStore store = new MDCLogStore(serialiser);
         Logger logger = new LoggerImpl("the-train");
 
@@ -152,5 +154,10 @@ public class App {
     private static void registerGetHandler(String uri, Route route, ResponseTransformer transformer) {
         ROUTES.put(uri, "GET");
         get(uri, route, transformer);
+    }
+
+    private static LogSerialiser getLogSerialiser() {
+        boolean formatLogging = Boolean.valueOf(System.getenv(FORMAT_LOGS_KEY));
+        return new JacksonLogSerialiser(formatLogging);
     }
 }

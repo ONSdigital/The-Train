@@ -120,7 +120,7 @@
         <dependency>
             <groupId>com.github.ONSdigital</groupId>
             <artifactId>dp-logging</artifactId>
-            <version>master-25d3e73a4c-1</version>
+            <version>release~1.2.0</version>
         </dependency>
 
         <!-- Test -->

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <property scope="context" name="default.logger.formatted" value="true"/>
+
+    <appender name="JSONIFIED" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="com.github.onsdigital.logging.v2.layout.ThirdPartyEventLayout">
+                <Pattern>%n%msg</Pattern>
+            </layout>
+        </encoder>
+    </appender>
+
+    <appender name="JSON_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+                %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <logger name="the-train" level="info" additivity="false">
+        <appender-ref ref="JSON_STDOUT"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="JSON_STDOUT"/>
+    </root>
+
+</configuration>

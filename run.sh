@@ -8,6 +8,7 @@ export PORT=8084
 export DP_COLOURED_LOGGING=true
 export DP_LOGGING_FORMAT=pretty_json
 export PUBLISHING_THREAD_POOL_SIZE=100
+export FORMAT_LOGGING=true
 
 JAVA_OPTS="-Xmx1024m -Xms1024m -Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=n"
 

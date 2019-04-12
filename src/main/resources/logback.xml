@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <appender name="JSONIFIED" class="ch.qos.logback.core.ConsoleAppender">
+    <property scope="context" name="default.logger.name" value="dp-logger-default"/>
+    <property scope="context" name="default.logger.formatted" value="false"/>
+
+    <!--
+        This appender wraps the original message in the dp-logging standards format ensuring consistency with our log
+        output and that they play nice with the log aggregator.
+    -->
+    <appender name="THIRD_PARTY_TO_DP_LOGGING" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
             <layout class="com.github.onsdigital.logging.v2.layout.ThirdPartyEventLayout">
                 <Pattern>%n%msg</Pattern>
@@ -9,7 +16,7 @@
         </encoder>
     </appender>
 
-    <appender name="JSON_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="DP_LOGGER" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>
                 %msg%n
@@ -18,11 +25,11 @@
     </appender>
 
     <logger name="the-train" level="info" additivity="false">
-        <appender-ref ref="JSON_STDOUT"/>
+        <appender-ref ref="DP_LOGGER"/>
     </logger>
 
-    <root level="WARN">
-        <appender-ref ref="JSONIFIED"/>
+    <root level="info">
+        <appender-ref ref="THIRD_PARTY_TO_DP_LOGGING"/>
     </root>
 
 </configuration>
