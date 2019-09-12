@@ -15,6 +15,12 @@
     </properties>
 
     <repositories>
+        <!--Jitpack io allows us include projects and libraries available on github but not built and published to maven central-->
+        <!-- It is used for including internal project modules. See more on https://jitpack.io/-->
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
         <repository>
             <snapshots>
                 <enabled>false</enabled>
@@ -22,12 +28,6 @@
             <id>central</id>
             <name>Central Repository</name>
             <url>http://repo.maven.apache.org/maven2</url>
-        </repository>
-        <!--Jitpack io allows us include projects and libraries available on github but not built and published to maven central-->
-        <!-- It is used for including internal project modules. See more on https://jitpack.io/-->
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
         </repository>
     </repositories>
 
@@ -120,7 +120,7 @@
         <dependency>
             <groupId>com.github.ONSdigital</groupId>
             <artifactId>dp-logging</artifactId>
-            <version>master-25d3e73a4c-1</version>
+            <version>release~1.3.0</version>
         </dependency>
 
         <!-- Test -->
