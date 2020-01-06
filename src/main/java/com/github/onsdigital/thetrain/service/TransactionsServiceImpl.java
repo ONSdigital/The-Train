@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import spark.Request;
 
+import java.nio.file.Path;
 import java.util.concurrent.Future;
 
 import static java.lang.String.format;
@@ -22,6 +23,7 @@ public class TransactionsServiceImpl implements TransactionsService {
     public static final String TRANS_UPDATE_ERR = "error updating transacion";
     public static final String TRANS_CONTAINS_ERRS = "transaction cannot be committed because errors have been reported";
     public static final String TRANS_LIST_FILES_ERR = "error listing transaction files";
+    public static final String TRANS_CONTENT_ERR = "error resolving transaction content path";
 
     @Override
     public Transaction create() throws PublishException {
@@ -87,6 +89,16 @@ public class TransactionsServiceImpl implements TransactionsService {
             return Transactions.tryUpdateAsync(transaction.id());
         } catch (Exception e) {
             throw new PublishException(TRANS_ASYNC_UPDATE_ERR, e, transaction,
+                    HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Override
+    public Path content(Transaction transaction) throws PublishException {
+        try {
+            return Transactions.content(transaction);
+        } catch (Exception ex) {
+            throw new PublishException(TRANS_CONTENT_ERR, ex, transaction,
                     HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
     }

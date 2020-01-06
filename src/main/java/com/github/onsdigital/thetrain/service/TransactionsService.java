@@ -6,6 +6,7 @@ import com.github.onsdigital.thetrain.json.Transaction;
 import spark.Request;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.concurrent.Future;
 
 public interface TransactionsService {
@@ -21,4 +22,6 @@ public interface TransactionsService {
     void listFiles(Transaction transaction) throws PublishException;
 
     Future<Boolean> tryUpdateAsync(final Transaction transaction) throws PublishException;
+
+    Path content(Transaction transaction) throws PublishException;
 }

@@ -1,9 +1,7 @@
 package com.github.onsdigital.thetrain.routes;
 
-import com.github.onsdigital.thetrain.json.JSONReader;
 import com.github.onsdigital.thetrain.json.Transaction;
-import com.github.onsdigital.thetrain.json.VerifyHashEnity;
-import com.github.onsdigital.thetrain.response.VerifyHashResult;
+import com.github.onsdigital.thetrain.response.ContentHashEntity;
 import com.github.onsdigital.thetrain.service.ContentException;
 import com.github.onsdigital.thetrain.service.ContentService;
 import com.github.onsdigital.thetrain.service.TransactionsService;
@@ -13,42 +11,45 @@ import spark.Response;
 import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
 import static spark.Spark.halt;
 
-public class VerifyContentHash extends BaseHandler {
+/**
+ * {@link spark.Route} that returns the SHA-1 hash for file content of the requested URI if it exists within the
+ * transaction.
+ */
+public class GetContentHash extends BaseHandler {
 
     private TransactionsService transactionsService;
     private ContentService contentService;
-    private JSONReader jsonReader;
 
-    public VerifyContentHash(TransactionsService transactionsService, ContentService contentService,
-                             JSONReader jsonReader) {
+    /**
+     * Construct a new GetContentHash route.
+     *
+     * @param transactionsService {@link TransactionsService} used to get the transaction specified in the request.
+     * @param contentService      {@link ContentService} used to get the hash value of the request content file.
+     */
+    public GetContentHash(TransactionsService transactionsService, ContentService contentService) {
         this.transactionsService = transactionsService;
         this.contentService = contentService;
-        this.jsonReader = jsonReader;
     }
 
     @Override
     public Object handle(Request request, Response response) throws Exception {
         Transaction trans = transactionsService.getTransaction(request);
+        String uri = getURI(request);
+        String hashValue = getContentHashValue(trans, uri);
 
-        VerifyHashEnity entity = jsonReader.fromRequestBody(request, VerifyHashEnity.class);
-        String uri = entity.getUri();
-        String hash = entity.getHash();
-
-        boolean isValid = verifyHash(trans, uri, hash);
-
-        return new VerifyHashResult(trans.id(), uri, hash, isValid);
+        return new ContentHashEntity(trans.id(), uri, hashValue);
     }
 
-    private boolean verifyHash(Transaction transaction, String uri, String hash) throws Exception {
-        boolean validHashValue = false;
+    private String getContentHashValue(Transaction transaction, String uri) {
+        String hashValue = "";
 
         try {
-            validHashValue = contentService.isValidHash(transaction, uri, hash);
+            hashValue = contentService.getContentHash(transaction, uri);
         } catch (Exception ex) {
             handleError(transaction, uri, ex);
         }
 
-        return validHashValue;
+        return hashValue;
     }
 
     private void handleError(Transaction transaction, String uri, Exception ex) {
