@@ -1,7 +1,6 @@
 package com.github.onsdigital.thetrain.routes;
 
 import com.github.onsdigital.thetrain.exception.BadRequestException;
-import com.github.onsdigital.thetrain.json.VerifyHashEnity;
 import com.github.onsdigital.thetrain.response.ContentHashEntity;
 import com.github.onsdigital.thetrain.service.ContentException;
 import com.github.onsdigital.thetrain.service.ContentService;
@@ -27,12 +26,9 @@ public class GetContentHashTest extends BaseRouteTest {
 
     private GetContentHash route;
 
-    private VerifyHashEnity verifyHashEnity;
-
     @Override
     public void customSetUp() throws Exception {
         route = new GetContentHash(transactionsService, contentService);
-        verifyHashEnity = new VerifyHashEnity(URI, "123456789");
     }
 
     @Test(expected = BadRequestException.class)
