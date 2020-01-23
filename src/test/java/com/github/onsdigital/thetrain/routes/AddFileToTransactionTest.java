@@ -4,19 +4,32 @@ import com.github.onsdigital.thetrain.exception.BadRequestException;
 import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.storage.TransactionUpdate;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.http.HttpStatus;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import spark.Route;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Date;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static com.github.onsdigital.thetrain.routes.AddFileToTransaction.ADD_FILE_ERR_MSG;
 import static com.github.onsdigital.thetrain.routes.BaseHandler.URI_MISSING_ERR;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
@@ -28,6 +41,9 @@ public class AddFileToTransactionTest extends BaseRouteTest {
 
     private Route route;
     private String testURI = "/a/b/c";
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Override
     public void customSetUp() throws Exception {
@@ -188,4 +204,99 @@ public class AddFileToTransactionTest extends BaseRouteTest {
         verify(transactionsService, times(1)).tryUpdateAsync(transaction);
     }
 
+    // This test is a beast... sorry
+    @Test
+    public void handle_timeSeriesZipFile_success() throws Exception {
+        // The path of to the json file in the test resources. This is contained within the zip.
+        Path srcJsonPath = Paths.get(getClass().getResource("/request-body/zip-content.json").getPath());
+
+        // The path of the zip file in test resources - this zip is used for the request body.
+        Path srcZipPath = Paths.get(getClass().getResource("/request-body/timeseries-to-publish.zip").getPath());
+
+        // The uri of the content being added to the transaction.
+        String uri = "/a/b/c/timeseries";
+
+        try (InputStream requestBody = new FileInputStream(srcZipPath.toFile())) {
+            when(transactionsService.getTransaction(request))
+                    .thenReturn(transaction);
+
+            when(request.raw())
+                    .thenReturn(raw);
+
+            when(raw.getParameter("uri"))
+                    .thenReturn(uri);
+
+            when(raw.getParameter("zip"))
+                    .thenReturn("true");
+
+            when(fileUploadHelper.getFileInputStream(raw, TRANSACTION_ID))
+                    .thenReturn(requestBody);
+
+            // Create a transaction directory to use for the test.
+            Path transactionDir = temporaryFolder.newFolder("test-transaction").toPath();
+            transactionDir.toFile().deleteOnExit();
+
+            when(transactionsService.content(transaction))
+                    .thenReturn(transactionDir);
+
+            // When the mock is called write the zip content to the temp dir so we can check it was written correctly.
+            when(publisherService.addFiles(eq(transaction), eq("/a/b/c/timeseries"), any(ZipInputStream.class)))
+                    .thenAnswer(invocationOnMock -> {
+                        ZipInputStream zipIn = invocationOnMock.getArgumentAt(2, ZipInputStream.class);
+                        writeZip(transactionDir.resolve("a/b/c/timeseries"), zipIn);
+                        return true;
+                    });
+
+            // run the test and execute the route handler.
+            Result actual = (Result) route.handle(request, response);
+
+            // asser the results.
+            assertThat(actual.error, is(false));
+
+            // Check the zip file exists within the transaction and check its SHA-1 hash matches the origin src zip.
+            Path zipTransactionPath = transactionDir.resolve("a/b/c/timeseries-to-publish.zip");
+            assertTrue(Files.exists(zipTransactionPath));
+
+            String srcZipHash = getSHA1Hash(srcZipPath);
+            String transactionZipHash = getSHA1Hash(zipTransactionPath);
+            assertThat(srcZipHash, equalTo(transactionZipHash));
+
+            // check the transaction contains the expected json file and check its SHA-1 hash matches the hash for
+            // the original src file - confirming the zip content was unpacked correctly in the transaction dir.
+            Path transactionJsonPath = transactionDir.resolve("a/b/c/timeseries/zip-content.json");
+            Files.exists(transactionJsonPath);
+
+            String srcJsonHash = getSHA1Hash(srcJsonPath);
+            String transactionJsonHash = getSHA1Hash(transactionJsonPath);
+            assertThat(srcJsonHash, equalTo(transactionJsonHash));
+        }
+    }
+
+    private void writeZip(Path transactionPath, ZipInputStream zipIn) throws Exception {
+        if (Files.notExists(transactionPath)) {
+            transactionPath.toFile().mkdirs();
+        }
+
+        byte[] buffer = new byte[1024];
+        ZipEntry entry = zipIn.getNextEntry();
+        while (entry != null) {
+            Path filePath = transactionPath.resolve(entry.getName());
+            Files.createFile(filePath);
+
+            try (FileOutputStream os = new FileOutputStream(filePath.toFile())) {
+                int len;
+
+                while ((len = zipIn.read(buffer)) > 0) {
+                    os.write(buffer, 0, len);
+                }
+            }
+            entry = zipIn.getNextEntry();
+        }
+    }
+
+    private String getSHA1Hash(Path p) throws IOException {
+        try (InputStream in = Files.newInputStream(p)) {
+            return DigestUtils.sha1Hex(in);
+        }
+    }
 }
