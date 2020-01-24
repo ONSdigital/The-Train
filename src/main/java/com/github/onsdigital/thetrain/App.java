@@ -114,18 +114,25 @@ public class App {
                 -> new CatchAllHandler().handle(e, req, resp));
     }
 
-    public static void registerEndpoints(AppConfiguration config) {
-        Beans beans = new Beans(config.websitePath());
+    public static void registerEndpoints(AppConfiguration cfg) {
+        Beans beans = new Beans(cfg.websitePath());
 
         ResponseTransformer transformer = beans.getResponseTransformer();
 
         registerPostHandler("/begin", openTransaction(beans), transformer);
+
         registerPostHandler("/publish", addFiles(beans), transformer);
+
         registerPostHandler("/commit", commitTransaction(beans), transformer);
+
         registerPostHandler("/CommitManifest", sendManifest(beans), transformer);
+
         registerPostHandler("/rollback", rollbackTransaction(beans), transformer);
+
         registerGetHandler("/transaction", getTransaction(beans), beans.getResponseTransformer());
-        registerGetHandler("/contentHash", getContentHash(beans), beans.getResponseTransformer());
+
+        registerGetHandler("/contentHash", getContentHash(beans, cfg.isVerifyPublishEnabled()),
+                beans.getResponseTransformer());
     }
 
     private static Route openTransaction(Beans beans) {
@@ -153,8 +160,8 @@ public class App {
         return new GetTransaction(beans.getTransactionsService());
     }
 
-    private static Route getContentHash(Beans beans) {
-        return new GetContentHash(beans.getTransactionsService(), beans.getContentService());
+    private static Route getContentHash(Beans beans, boolean isFeatureEnabled) {
+        return new GetContentHash(beans.getTransactionsService(), beans.getContentService(), isFeatureEnabled);
     }
 
     private static void registerPostHandler(String uri, Route route, ResponseTransformer transformer) {

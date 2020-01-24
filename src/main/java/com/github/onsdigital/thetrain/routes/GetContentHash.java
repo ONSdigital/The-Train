@@ -8,7 +8,9 @@ import com.github.onsdigital.thetrain.service.TransactionsService;
 import spark.Request;
 import spark.Response;
 
+import static com.github.onsdigital.thetrain.configuration.AppConfiguration.ENABLE_VERIFY_PUBLISH_CONTENT;
 import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 import static spark.Spark.halt;
 
 /**
@@ -17,26 +19,37 @@ import static spark.Spark.halt;
  */
 public class GetContentHash extends BaseHandler {
 
+    private static final String FEATURE_DISABLED_MSG = "unable to process request as feature is not enabled " +
+            "if this is incorrect please check your application configuration";
+
     private TransactionsService transactionsService;
     private ContentService contentService;
+    private boolean isFeatureEnabled;
 
     /**
      * Construct a new GetContentHash route.
      *
      * @param transactionsService {@link TransactionsService} used to get the transaction specified in the request.
      * @param contentService      {@link ContentService} used to get the hash value of the request content file.
+     * @param isFeatureEnabled    feature flag toggle to enable/disable this endpoint. If disabled returns 404.
      */
-    public GetContentHash(TransactionsService transactionsService, ContentService contentService) {
+    public GetContentHash(TransactionsService transactionsService, ContentService contentService,
+                          boolean isFeatureEnabled) {
         this.transactionsService = transactionsService;
         this.contentService = contentService;
+        this.isFeatureEnabled = isFeatureEnabled;
     }
 
     @Override
     public Object handle(Request request, Response response) throws Exception {
+        if (!isFeatureEnabled) {
+            info().featureFlag(ENABLE_VERIFY_PUBLISH_CONTENT).log(FEATURE_DISABLED_MSG);
+            halt(404);
+        }
+
         Transaction trans = transactionsService.getTransaction(request);
         String uri = getURI(request);
         String hashValue = getContentHashValue(trans, uri);
-
         return new ContentHashEntity(trans.id(), uri, hashValue);
     }
 

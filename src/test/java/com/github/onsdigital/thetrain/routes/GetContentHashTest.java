@@ -28,7 +28,7 @@ public class GetContentHashTest extends BaseRouteTest {
 
     @Override
     public void customSetUp() throws Exception {
-        route = new GetContentHash(transactionsService, contentService);
+        route = new GetContentHash(transactionsService, contentService, true);
     }
 
     @Test(expected = BadRequestException.class)
@@ -139,5 +139,17 @@ public class GetContentHashTest extends BaseRouteTest {
 
         assertTrue(actual instanceof ContentHashEntity);
         assertThat((ContentHashEntity) actual, equalTo(expected));
+    }
+
+    @Test(expected = HaltException.class)
+    public void handle_verifyPublishFeatureDisabled_haltException() throws Exception {
+        route = new GetContentHash(transactionsService, contentService, false);
+
+        try {
+            route.handle(request, response);
+        } catch (HaltException ex) {
+            assertThat(ex.statusCode(), equalTo(404));
+            throw ex;
+        }
     }
 }
