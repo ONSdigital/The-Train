@@ -2,20 +2,17 @@ package com.github.onsdigital.thetrain.helpers;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Utility methods for dealing with paths and converting to/from URI strings.
@@ -177,12 +174,25 @@ public class PathUtils {
 
         Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
             @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                result.add(file);
+            public FileVisitResult visitFile(Path p, BasicFileAttributes attrs) throws IOException {
+                if (isFileToPublish(p)) {
+                    result.add(p);
+                }
+
                 return FileVisitResult.CONTINUE;
             }
         });
 
         return result;
+    }
+
+    static boolean isFileToPublish(Path p) {
+        boolean isPublishable = true;
+        File f = p.toFile();
+
+        if (!f.isDirectory() && f.getName().equals("timeseries-to-publish.zip")) {
+            isPublishable = false;
+        }
+        return isPublishable;
     }
 }
