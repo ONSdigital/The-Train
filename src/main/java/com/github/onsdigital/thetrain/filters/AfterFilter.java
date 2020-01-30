@@ -10,6 +10,8 @@ public class AfterFilter implements Filter {
 
     @Override
     public void handle(Request request, Response response) throws Exception {
-        info().endHTTP(response.raw()).log("request completed");
+        info().request(request.raw())
+                .response(response.raw())
+                .log("request completed");
     }
 }

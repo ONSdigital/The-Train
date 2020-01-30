@@ -22,7 +22,8 @@ public class PublishExceptionHandler implements ExceptionHandler<PublishExceptio
         response.status(e.getStatus());
         response.body(gson.toJson(new Result(e.getMessage(), true, e.getTransaction())));
 
-        error().transactionID(e.getTransaction()).exceptionAll(e)
+        error().transactionID(e.getTransaction())
+                .exception(e)
                 .data("status", e.getStatus())
                 .log("PublishExceptionHandler returning error status");
     }

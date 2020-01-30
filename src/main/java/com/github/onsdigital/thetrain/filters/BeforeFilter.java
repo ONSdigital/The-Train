@@ -13,6 +13,6 @@ public class BeforeFilter implements Filter {
 
     @Override
     public void handle(Request request, Response response) throws Exception {
-        info().beginHTTP(request.raw()).log("request received");
+        info().request(request.raw()).log("request received");
     }
 }
