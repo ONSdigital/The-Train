@@ -17,6 +17,7 @@ import com.github.onsdigital.thetrain.exception.handler.CatchAllHandler;
 import com.github.onsdigital.thetrain.exception.handler.PublishExceptionHandler;
 import com.github.onsdigital.thetrain.filters.AfterFilter;
 import com.github.onsdigital.thetrain.filters.BeforeFilter;
+import com.github.onsdigital.thetrain.response.Message;
 import com.github.onsdigital.thetrain.routes.AddFileToTransaction;
 import com.github.onsdigital.thetrain.routes.CommitTransaction;
 import com.github.onsdigital.thetrain.routes.GetContentHash;
@@ -78,7 +79,7 @@ public class App {
     }
 
     private static void initLogging() throws LoggingException {
-        LogSerialiser serialiser = new JacksonLogSerialiser();
+        LogSerialiser serialiser = new JacksonLogSerialiser(true);
         LogStore store = new MDCLogStore(serialiser);
         Logger logger = new LoggerImpl("the-train");
 
@@ -129,10 +130,12 @@ public class App {
 
         registerPostHandler("/rollback", rollbackTransaction(beans), transformer);
 
-        registerGetHandler("/transaction", getTransaction(beans), beans.getResponseTransformer());
+        registerGetHandler("/transaction", getTransaction(beans), transformer);
 
-        registerGetHandler("/contentHash", getContentHash(beans, cfg.isVerifyPublishEnabled()),
-                beans.getResponseTransformer());
+        registerGetHandler("/contentHash", getContentHash(beans, cfg.isVerifyPublishEnabled()), transformer);
+
+        // Catch-all for any request not handled by the above routes.
+        registerGetHandler("*", getNotFoundHandler(), transformer);
     }
 
     private static Route openTransaction(Beans beans) {
@@ -162,6 +165,13 @@ public class App {
 
     private static Route getContentHash(Beans beans, boolean isFeatureEnabled) {
         return new GetContentHash(beans.getTransactionsService(), beans.getContentService(), isFeatureEnabled);
+    }
+
+    private static Route getNotFoundHandler() {
+        return (req, resp) -> {
+            resp.status(404);
+            return new Message("Not found");
+        };
     }
 
     private static void registerPostHandler(String uri, Route route, ResponseTransformer transformer) {

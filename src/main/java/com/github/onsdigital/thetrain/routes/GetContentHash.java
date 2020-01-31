@@ -71,7 +71,7 @@ public class GetContentHash extends BaseHandler {
         error().transactionID(transaction)
                 .data("uri", uri)
                 .data("status", status)
-                .exceptionAll(ex)
+                .exception(ex)
                 .log("error verifying content hash");
 
         halt(status);
