@@ -130,12 +130,12 @@ public class App {
 
         registerPostHandler("/rollback", rollbackTransaction(beans), transformer);
 
-        registerGetHandler("/transaction", getTransaction(beans), beans.getResponseTransformer());
+        registerGetHandler("/transaction", getTransaction(beans), transformer);
 
         registerGetHandler("/contentHash", getContentHash(beans, cfg.isVerifyPublishEnabled()), transformer);
 
         // Catch-all for any request not handled by the above routes.
-        registerGetHandler("*", getNotFoundHadler(), transformer);
+        registerGetHandler("*", getNotFoundHandler(), transformer);
     }
 
     private static Route openTransaction(Beans beans) {
@@ -167,7 +167,7 @@ public class App {
         return new GetContentHash(beans.getTransactionsService(), beans.getContentService(), isFeatureEnabled);
     }
 
-    private static Route getNotFoundHadler() {
+    private static Route getNotFoundHandler() {
         return (req, resp) -> {
             resp.status(404);
             return new Message("Not found");
