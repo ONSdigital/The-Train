@@ -79,7 +79,7 @@ public class App {
     }
 
     private static void initLogging() throws LoggingException {
-        LogSerialiser serialiser = new JacksonLogSerialiser(true);
+        LogSerialiser serialiser = new JacksonLogSerialiser();
         LogStore store = new MDCLogStore(serialiser);
         Logger logger = new LoggerImpl("the-train");
 
