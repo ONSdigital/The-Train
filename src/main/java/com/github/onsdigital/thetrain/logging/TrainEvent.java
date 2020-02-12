@@ -39,4 +39,11 @@ public class TrainEvent extends BaseEvent<TrainEvent> {
         return this;
     }
 
+    public TrainEvent featureFlag(String featureName) {
+        if (StringUtils.isNotEmpty(featureName)) {
+            data("feature_flag", featureName);
+        }
+        return this;
+    }
+
 }

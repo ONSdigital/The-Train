@@ -17,27 +17,19 @@ import com.github.onsdigital.thetrain.exception.handler.CatchAllHandler;
 import com.github.onsdigital.thetrain.exception.handler.PublishExceptionHandler;
 import com.github.onsdigital.thetrain.filters.AfterFilter;
 import com.github.onsdigital.thetrain.filters.BeforeFilter;
-import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
-import com.github.onsdigital.thetrain.response.JsonTransformer;
+import com.github.onsdigital.thetrain.response.Message;
 import com.github.onsdigital.thetrain.routes.AddFileToTransaction;
 import com.github.onsdigital.thetrain.routes.CommitTransaction;
+import com.github.onsdigital.thetrain.routes.GetContentHash;
 import com.github.onsdigital.thetrain.routes.GetTransaction;
 import com.github.onsdigital.thetrain.routes.OpenTransaction;
 import com.github.onsdigital.thetrain.routes.RollbackTransaction;
 import com.github.onsdigital.thetrain.routes.SendManifest;
-import com.github.onsdigital.thetrain.routes.VerifyTransaction;
-import com.github.onsdigital.thetrain.service.PublisherService;
-import com.github.onsdigital.thetrain.service.PublisherServiceImpl;
-import com.github.onsdigital.thetrain.service.TransactionsService;
-import com.github.onsdigital.thetrain.service.TransactionsServiceImpl;
 import com.github.onsdigital.thetrain.storage.Publisher;
 import com.github.onsdigital.thetrain.storage.Transactions;
+import spark.Filter;
 import spark.ResponseTransformer;
 import spark.Route;
-
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 
 import static com.github.onsdigital.thetrain.logging.TrainEvent.fatal;
 import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
@@ -50,107 +42,143 @@ import static spark.Spark.post;
 
 public class App {
 
-    static Map<String, String> ROUTES;
-
+    /**
+     * Start The Train.
+     * A {@link LoggingException} throw when attempting to init the application is considered fatal and will result
+     * in the app exiting with a system exit code of 1 - not being able to log means we are helpless if a publish
+     * were to fail.
+     *
+     * @param args
+     */
     public static void main(String[] args) {
-        LogSerialiser serialiser = new JacksonLogSerialiser();
-        LogStore store = new MDCLogStore(serialiser);
-        Logger logger = new LoggerImpl("the-train");
-
         try {
-            DPLogger.init(new Builder()
-                    .logger(logger)
-                    .logStore(store)
-                    .serialiser(serialiser)
-                    .dataNamespace("train.data")
-                    .create());
+            startApp();
         } catch (LoggingException ex) {
             System.err.println(ex);
             System.exit(1);
-        }
-
-        try {
-            info().log("starting the-train");
-            allAboard();
         } catch (Exception e) {
             fatal(e).log("unexpected error while attempting to start the-train");
             System.exit(1);
         }
     }
 
-    private static void allAboard() throws Exception {
-        AppConfiguration config = AppConfiguration.get();
 
-        // init services.
+    private static void startApp() throws Exception {
+        initLogging();
+
+        info().log("starting the-train");
+
+        AppConfiguration config = AppConfiguration.get();
+        initServices(config);
+        port(config.port());
+        registerHTTPFilters();
+        registerExeptionHandlers();
+        registerEndpoints(config);
+
+        info().data("PORT", config.port()).log("train start up completed successfully");
+    }
+
+    private static void initLogging() throws LoggingException {
+        LogSerialiser serialiser = new JacksonLogSerialiser();
+        LogStore store = new MDCLogStore(serialiser);
+        Logger logger = new LoggerImpl("the-train");
+
+        DPLogger.init(new Builder()
+                .logger(logger)
+                .logStore(store)
+                .serialiser(serialiser)
+                .dataNamespace("train.data")
+                .create());
+    }
+
+    private static void initServices(AppConfiguration config) {
         Publisher.init(config.publishThreadPoolSize());
         Transactions.init(config.transactionStore());
+    }
 
-        ROUTES = new HashMap<>();
-
-        port(config.port());
-
-        before("/*", new BeforeFilter());
+    private static void registerHTTPFilters() {
+        Filter beforeFilter = new BeforeFilter();
+        before("/*", beforeFilter);
 
         AfterFilter afterFilter = new AfterFilter();
         after("/*", afterFilter);
-
-        registerExeptionHandlers();
-
-        // objects needed by routes
-        ResponseTransformer transformer = JsonTransformer.get();
-        TransactionsService transactionsService = new TransactionsServiceImpl();
-        FileUploadHelper fileUploadHelper = new FileUploadHelper();
-        PublisherService publisherService = new PublisherServiceImpl(Publisher.getInstance(), config.websitePath());
-
-        registerRoutes(transformer, fileUploadHelper, transactionsService, publisherService, config.websitePath());
-
-        info().data("routes", ROUTES).data("PORT", config.port()).log("registered API routes");
     }
 
     private static void registerExeptionHandlers() {
-        exception(BadRequestException.class, (e, req, resp) -> new BadRequestExceptionHandler().handle(e, req, resp));
+        exception(BadRequestException.class, (e, req, resp)
+                -> new BadRequestExceptionHandler().handle(e, req, resp));
 
-        exception(PublishException.class, (e, req, resp) -> new PublishExceptionHandler().handle(e, req, resp));
+        exception(PublishException.class, (e, req, resp)
+                -> new PublishExceptionHandler().handle(e, req, resp));
 
-        exception(Exception.class, (e, req, resp) -> new CatchAllHandler().handle(e, req, resp));
+        exception(Exception.class, (e, req, resp)
+                -> new CatchAllHandler().handle(e, req, resp));
     }
 
-    /**
-     * Register the {@link Route}'s
-     */
-    private static void registerRoutes(ResponseTransformer transformer, FileUploadHelper fileUploadHelper,
-                                       TransactionsService transactionsService, PublisherService publisherService,
-                                       Path websitePath) {
-        Route openTransaction = new OpenTransaction(transactionsService);
-        registerPostHandler("/begin", openTransaction, transformer);
+    public static void registerEndpoints(AppConfiguration cfg) {
+        Beans beans = new Beans(cfg.websitePath());
 
-        Route addFile = new AddFileToTransaction(transactionsService, publisherService, fileUploadHelper);
-        registerPostHandler("/publish", addFile, transformer);
+        ResponseTransformer transformer = beans.getResponseTransformer();
 
-        Route commit = new CommitTransaction(transactionsService, publisherService);
-        registerPostHandler("/commit", commit, transformer);
+        registerPostHandler("/begin", openTransaction(beans), transformer);
 
-        Route sendManifest = new SendManifest(transactionsService, publisherService, websitePath);
-        registerPostHandler("/CommitManifest", sendManifest, transformer);
+        registerPostHandler("/publish", addFiles(beans), transformer);
 
-        Route rollback = new RollbackTransaction(transactionsService, publisherService);
-        registerPostHandler("/rollback", rollback, transformer);
+        registerPostHandler("/commit", commitTransaction(beans), transformer);
 
-        Route getTransaction = new GetTransaction(transactionsService);
-        registerGetHandler("/transaction", getTransaction, transformer);
+        registerPostHandler("/CommitManifest", sendManifest(beans), transformer);
 
-        Route verify = new VerifyTransaction(websitePath);
-        registerGetHandler("/veify", verify, transformer);
+        registerPostHandler("/rollback", rollbackTransaction(beans), transformer);
 
+        registerGetHandler("/transaction", getTransaction(beans), transformer);
+
+        registerGetHandler("/contentHash", getContentHash(beans, cfg.isVerifyPublishEnabled()), transformer);
+
+        // Catch-all for any request not handled by the above routes.
+        registerGetHandler("*", getNotFoundHandler(), transformer);
+    }
+
+    private static Route openTransaction(Beans beans) {
+        return new OpenTransaction(beans.getTransactionsService());
+    }
+
+    private static Route addFiles(Beans beans) {
+        return new AddFileToTransaction(beans.getTransactionsService(), beans.getPublisherService(),
+                beans.getFileUploadHelper());
+    }
+
+    private static Route commitTransaction(Beans beans) {
+        return new CommitTransaction(beans.getTransactionsService(), beans.getPublisherService());
+    }
+
+    private static Route sendManifest(Beans beans) {
+        return new SendManifest(beans.getTransactionsService(), beans.getPublisherService(), beans.getWebsitePath());
+    }
+
+    private static Route rollbackTransaction(Beans beans) {
+        return new RollbackTransaction(beans.getTransactionsService(), beans.getPublisherService());
+    }
+
+    private static Route getTransaction(Beans beans) {
+        return new GetTransaction(beans.getTransactionsService());
+    }
+
+    private static Route getContentHash(Beans beans, boolean isFeatureEnabled) {
+        return new GetContentHash(beans.getTransactionsService(), beans.getContentService(), isFeatureEnabled);
+    }
+
+    private static Route getNotFoundHandler() {
+        return (req, resp) -> {
+            resp.status(404);
+            return new Message("Not found");
+        };
     }
 
     private static void registerPostHandler(String uri, Route route, ResponseTransformer transformer) {
-        ROUTES.put(uri, "POST");
         post(uri, route, transformer);
     }
 
     private static void registerGetHandler(String uri, Route route, ResponseTransformer transformer) {
-        ROUTES.put(uri, "GET");
         get(uri, route, transformer);
     }
 }

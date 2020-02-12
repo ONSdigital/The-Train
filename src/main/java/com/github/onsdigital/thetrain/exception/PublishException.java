@@ -31,6 +31,11 @@ public class PublishException extends Exception {
         this.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
     }
 
+    public PublishException(String message, Throwable cause, Transaction transaction) {
+        super(message, cause);
+        this.transaction = transaction;
+    }
+
     public PublishException(String message) {
         super(message);
         this.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;

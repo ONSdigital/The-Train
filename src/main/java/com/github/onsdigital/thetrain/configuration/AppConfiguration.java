@@ -17,10 +17,11 @@ public class AppConfiguration {
 
     private static AppConfiguration INSTANCE = null;
 
-    private static final String TRANSACTION_STORE_ENV_KEY = "TRANSACTION_STORE";
-    private static final String WEBSITE_ENV_KEY = "WEBSITE";
-    private static final String THREAD_POOL_SIZE_ENV_KEY = "PUBLISHING_THREAD_POOL_SIZE";
-    private static final String PORT_ENV_KEY = "PORT";
+    public static final String TRANSACTION_STORE_ENV_KEY = "TRANSACTION_STORE";
+    public static final String WEBSITE_ENV_KEY = "WEBSITE";
+    public static final String THREAD_POOL_SIZE_ENV_KEY = "PUBLISHING_THREAD_POOL_SIZE";
+    public static final String PORT_ENV_KEY = "PORT";
+    public static final String ENABLE_VERIFY_PUBLISH_CONTENT = "ENABLE_VERIFY_PUBLISH_CONTENT";
 
     private static final String THREAD_POOL_SIZE_PARSE_ERR = format("configuration value %s could not be parsed to " +
             "Integer", THREAD_POOL_SIZE_ENV_KEY);
@@ -32,6 +33,7 @@ public class AppConfiguration {
     private Path websitePath;
     private int publishThreadPoolSize;
     private int port;
+    private boolean enableVerifyPublish;
 
     /**
      * @throws ConfigurationException
@@ -41,11 +43,13 @@ public class AppConfiguration {
         this.websitePath = loadWebsitePathConfig();
         this.publishThreadPoolSize = loadPublishPoolSizeConfig();
         this.port = loadPortConfig();
+        this.enableVerifyPublish = loadEnableVerifyPublishContentFeatureFlag();
 
         info().data(TRANSACTION_STORE_ENV_KEY, transactionStore)
                 .data(WEBSITE_ENV_KEY, websitePath)
                 .data(THREAD_POOL_SIZE_ENV_KEY, publishThreadPoolSize)
                 .data(PORT_ENV_KEY, port)
+                .data(ENABLE_VERIFY_PUBLISH_CONTENT, enableVerifyPublish)
                 .log("successfully load application configuration");
     }
 
@@ -75,6 +79,10 @@ public class AppConfiguration {
      */
     public int port() {
         return port;
+    }
+
+    public boolean isVerifyPublishEnabled() {
+        return enableVerifyPublish;
     }
 
     /**
@@ -112,6 +120,11 @@ public class AppConfiguration {
             throw new ConfigurationException("configured transaction store path is not a directory");
         }
         return transactionStorePath;
+    }
+
+    private static boolean loadEnableVerifyPublishContentFeatureFlag() {
+        String isEnableVerifyPublish = System.getenv(ENABLE_VERIFY_PUBLISH_CONTENT);
+        return Boolean.valueOf(isEnableVerifyPublish);
     }
 
     private static Path loadWebsitePathConfig() throws ConfigurationException {
