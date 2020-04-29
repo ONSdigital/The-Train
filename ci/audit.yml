@@ -8,7 +8,7 @@ image_resource:
     tag: 3.5.0-jdk-8
 
 inputs:
-  - name: zebedee
+  - name: the-train
 
 params:
   APPLICATION:
