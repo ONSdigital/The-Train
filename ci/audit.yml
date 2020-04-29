@@ -1,5 +1,4 @@
 ---
-
 platform: linux
 
 image_resource:
@@ -9,10 +8,10 @@ image_resource:
     tag: 3.5.0-jdk-8
 
 inputs:
-  - name: the-train
+  - name: zebedee
 
 params:
   APPLICATION:
 
 run:
-  path: the-train/ci/scripts/unit.sh
+  path: the-train/ci/scripts/audit.sh
