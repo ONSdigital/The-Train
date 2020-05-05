@@ -1,5 +1,5 @@
 #!/bin/bash -eux
 
 pushd the-train
-  mvn test
+  make test
 popd

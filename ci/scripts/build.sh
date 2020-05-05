@@ -1,6 +1,6 @@
 #!/bin/bash -eux
 
 pushd the-train
-  mvn -DskipTests=true -Dossindex.skip=true clean package dependency:copy-dependencies
+  make build
   cp -r Dockerfile.concourse target/* ../build/
 popd
