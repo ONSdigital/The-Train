@@ -37,7 +37,7 @@ endif
 ensure_dirs:
 	@if [[ $(WEBSITE_DIR) == $(WEBSITE_DEFAULT) ]]; then mkdir -p $(WEBSITE_DEFAULT); fi
 
-	@if [[ $(WEBSITE_DIR) == $(WEBSITE_DEFAULT) ]]; then mkdir -p $(TRANSATIONS_DEFAULT); fi
+	@if [[ $(TRANSATIONS_DIR) == $(TRANSATIONS_DEFAULT) ]]; then mkdir -p $(TRANSATIONS_DEFAULT); fi
 build:
 	mvn -DskipTests -Dossindex.skip clean package
 debug: build ensure_dirs
