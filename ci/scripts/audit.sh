@@ -1,5 +1,5 @@
 #!/bin/bash -eux
 
 pushd the-train
-  make test
+    make audit
 popd

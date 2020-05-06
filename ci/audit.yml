@@ -1,5 +1,4 @@
 ---
-
 platform: linux
 
 image_resource:
@@ -10,8 +9,5 @@ image_resource:
 inputs:
   - name: the-train
 
-outputs:
-  - name: build
-
 run:
-  path: the-train/ci/scripts/build.sh
+  path: the-train/ci/scripts/audit.sh
