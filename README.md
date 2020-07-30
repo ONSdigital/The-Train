@@ -49,7 +49,7 @@ git clone git@github.com:ONSdigital/The-Train.git
 ```
 
 #### Build and Run
-Update the `default-run.sh` with your config.
+Ensure your `$zebedee_root` environment variable is set, as it will be used by `run.sh` as <YOUR_CONTENT_DIR> as explained below.
 
 #### Configuration
 | Env variable         | Description  |
@@ -61,7 +61,7 @@ See the [Zebedee ReadMe][1] for a guide on setting up your zebedee root path and
 
 To start the service run:
  ```
- ./default-run.sh
+ ./run.sh
  ``` 
 Once the app has started up you can give a quick sanity test by running:
 ```
