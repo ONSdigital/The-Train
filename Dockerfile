@@ -1,4 +1,4 @@
-FROM onsdigital/java-component
+FROM openjdk:8
 
 # Add the build artifacts
 WORKDIR /usr/src
