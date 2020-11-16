@@ -31,6 +31,11 @@ import spark.Filter;
 import spark.ResponseTransformer;
 import spark.Route;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import static com.github.onsdigital.thetrain.logging.TrainEvent.fatal;
 import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 import static spark.Spark.after;
@@ -79,7 +84,7 @@ public class App {
     }
 
     private static void initLogging() throws LoggingException {
-        LogSerialiser serialiser = new JacksonLogSerialiser();
+        LogSerialiser serialiser = new JacksonLogSerialiser(true);
         LogStore store = new MDCLogStore(serialiser);
         Logger logger = new LoggerImpl("the-train");
 
@@ -116,7 +121,7 @@ public class App {
     }
 
     public static void registerEndpoints(AppConfiguration cfg) {
-        Beans beans = new Beans(cfg.websitePath());
+        Beans beans = new Beans(cfg.websitePath(), cfg.getFileUploadsTmpDir());
 
         ResponseTransformer transformer = beans.getResponseTransformer();
 

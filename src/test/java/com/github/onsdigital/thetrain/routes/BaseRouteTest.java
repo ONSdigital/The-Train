@@ -1,6 +1,6 @@
 package com.github.onsdigital.thetrain.routes;
 
-import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
+import com.github.onsdigital.thetrain.helpers.uploads.FileUploadHelper;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.service.PublisherService;
 import com.github.onsdigital.thetrain.service.TransactionsService;

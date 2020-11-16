@@ -1,6 +1,6 @@
 package com.github.onsdigital.thetrain;
 
-import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
+import com.github.onsdigital.thetrain.helpers.uploads.FileUploadHelper;
 import com.github.onsdigital.thetrain.response.JsonTransformer;
 import com.github.onsdigital.thetrain.service.ContentService;
 import com.github.onsdigital.thetrain.service.ContentServiceImpl;
@@ -22,11 +22,11 @@ public class Beans {
     private ContentService contentService;
     private Path websitePath;
 
-    public Beans(Path websitePath) {
+    public Beans(Path websitePath, Path fileUploadsTmpDir) {
         this.websitePath = websitePath;
         this.responseTransformer = JsonTransformer.get();
         this.transactionsService = new TransactionsServiceImpl();
-        this.fileUploadHelper = new FileUploadHelper();
+        this.fileUploadHelper = new FileUploadHelper(fileUploadsTmpDir);
         this.publisherService = new PublisherServiceImpl(Publisher.getInstance(), websitePath);
         this.contentService = new ContentServiceImpl(transactionsService);
     }

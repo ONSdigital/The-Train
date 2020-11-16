@@ -22,6 +22,7 @@ public class AppConfiguration {
     public static final String THREAD_POOL_SIZE_ENV_KEY = "PUBLISHING_THREAD_POOL_SIZE";
     public static final String PORT_ENV_KEY = "PORT";
     public static final String ENABLE_VERIFY_PUBLISH_CONTENT = "ENABLE_VERIFY_PUBLISH_CONTENT";
+    public static final String FILE_UPLOADS_TMP_DIR = "FILE_UPLOADS_TMP_DIR";
 
     private static final String THREAD_POOL_SIZE_PARSE_ERR = format("configuration value %s could not be parsed to " +
             "Integer", THREAD_POOL_SIZE_ENV_KEY);
@@ -31,6 +32,7 @@ public class AppConfiguration {
 
     private Path transactionStore;
     private Path websitePath;
+    private Path fileUploadsTmpDir;
     private int publishThreadPoolSize;
     private int port;
     private boolean enableVerifyPublish;
@@ -44,12 +46,14 @@ public class AppConfiguration {
         this.publishThreadPoolSize = loadPublishPoolSizeConfig();
         this.port = loadPortConfig();
         this.enableVerifyPublish = loadEnableVerifyPublishContentFeatureFlag();
+        this.fileUploadsTmpDir = createFileUploadsTmpDir();
 
         info().data(TRANSACTION_STORE_ENV_KEY, transactionStore)
                 .data(WEBSITE_ENV_KEY, websitePath)
                 .data(THREAD_POOL_SIZE_ENV_KEY, publishThreadPoolSize)
                 .data(PORT_ENV_KEY, port)
                 .data(ENABLE_VERIFY_PUBLISH_CONTENT, enableVerifyPublish)
+                .data(FILE_UPLOADS_TMP_DIR, fileUploadsTmpDir)
                 .log("successfully load application configuration");
     }
 
@@ -83,6 +87,10 @@ public class AppConfiguration {
 
     public boolean isVerifyPublishEnabled() {
         return enableVerifyPublish;
+    }
+
+    public Path getFileUploadsTmpDir() {
+        return fileUploadsTmpDir;
     }
 
     /**
@@ -159,6 +167,16 @@ public class AppConfiguration {
             return Integer.parseInt(System.getenv(PORT_ENV_KEY));
         } catch (NumberFormatException e) {
             throw new ConfigurationException(PORT_PARSE_ERR, e);
+        }
+    }
+
+    private static Path createFileUploadsTmpDir() throws ConfigurationException {
+        try {
+            Path p = Files.createTempDirectory("tmp");
+            p.toFile().deleteOnExit();
+            return p;
+        } catch (Exception ex) {
+            throw new ConfigurationException("error creating tmp file uploads dir", ex);
         }
     }
 }

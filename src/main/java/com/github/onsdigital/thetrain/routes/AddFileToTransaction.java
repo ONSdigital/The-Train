@@ -2,8 +2,9 @@ package com.github.onsdigital.thetrain.routes;
 
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import com.github.onsdigital.thetrain.exception.PublishException;
-import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
+import com.github.onsdigital.thetrain.helpers.uploads.FileUploadHelper;
 import com.github.onsdigital.thetrain.helpers.PathUtils;
+import com.github.onsdigital.thetrain.helpers.uploads.CloseablePart;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.service.PublisherService;
@@ -92,7 +93,8 @@ public class AddFileToTransaction extends BaseHandler {
         Path zipPath = createZipFileInTransaction(transaction, uri);
 
         try (
-                InputStream in = fileUploadHelper.getFileInputStream(request.raw(), transaction.id());
+                CloseablePart closeablePart = fileUploadHelper.getUploadFilePart(request, transaction.id());
+                InputStream in = closeablePart.getInputStream();
                 ReadableByteChannel src = Channels.newChannel(in);
                 FileOutputStream fos = new FileOutputStream(zipPath.toFile());
                 FileChannel dest = fos.getChannel();
@@ -123,7 +125,8 @@ public class AddFileToTransaction extends BaseHandler {
         boolean isSuccess = false;
         info().transactionID(transaction.id()).data("uri", uri).log("attempting to add single file to transactions");
         try (
-                InputStream data = fileUploadHelper.getFileInputStream(request.raw(), transaction.id());
+                CloseablePart closeablePart = fileUploadHelper.getUploadFilePart(request, transaction.id());
+                InputStream data = closeablePart.getInputStream();
                 InputStream bis = new BufferedInputStream(data)
         ) {
             TransactionUpdate update = publisherService.addContentToTransaction(transaction, uri, bis, startDate);
