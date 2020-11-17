@@ -211,4 +211,9 @@ public class CloseablePartTest {
         verify(wrappedPart, times(1)).getInputStream();
         verifyNoMoreInteractions(wrappedPart);
     }
+
+    @Test
+    public void getPart_shouldReturnPart() {
+        assertThat(new CloseablePart(wrappedPart).getPart(), equalTo(wrappedPart));
+    }
 }

@@ -1,6 +1,7 @@
 package com.github.onsdigital.thetrain;
 
-import com.github.onsdigital.thetrain.helpers.uploads.FileUploadHelper;
+import com.github.onsdigital.thetrain.configuration.AppConfiguration;
+import com.github.onsdigital.thetrain.helpers.uploads.FilePartSupplier;
 import com.github.onsdigital.thetrain.response.JsonTransformer;
 import com.github.onsdigital.thetrain.service.ContentService;
 import com.github.onsdigital.thetrain.service.ContentServiceImpl;
@@ -17,16 +18,22 @@ public class Beans {
 
     private ResponseTransformer responseTransformer;
     private TransactionsService transactionsService;
-    private FileUploadHelper fileUploadHelper;
+    private FilePartSupplier filePartSupplier;
     private PublisherService publisherService;
     private ContentService contentService;
     private Path websitePath;
 
-    public Beans(Path websitePath, Path fileUploadsTmpDir) {
-        this.websitePath = websitePath;
+    public Beans(AppConfiguration cfg) {
+        this.websitePath = cfg.websitePath();
         this.responseTransformer = JsonTransformer.get();
         this.transactionsService = new TransactionsServiceImpl();
-        this.fileUploadHelper = new FileUploadHelper(fileUploadsTmpDir);
+
+        this.filePartSupplier = new FilePartSupplier(
+                cfg.fileUploadsTmpDir(),
+                cfg.maxFileUploadSize(),
+                cfg.maxRequestSize(),
+                cfg.fileThresholdSize());
+
         this.publisherService = new PublisherServiceImpl(Publisher.getInstance(), websitePath);
         this.contentService = new ContentServiceImpl(transactionsService);
     }
@@ -35,8 +42,8 @@ public class Beans {
         return responseTransformer;
     }
 
-    public FileUploadHelper getFileUploadHelper() {
-        return fileUploadHelper;
+    public FilePartSupplier getFileUploadHelper() {
+        return filePartSupplier;
     }
 
     public TransactionsService getTransactionsService() {

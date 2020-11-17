@@ -1,10 +1,11 @@
 package com.github.onsdigital.thetrain.routes;
 
+import com.github.onsdigital.thetrain.configuration.AppConfiguration;
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import com.github.onsdigital.thetrain.exception.PublishException;
-import com.github.onsdigital.thetrain.helpers.uploads.FileUploadHelper;
 import com.github.onsdigital.thetrain.helpers.PathUtils;
 import com.github.onsdigital.thetrain.helpers.uploads.CloseablePart;
+import com.github.onsdigital.thetrain.helpers.uploads.CloseablePartSupplier;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.service.PublisherService;
@@ -24,6 +25,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.zip.ZipInputStream;
 
@@ -35,16 +37,16 @@ public class AddFileToTransaction extends BaseHandler {
 
     private TransactionsService transactionsService;
     private PublisherService publisherService;
-    private FileUploadHelper fileUploadHelper;
+    private CloseablePartSupplier filePartSupplier;
 
     /**
      * Construct a new add file to transaction Route.
      */
     public AddFileToTransaction(TransactionsService transactionsService, PublisherService publisherService,
-                                FileUploadHelper fileUploadHelper) {
+                                CloseablePartSupplier closeablePartSupplier) {
         this.transactionsService = transactionsService;
         this.publisherService = publisherService;
-        this.fileUploadHelper = fileUploadHelper;
+        this.filePartSupplier = closeablePartSupplier;
     }
 
     @Override
@@ -63,6 +65,10 @@ public class AddFileToTransaction extends BaseHandler {
         } finally {
             transactionsService.tryUpdateAsync(transaction);
         }
+
+        System.out.println("Files in temp storage");
+        Arrays.asList(AppConfiguration.get().fileUploadsTmpDir().toFile().list())
+                .forEach(f -> System.out.println(f));
 
         info().transactionID(transaction.id())
                 .data("uri", uri)
@@ -93,7 +99,7 @@ public class AddFileToTransaction extends BaseHandler {
         Path zipPath = createZipFileInTransaction(transaction, uri);
 
         try (
-                CloseablePart closeablePart = fileUploadHelper.getUploadFilePart(request, transaction.id());
+                CloseablePart closeablePart = filePartSupplier.getFilePart(request, transaction);
                 InputStream in = closeablePart.getInputStream();
                 ReadableByteChannel src = Channels.newChannel(in);
                 FileOutputStream fos = new FileOutputStream(zipPath.toFile());
@@ -125,7 +131,7 @@ public class AddFileToTransaction extends BaseHandler {
         boolean isSuccess = false;
         info().transactionID(transaction.id()).data("uri", uri).log("attempting to add single file to transactions");
         try (
-                CloseablePart closeablePart = fileUploadHelper.getUploadFilePart(request, transaction.id());
+                CloseablePart closeablePart = filePartSupplier.getFilePart(request, transaction);
                 InputStream data = closeablePart.getInputStream();
                 InputStream bis = new BufferedInputStream(data)
         ) {

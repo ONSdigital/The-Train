@@ -11,79 +11,97 @@ import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
 import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 
 /**
- * Decorator class that extends a {@link Part} implementation adding a {@link CloseablePart#close()} method thereby
- * fulfilling the the {@link AutoCloseable} interface contract. <b>Does not change or alter the functionality of
- * underlying {@link Part}.</b>
+ * Decorator class that extends a {@link Part} implementing the {@link AutoCloseable} interface. <b>Does not change
+ * or alter the functionality of underlying {@link Part}.</b>
  * <p>
  * <p>
  * Invoking {@link CloseablePart#close()} will call {@link Part#delete()} deleting/cleaning up any temp storage/files
- * used in handling the file upload request. By implementing the {@link AutoCloseable} inrerface this object can now
- * be used within a try-with-resources block taking advantage of the auto close functionality.
+ * used in handling the file upload request. Implementing the {@link AutoCloseable} inrerface allows this object to
+ * be used within a try-with-resources block providing a neat solution to ensure any resources created are cleaned up
+ * automatically.
  */
 public class CloseablePart implements Part, AutoCloseable {
 
-    private Part wrappedPart;
+    private Part part;
 
+    /**
+     * Construct a new CloseablePart instance from the {@link Part} provided.
+     *
+     * @param part the {@link Part} to decorate with {@link AutoCloseable} funcationality
+     */
     public CloseablePart(Part part) {
-        this.wrappedPart = part;
+        this.part = part;
     }
 
     @Override
     public InputStream getInputStream() throws IOException {
-        return wrappedPart.getInputStream();
+        return part.getInputStream();
     }
 
     @Override
     public String getContentType() {
-        return wrappedPart.getContentType();
+        return part.getContentType();
     }
 
     @Override
     public String getName() {
-        return wrappedPart.getName();
+        return part.getName();
     }
 
     @Override
     public String getSubmittedFileName() {
-        return wrappedPart.getSubmittedFileName();
+        return part.getSubmittedFileName();
     }
 
     @Override
     public long getSize() {
-        return wrappedPart.getSize();
+        return part.getSize();
     }
 
     @Override
     public void write(String fileName) throws IOException {
-        wrappedPart.write(fileName);
+        part.write(fileName);
     }
 
     @Override
     public void delete() throws IOException {
-        wrappedPart.delete();
+        part.delete();
     }
 
     @Override
     public String getHeader(String name) {
-        return wrappedPart.getHeader(name);
+        return part.getHeader(name);
     }
 
     @Override
     public Collection<String> getHeaders(String name) {
-        return wrappedPart.getHeaders(name);
+        return part.getHeaders(name);
     }
 
     @Override
     public Collection<String> getHeaderNames() {
-        return wrappedPart.getHeaderNames();
+        return part.getHeaderNames();
     }
 
+    public Part getPart() {
+        return part;
+    }
+
+    /**
+     * Close method fulfulling the {@link AutoCloseable} interface allowing this object to be used within a
+     * <i>try-with-resources</i> block.
+     * <p>
+     * If the decorated {@link Part} is null does nothing. Otherwise calls {@link Part#delete()} to clean up any temp
+     * resources/storage used in handling the file upload.
+     *
+     * @throws PublishException
+     */
     @Override
     public void close() throws PublishException {
         try {
-            if (this.wrappedPart != null) {
+            if (this.part != null) {
                 info().log("attempting to clean up tmp file");
-                this.wrappedPart.delete();
+                this.part.delete();
             }
         } catch (Exception ex) {
             // log error but don't throw

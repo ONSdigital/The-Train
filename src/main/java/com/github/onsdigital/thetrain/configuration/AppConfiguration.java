@@ -1,5 +1,6 @@
 package com.github.onsdigital.thetrain.configuration;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.nio.file.Files;
@@ -23,12 +24,9 @@ public class AppConfiguration {
     public static final String PORT_ENV_KEY = "PORT";
     public static final String ENABLE_VERIFY_PUBLISH_CONTENT = "ENABLE_VERIFY_PUBLISH_CONTENT";
     public static final String FILE_UPLOADS_TMP_DIR = "FILE_UPLOADS_TMP_DIR";
-
-    private static final String THREAD_POOL_SIZE_PARSE_ERR = format("configuration value %s could not be parsed to " +
-            "Integer", THREAD_POOL_SIZE_ENV_KEY);
-
-    private static final String PORT_PARSE_ERR = format("configuration value %s could not be parsed to Integer",
-            PORT_ENV_KEY);
+    public static final String MAX_FILE_UPLOAD_SIZE_MB = "MAX_FILE_UPLOAD_SIZE_MB";
+    public static final String MAX_REQUEST_SIZE_MB = "MAX_REQUEST_SIZE_MB";
+    public static final String FILE_THRESHOLD_SIZE_MB = "FILE_THRESHOLD_SIZE_MB";
 
     private Path transactionStore;
     private Path websitePath;
@@ -36,6 +34,9 @@ public class AppConfiguration {
     private int publishThreadPoolSize;
     private int port;
     private boolean enableVerifyPublish;
+    private long maxFileUploadSize;
+    private long maxRequestSize;
+    private int fileThresholdSize;
 
     /**
      * @throws ConfigurationException
@@ -46,7 +47,10 @@ public class AppConfiguration {
         this.publishThreadPoolSize = loadPublishPoolSizeConfig();
         this.port = loadPortConfig();
         this.enableVerifyPublish = loadEnableVerifyPublishContentFeatureFlag();
-        this.fileUploadsTmpDir = createFileUploadsTmpDir();
+        this.fileUploadsTmpDir = createTmpFileUploadsDir();
+        this.maxFileUploadSize = loadMaxFileSizeConfig();
+        this.maxRequestSize = loadMaxRequestSizeConfig();
+        this.fileThresholdSize = loadFileThresholdSizeConfig();
 
         info().data(TRANSACTION_STORE_ENV_KEY, transactionStore)
                 .data(WEBSITE_ENV_KEY, websitePath)
@@ -54,6 +58,9 @@ public class AppConfiguration {
                 .data(PORT_ENV_KEY, port)
                 .data(ENABLE_VERIFY_PUBLISH_CONTENT, enableVerifyPublish)
                 .data(FILE_UPLOADS_TMP_DIR, fileUploadsTmpDir)
+                .data(MAX_FILE_UPLOAD_SIZE_MB, maxFileUploadSize)
+                .data(MAX_REQUEST_SIZE_MB, maxRequestSize)
+                .data(FILE_THRESHOLD_SIZE_MB, FileUtils.byteCountToDisplaySize(fileThresholdSize))
                 .log("successfully load application configuration");
     }
 
@@ -89,8 +96,20 @@ public class AppConfiguration {
         return enableVerifyPublish;
     }
 
-    public Path getFileUploadsTmpDir() {
+    public Path fileUploadsTmpDir() {
         return fileUploadsTmpDir;
+    }
+
+    public long maxFileUploadSize() {
+        return maxFileUploadSize;
+    }
+
+    public long maxRequestSize() {
+        return maxRequestSize;
+    }
+
+    public int fileThresholdSize() {
+        return fileThresholdSize;
     }
 
     /**
@@ -155,22 +174,24 @@ public class AppConfiguration {
     }
 
     private static int loadPublishPoolSizeConfig() throws ConfigurationException {
+        String value = System.getenv(MAX_REQUEST_SIZE_MB);
         try {
             return Integer.parseInt(System.getenv(THREAD_POOL_SIZE_ENV_KEY));
-        } catch (NumberFormatException e) {
-            throw new ConfigurationException(THREAD_POOL_SIZE_PARSE_ERR, e);
+        } catch (NumberFormatException ex) {
+            throw new ConfigurationException(formatParsingError(THREAD_POOL_SIZE_ENV_KEY, value, Integer.class), ex);
         }
     }
 
     private static int loadPortConfig() throws ConfigurationException {
+        String value = System.getenv(MAX_REQUEST_SIZE_MB);
         try {
             return Integer.parseInt(System.getenv(PORT_ENV_KEY));
         } catch (NumberFormatException e) {
-            throw new ConfigurationException(PORT_PARSE_ERR, e);
+            throw new ConfigurationException(formatParsingError(PORT_ENV_KEY, value, Integer.class), e);
         }
     }
 
-    private static Path createFileUploadsTmpDir() throws ConfigurationException {
+    private static Path createTmpFileUploadsDir() throws ConfigurationException {
         try {
             Path p = Files.createTempDirectory("tmp");
             p.toFile().deleteOnExit();
@@ -178,5 +199,38 @@ public class AppConfiguration {
         } catch (Exception ex) {
             throw new ConfigurationException("error creating tmp file uploads dir", ex);
         }
+    }
+
+    private static long loadMaxFileSizeConfig() throws ConfigurationException {
+        String value = System.getenv(MAX_REQUEST_SIZE_MB);
+        try {
+            return Long.parseLong(System.getenv(MAX_FILE_UPLOAD_SIZE_MB));
+        } catch (NumberFormatException ex) {
+            throw new ConfigurationException(formatParsingError(MAX_FILE_UPLOAD_SIZE_MB, value, Long.class), ex);
+        }
+    }
+
+    private static long loadMaxRequestSizeConfig() throws ConfigurationException {
+        String value = System.getenv(MAX_REQUEST_SIZE_MB);
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException ex) {
+            throw new ConfigurationException(formatParsingError(MAX_REQUEST_SIZE_MB, value, Long.class), ex);
+        }
+    }
+
+    private static int loadFileThresholdSizeConfig() throws ConfigurationException {
+        String value = System.getenv(MAX_REQUEST_SIZE_MB);
+        try {
+            int mb = Integer.parseInt(System.getenv(FILE_THRESHOLD_SIZE_MB));
+            return 1024 * 1024 * mb;
+        } catch (NumberFormatException ex) {
+            throw new ConfigurationException(formatParsingError(FILE_THRESHOLD_SIZE_MB, value, Integer.class), ex);
+        }
+    }
+
+    static final String formatParsingError(String name, String value, Class type) {
+        return format("environment variable %s value %s could not be parsed to %s", name, value,
+                type.getTypeName());
     }
 }
