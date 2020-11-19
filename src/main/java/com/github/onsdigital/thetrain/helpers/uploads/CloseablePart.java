@@ -114,7 +114,9 @@ public class CloseablePart implements Part, AutoCloseable {
     public void close() throws PublishException {
         try {
             if (this.part != null) {
-                info().log("attempting to clean up tmp file");
+                info().transactionID(transactionID)
+                        .log("attempting to clean up temp files/storaged created during file upload");
+
                 this.part.delete();
             }
         } catch (Exception ex) {
