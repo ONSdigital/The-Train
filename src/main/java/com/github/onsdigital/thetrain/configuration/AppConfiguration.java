@@ -44,13 +44,13 @@ public class AppConfiguration {
     private AppConfiguration() throws ConfigurationException {
         this.transactionStore = loadTransactionStoreConfig();
         this.websitePath = loadWebsitePathConfig();
-        this.publishThreadPoolSize = loadPublishPoolSizeConfig();
-        this.port = loadPortConfig();
         this.enableVerifyPublish = loadEnableVerifyPublishContentFeatureFlag();
         this.fileUploadsTmpDir = createTmpFileUploadsDir();
-        this.maxFileUploadSize = loadMaxFileSizeConfig();
-        this.maxRequestSize = loadMaxRequestSizeConfig();
-        this.fileThresholdSize = loadFileThresholdSizeConfig();
+        this.publishThreadPoolSize = getIntegerEnvVar(THREAD_POOL_SIZE_ENV_KEY);
+        this.port = getIntegerEnvVar(PORT_ENV_KEY);
+        this.maxFileUploadSize = getLongEnvVar(MAX_FILE_UPLOAD_SIZE_MB);
+        this.maxRequestSize = getLongEnvVar(MAX_REQUEST_SIZE_MB);
+        this.fileThresholdSize = getIntegerEnvVar(FILE_THRESHOLD_SIZE_MB);
 
         info().data(TRANSACTION_STORE_ENV_KEY, transactionStore)
                 .data(WEBSITE_ENV_KEY, websitePath)
@@ -92,22 +92,48 @@ public class AppConfiguration {
         return port;
     }
 
+    /**
+     * Is the Veify Publish feature flag enabled?
+     *
+     * @return true if the feature is enabled false otherwise.
+     */
     public boolean isVerifyPublishEnabled() {
         return enableVerifyPublish;
     }
 
+    /**
+     * The path to the temp dir where large multipart file uploads are written.
+     *
+     * @return the {@link Path} to the dir.
+     */
     public Path fileUploadsTmpDir() {
         return fileUploadsTmpDir;
     }
 
+    /**
+     * The maximum file upload size allowed.
+     *
+     * @return The maximum file upload size allowed in Bytes. A value of -1 indicates unlimited.
+     */
     public long maxFileUploadSize() {
         return maxFileUploadSize;
     }
 
+    /**
+     * The maximum request size allowed.
+     *
+     * @return The maximum request size allowed in Bytes. A value of -1 indicates unlimited.
+     */
     public long maxRequestSize() {
         return maxRequestSize;
     }
 
+    /**
+     * The threshold size at which file uploads will be written to temp files on disk. Uploads smaller than this will
+     * be held in memory. A threshold of 0 means all file uploads will be written to temp disk storage.
+     *
+     * @return the file threshold size in MB.
+     */
     public int fileThresholdSize() {
         return fileThresholdSize;
     }
@@ -173,24 +199,6 @@ public class AppConfiguration {
         return websitePath;
     }
 
-    private static int loadPublishPoolSizeConfig() throws ConfigurationException {
-        String value = System.getenv(MAX_REQUEST_SIZE_MB);
-        try {
-            return Integer.parseInt(System.getenv(THREAD_POOL_SIZE_ENV_KEY));
-        } catch (NumberFormatException ex) {
-            throw new ConfigurationException(formatParsingError(THREAD_POOL_SIZE_ENV_KEY, value, Integer.class), ex);
-        }
-    }
-
-    private static int loadPortConfig() throws ConfigurationException {
-        String value = System.getenv(MAX_REQUEST_SIZE_MB);
-        try {
-            return Integer.parseInt(System.getenv(PORT_ENV_KEY));
-        } catch (NumberFormatException e) {
-            throw new ConfigurationException(formatParsingError(PORT_ENV_KEY, value, Integer.class), e);
-        }
-    }
-
     private static Path createTmpFileUploadsDir() throws ConfigurationException {
         try {
             Path p = Files.createTempDirectory("tmp");
@@ -201,35 +209,33 @@ public class AppConfiguration {
         }
     }
 
-    private static long loadMaxFileSizeConfig() throws ConfigurationException {
-        String value = System.getenv(MAX_REQUEST_SIZE_MB);
+    private static int getIntegerEnvVar(String varName) throws ConfigurationException {
+        if (StringUtils.isEmpty(varName)) {
+            throw new ConfigurationException("expected env var name but provided value was empty");
+        }
+
+        String value = System.getenv(varName);
         try {
-            return Long.parseLong(System.getenv(MAX_FILE_UPLOAD_SIZE_MB));
+            return Integer.parseInt(value);
         } catch (NumberFormatException ex) {
-            throw new ConfigurationException(formatParsingError(MAX_FILE_UPLOAD_SIZE_MB, value, Long.class), ex);
+            throw new ConfigurationException(formatParsingError(varName, value, Integer.class), ex);
         }
     }
 
-    private static long loadMaxRequestSizeConfig() throws ConfigurationException {
-        String value = System.getenv(MAX_REQUEST_SIZE_MB);
+    private static long getLongEnvVar(String varName) throws ConfigurationException {
+        if (StringUtils.isEmpty(varName)) {
+            throw new ConfigurationException("expected env var name but provided value was empty");
+        }
+
+        String value = System.getenv(varName);
         try {
             return Long.parseLong(value);
         } catch (NumberFormatException ex) {
-            throw new ConfigurationException(formatParsingError(MAX_REQUEST_SIZE_MB, value, Long.class), ex);
+            throw new ConfigurationException(formatParsingError(varName, value, Long.class), ex);
         }
     }
 
-    private static int loadFileThresholdSizeConfig() throws ConfigurationException {
-        String value = System.getenv(MAX_REQUEST_SIZE_MB);
-        try {
-            int mb = Integer.parseInt(System.getenv(FILE_THRESHOLD_SIZE_MB));
-            return 1024 * 1024 * mb;
-        } catch (NumberFormatException ex) {
-            throw new ConfigurationException(formatParsingError(FILE_THRESHOLD_SIZE_MB, value, Integer.class), ex);
-        }
-    }
-
-    static final String formatParsingError(String name, String value, Class type) {
+    private static final String formatParsingError(String name, String value, Class type) {
         return format("environment variable %s value %s could not be parsed to %s", name, value,
                 type.getTypeName());
     }
