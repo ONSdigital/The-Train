@@ -60,7 +60,7 @@ public class AppConfiguration {
                 .data(FILE_UPLOADS_TMP_DIR, fileUploadsTmpDir)
                 .data(MAX_FILE_UPLOAD_SIZE_MB, maxFileUploadSize)
                 .data(MAX_REQUEST_SIZE_MB, maxRequestSize)
-                .data(FILE_THRESHOLD_SIZE_MB, FileUtils.byteCountToDisplaySize(fileThresholdSize))
+                .data(FILE_THRESHOLD_SIZE_MB, fileThresholdSize + " MB")
                 .log("successfully load application configuration");
     }
 
