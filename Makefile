@@ -1,6 +1,6 @@
 SHELL=bash
 
-JAVA_OPTS=-Xmx1024m -Xms1024m -Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=y
+JAVA_OPTS=-Xmx1024m -Xms1024m -Xdebug -Xrunjdwp:transport=dt_socket,address=8004,server=y,suspend=n
 
 ## The default website content directory
 WEBSITE_DEFAULT:=target/website
