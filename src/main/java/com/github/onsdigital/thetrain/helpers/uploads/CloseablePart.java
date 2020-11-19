@@ -28,7 +28,8 @@ public class CloseablePart implements Part, AutoCloseable {
     /**
      * Construct a new CloseablePart instance from the {@link Part} provided.
      *
-     * @param part the {@link Part} to decorate with {@link AutoCloseable} funcationality
+     * @param part          part the {@link Part} to decorate with {@link AutoCloseable} funcationality
+     * @param transactionID the publishing transaction ID this file upload part relates to.
      */
     public CloseablePart(Part part, String transactionID) {
         this.part = part;
