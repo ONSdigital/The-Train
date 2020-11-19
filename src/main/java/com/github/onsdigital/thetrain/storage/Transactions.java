@@ -136,7 +136,6 @@ public class Transactions {
                         }
                     }
                 } else {
-                    info().transactionID(id).log("retrieving transaction from in-memory storage");
                     result = transactionMap.get(id);
                 }
             }

@@ -34,6 +34,30 @@ $(warning PUBLISHING_THREAD_POOL_SIZE env var not found applying default: ${PUBL
 export PUBLISHING_THREAD_POOL_SIZE = ${PUBLISHING_THREAD_POOL_SIZE_DEFAULT}
 endif
 
+## The default max file upload size in MB (-1 == unlimited)
+MAX_FILE_UPLOAD_SIZE_MB_DEFAULT:=-1
+
+ifndef MAX_FILE_UPLOAD_SIZE_MB
+$(warning MAX_FILE_UPLOAD_SIZE_MB env var not found applying default: ${MAX_FILE_UPLOAD_SIZE_MB_DEFAULT})
+export MAX_FILE_UPLOAD_SIZE_MB = ${MAX_FILE_UPLOAD_SIZE_MB_DEFAULT}
+endif
+
+## The default max request size in MB (-1 == unlimited)
+MAX_REQUEST_SIZE_MB_DEFAULT:=-1
+
+ifndef MAX_REQUEST_SIZE_MB
+$(warning MAX_REQUEST_SIZE_MB env var not found applying default: ${MAX_REQUEST_SIZE_MB_DEFAULT})
+export MAX_REQUEST_SIZE_MB = ${MAX_REQUEST_SIZE_MB_DEFAULT}
+endif
+
+## The default max request size in MB (-1 == unlimited)
+FILE_THRESHOLD_SIZE_MB_DEFAULT:=10
+
+ifndef FILE_THRESHOLD_SIZE_MB
+$(warning FILE_THRESHOLD_SIZE_MB env var not found applying default: ${FILE_THRESHOLD_SIZE_MB_DEFAULT})
+export FILE_THRESHOLD_SIZE_MB = ${FILE_THRESHOLD_SIZE_MB_DEFAULT}
+endif
+
 test:
 	mvn -Dossindex.skip test
 audit:

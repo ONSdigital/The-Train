@@ -79,7 +79,7 @@ public class App {
     }
 
     private static void initLogging() throws LoggingException {
-        LogSerialiser serialiser = new JacksonLogSerialiser();
+        LogSerialiser serialiser = new JacksonLogSerialiser(true); // TODO undo this.
         LogStore store = new MDCLogStore(serialiser);
         Logger logger = new LoggerImpl("the-train");
 
@@ -116,7 +116,7 @@ public class App {
     }
 
     public static void registerEndpoints(AppConfiguration cfg) {
-        Beans beans = new Beans(cfg.websitePath());
+        Beans beans = new Beans(cfg);
 
         ResponseTransformer transformer = beans.getResponseTransformer();
 
