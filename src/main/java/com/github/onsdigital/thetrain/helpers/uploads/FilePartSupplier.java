@@ -65,7 +65,7 @@ public class FilePartSupplier implements CloseablePartSupplier {
         try {
             part = raw.getPart(FILE_PART_NAME);
         } catch (Exception ex) {
-            throw new BadRequestException(ex, "error attempting to retriving multipart file upload request body", t.id());
+            throw new BadRequestException(ex, "error attempting to retrieve multipart file upload request body", t.id());
         }
 
         if (part == null) {

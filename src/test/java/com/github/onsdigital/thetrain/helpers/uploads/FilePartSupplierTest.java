@@ -5,22 +5,30 @@ import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.json.Transaction;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import spark.Request;
 
+import javax.servlet.MultipartConfigElement;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.Part;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static com.github.onsdigital.thetrain.helpers.uploads.FilePartSupplier.MULTIPART_CONFIG;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isNotNull;
 import static org.mockito.Matchers.notNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class FilePartSupplierTest {
@@ -128,9 +136,23 @@ public class FilePartSupplierTest {
         when(raw.getPart(anyString()))
                 .thenReturn(part);
 
+        ArgumentCaptor<MultipartConfigElement> captor = ArgumentCaptor.forClass(MultipartConfigElement.class);
+
+        Path location = Paths.get("tmp");
+        long fileSizeLimit = 1024*1024*50;
+        long requestSizeLimit = -1;
+        int threasholdLimit = 1024*1024*10;
+
+        supplier = new FilePartSupplier(location, fileSizeLimit, requestSizeLimit, threasholdLimit);
         CloseablePart actual = supplier.getFilePart(request, transaction);
 
         assertThat(actual, is(notNullValue()));
         assertThat(actual.getPart(), equalTo(part));
+
+        verify(request, times(1)).attribute(eq(MULTIPART_CONFIG), captor.capture());
+        MultipartConfigElement cfg = captor.getValue();
+        assertThat(cfg.getLocation(), equalTo(location.toString()));
+        assertThat(cfg.getMaxFileSize(), equalTo(fileSizeLimit));
+        assertThat(cfg.getMaxRequestSize(), equalTo(requestSizeLimit));
     }
 }
