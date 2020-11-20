@@ -40,18 +40,11 @@
             <version>2.9.3</version>
         </dependency>
 
-<!--        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>servlet-api</artifactId>
-            <version>2.5</version>
-            <scope>provided</scope>
-        </dependency>-->
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-http</artifactId>
             <version>9.4.34.v20201102</version>
         </dependency>
-
 
         <!-- http -->
         <dependency>
