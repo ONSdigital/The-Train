@@ -1,5 +1,6 @@
 package com.github.onsdigital.thetrain.configuration;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.nio.file.Files;
@@ -22,18 +23,20 @@ public class AppConfiguration {
     public static final String THREAD_POOL_SIZE_ENV_KEY = "PUBLISHING_THREAD_POOL_SIZE";
     public static final String PORT_ENV_KEY = "PORT";
     public static final String ENABLE_VERIFY_PUBLISH_CONTENT = "ENABLE_VERIFY_PUBLISH_CONTENT";
-
-    private static final String THREAD_POOL_SIZE_PARSE_ERR = format("configuration value %s could not be parsed to " +
-            "Integer", THREAD_POOL_SIZE_ENV_KEY);
-
-    private static final String PORT_PARSE_ERR = format("configuration value %s could not be parsed to Integer",
-            PORT_ENV_KEY);
+    public static final String FILE_UPLOADS_TMP_DIR = "FILE_UPLOADS_TMP_DIR";
+    public static final String MAX_FILE_UPLOAD_SIZE_MB = "MAX_FILE_UPLOAD_SIZE_MB";
+    public static final String MAX_REQUEST_SIZE_MB = "MAX_REQUEST_SIZE_MB";
+    public static final String FILE_THRESHOLD_SIZE_MB = "FILE_THRESHOLD_SIZE_MB";
 
     private Path transactionStore;
     private Path websitePath;
+    private Path fileUploadsTmpDir;
     private int publishThreadPoolSize;
     private int port;
     private boolean enableVerifyPublish;
+    private long maxFileUploadSize;
+    private long maxRequestSize;
+    private int fileThresholdSize;
 
     /**
      * @throws ConfigurationException
@@ -41,15 +44,23 @@ public class AppConfiguration {
     private AppConfiguration() throws ConfigurationException {
         this.transactionStore = loadTransactionStoreConfig();
         this.websitePath = loadWebsitePathConfig();
-        this.publishThreadPoolSize = loadPublishPoolSizeConfig();
-        this.port = loadPortConfig();
         this.enableVerifyPublish = loadEnableVerifyPublishContentFeatureFlag();
+        this.fileUploadsTmpDir = createTmpFileUploadsDir();
+        this.publishThreadPoolSize = getIntegerEnvVar(THREAD_POOL_SIZE_ENV_KEY);
+        this.port = getIntegerEnvVar(PORT_ENV_KEY);
+        this.maxFileUploadSize = getLongEnvVar(MAX_FILE_UPLOAD_SIZE_MB);
+        this.maxRequestSize = getLongEnvVar(MAX_REQUEST_SIZE_MB);
+        this.fileThresholdSize = getIntegerEnvVar(FILE_THRESHOLD_SIZE_MB);
 
         info().data(TRANSACTION_STORE_ENV_KEY, transactionStore)
                 .data(WEBSITE_ENV_KEY, websitePath)
                 .data(THREAD_POOL_SIZE_ENV_KEY, publishThreadPoolSize)
                 .data(PORT_ENV_KEY, port)
                 .data(ENABLE_VERIFY_PUBLISH_CONTENT, enableVerifyPublish)
+                .data(FILE_UPLOADS_TMP_DIR, fileUploadsTmpDir)
+                .data(MAX_FILE_UPLOAD_SIZE_MB, maxFileUploadSize)
+                .data(MAX_REQUEST_SIZE_MB, maxRequestSize)
+                .data(FILE_THRESHOLD_SIZE_MB, fileThresholdSize + " MB")
                 .log("successfully load application configuration");
     }
 
@@ -81,8 +92,50 @@ public class AppConfiguration {
         return port;
     }
 
+    /**
+     * Is the Veify Publish feature flag enabled?
+     *
+     * @return true if the feature is enabled false otherwise.
+     */
     public boolean isVerifyPublishEnabled() {
         return enableVerifyPublish;
+    }
+
+    /**
+     * The path to the temp dir where large multipart file uploads are written.
+     *
+     * @return the {@link Path} to the dir.
+     */
+    public Path fileUploadsTmpDir() {
+        return fileUploadsTmpDir;
+    }
+
+    /**
+     * The maximum file upload size allowed.
+     *
+     * @return The maximum file upload size allowed in Bytes. A value of -1 indicates unlimited.
+     */
+    public long maxFileUploadSize() {
+        return maxFileUploadSize;
+    }
+
+    /**
+     * The maximum request size allowed.
+     *
+     * @return The maximum request size allowed in Bytes. A value of -1 indicates unlimited.
+     */
+    public long maxRequestSize() {
+        return maxRequestSize;
+    }
+
+    /**
+     * The threshold size at which file uploads will be written to temp files on disk. Uploads smaller than this will
+     * be held in memory. A threshold of 0 means all file uploads will be written to temp disk storage.
+     *
+     * @return the file threshold size in MB.
+     */
+    public int fileThresholdSize() {
+        return fileThresholdSize;
     }
 
     /**
@@ -146,19 +199,44 @@ public class AppConfiguration {
         return websitePath;
     }
 
-    private static int loadPublishPoolSizeConfig() throws ConfigurationException {
+    private static Path createTmpFileUploadsDir() throws ConfigurationException {
         try {
-            return Integer.parseInt(System.getenv(THREAD_POOL_SIZE_ENV_KEY));
-        } catch (NumberFormatException e) {
-            throw new ConfigurationException(THREAD_POOL_SIZE_PARSE_ERR, e);
+            Path p = Files.createTempDirectory("tmp");
+            p.toFile().deleteOnExit();
+            return p;
+        } catch (Exception ex) {
+            throw new ConfigurationException("error creating tmp file uploads dir", ex);
         }
     }
 
-    private static int loadPortConfig() throws ConfigurationException {
-        try {
-            return Integer.parseInt(System.getenv(PORT_ENV_KEY));
-        } catch (NumberFormatException e) {
-            throw new ConfigurationException(PORT_PARSE_ERR, e);
+    private static int getIntegerEnvVar(String varName) throws ConfigurationException {
+        if (StringUtils.isEmpty(varName)) {
+            throw new ConfigurationException("expected env var name but provided value was empty");
         }
+
+        String value = System.getenv(varName);
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException ex) {
+            throw new ConfigurationException(formatParsingError(varName, value, Integer.class), ex);
+        }
+    }
+
+    private static long getLongEnvVar(String varName) throws ConfigurationException {
+        if (StringUtils.isEmpty(varName)) {
+            throw new ConfigurationException("expected env var name but provided value was empty");
+        }
+
+        String value = System.getenv(varName);
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException ex) {
+            throw new ConfigurationException(formatParsingError(varName, value, Long.class), ex);
+        }
+    }
+
+    private static final String formatParsingError(String name, String value, Class type) {
+        return format("environment variable %s value %s could not be parsed to %s", name, value,
+                type.getTypeName());
     }
 }
