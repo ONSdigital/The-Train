@@ -104,7 +104,7 @@ public class FilePartSupplierTest {
         try {
             supplier.getFilePart(request, transaction);
         } catch (BadRequestException ex) {
-            assertThat(ex.getMessage(), equalTo("error attempting to retriving multipart file upload request body"));
+            assertThat(ex.getMessage(), equalTo("error attempting to retrieve multipart file upload request body"));
             assertThat(ex.getCause(), equalTo(expected));
             assertThat(ex.getTransactionID(), equalTo(TRANS_ID));
             throw ex;
