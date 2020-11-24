@@ -2,6 +2,7 @@ package com.github.onsdigital.thetrain.routes;
 
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import com.github.onsdigital.thetrain.exception.PublishException;
+import com.github.onsdigital.thetrain.helpers.uploads.CloseablePart;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.storage.TransactionUpdate;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -9,6 +10,7 @@ import org.apache.http.HttpStatus;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Mock;
 import spark.Route;
 
 import java.io.ByteArrayInputStream;
@@ -42,6 +44,9 @@ public class AddFileToTransactionTest extends BaseRouteTest {
     private Route route;
     private String testURI = "/a/b/c";
 
+    @Mock
+    private CloseablePart closeablePart;
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -50,7 +55,7 @@ public class AddFileToTransactionTest extends BaseRouteTest {
         when(transaction.id())
                 .thenReturn(TRANSACTION_ID);
 
-        route = new AddFileToTransaction(transactionsService, publisherService, fileUploadHelper);
+        route = new AddFileToTransaction(transactionsService, publisherService, filePartSupplier);
     }
 
     @Test(expected = BadRequestException.class)
@@ -90,7 +95,7 @@ public class AddFileToTransactionTest extends BaseRouteTest {
         }
     }
 
-    @Test(expected = BadRequestException.class)
+    @Test(expected = PublishException.class)
     public void testAddFileGetFileInputStreamException() throws Exception {
         when(request.raw()).thenReturn(raw);
 
@@ -98,15 +103,21 @@ public class AddFileToTransactionTest extends BaseRouteTest {
 
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
 
-        when(fileUploadHelper.getFileInputStream(raw, TRANSACTION_ID)).thenThrow(new BadRequestException("Test"));
+        when(filePartSupplier.getFilePart(request, transaction)).thenReturn(closeablePart);
+
+        Exception expected = new IOException("Test");
+        when(closeablePart.getInputStream()).thenThrow(expected);
 
         try {
             route.handle(request, response);
-        } catch (BadRequestException e) {
-            assertThat(e.getMessage(), equalTo("Test"));
+        } catch (PublishException e) {
+            assertThat(e.getMessage(), equalTo("error adding file to transaction"));
+            assertThat(e.getCause(), equalTo(expected));
 
             verify(transactionsService, times(1)).getTransaction(request);
-            verify(fileUploadHelper, times(1)).getFileInputStream(raw, TRANSACTION_ID);
+            verify(filePartSupplier, times(1)).getFilePart(request, transaction);
+            verify(closeablePart, times(1)).getInputStream();
+            verify(closeablePart, times(1)).close();
             verifyZeroInteractions(publisherService);
             throw e;
         }
@@ -123,7 +134,9 @@ public class AddFileToTransactionTest extends BaseRouteTest {
 
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
 
-        when(fileUploadHelper.getFileInputStream(raw, TRANSACTION_ID)).thenReturn(stream);
+        when(filePartSupplier.getFilePart(request, transaction)).thenReturn(closeablePart);
+
+        when(closeablePart.getInputStream()).thenReturn(stream);
 
         when(publisherService.addContentToTransaction(eq(transaction), eq(testURI), any(InputStream.class), any(Date.class)))
                 .thenThrow(cause);
@@ -136,7 +149,9 @@ public class AddFileToTransactionTest extends BaseRouteTest {
             assertThat(e.getCause(), equalTo(cause));
 
             verify(transactionsService, times(1)).getTransaction(request);
-            verify(fileUploadHelper, times(1)).getFileInputStream(raw, TRANSACTION_ID);
+            verify(filePartSupplier, times(1)).getFilePart(request, transaction);
+            verify(closeablePart, times(1)).getInputStream();
+            verify(closeablePart, times(1)).close();
             verify(publisherService, times(1)).addContentToTransaction(
                     eq(transaction), eq(testURI), any(InputStream.class), any(Date.class));
             throw e;
@@ -155,7 +170,9 @@ public class AddFileToTransactionTest extends BaseRouteTest {
 
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
 
-        when(fileUploadHelper.getFileInputStream(raw, TRANSACTION_ID)).thenReturn(stream);
+        when(filePartSupplier.getFilePart(request, transaction)).thenReturn(closeablePart);
+
+        when(closeablePart.getInputStream()).thenReturn(stream);
 
         when(publisherService.addContentToTransaction(eq(transaction), eq(testURI), any(InputStream.class), any(Date.class)))
                 .thenReturn(update);
@@ -167,7 +184,9 @@ public class AddFileToTransactionTest extends BaseRouteTest {
             assertThat(e.getStatus(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
             verify(transactionsService, times(1)).getTransaction(request);
-            verify(fileUploadHelper, times(1)).getFileInputStream(raw, TRANSACTION_ID);
+            verify(filePartSupplier, times(1)).getFilePart(request, transaction);
+            verify(closeablePart, times(1)).getInputStream();
+            verify(closeablePart, times(1)).close();
             verify(publisherService, times(1)).addContentToTransaction(
                     eq(transaction), eq(testURI), any(InputStream.class), any(Date.class));
             throw e;
@@ -186,7 +205,9 @@ public class AddFileToTransactionTest extends BaseRouteTest {
 
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
 
-        when(fileUploadHelper.getFileInputStream(raw, TRANSACTION_ID)).thenReturn(stream);
+        when(filePartSupplier.getFilePart(request, transaction)).thenReturn(closeablePart);
+
+        when(closeablePart.getInputStream()).thenReturn(stream);
 
         when(publisherService.addContentToTransaction(eq(transaction), eq(testURI), any(InputStream.class), any(Date.class)))
                 .thenReturn(update);
@@ -198,7 +219,9 @@ public class AddFileToTransactionTest extends BaseRouteTest {
         assertFalse(actual.error);
 
         verify(transactionsService, times(1)).getTransaction(request);
-        verify(fileUploadHelper, times(1)).getFileInputStream(raw, TRANSACTION_ID);
+        verify(filePartSupplier, times(1)).getFilePart(request, transaction);
+        verify(closeablePart, times(1)).getInputStream();
+        verify(closeablePart, times(1)).close();
         verify(publisherService, times(1)).addContentToTransaction(
                 eq(transaction), eq(testURI), any(InputStream.class), any(Date.class));
         verify(transactionsService, times(1)).tryUpdateAsync(transaction);
@@ -229,8 +252,9 @@ public class AddFileToTransactionTest extends BaseRouteTest {
             when(raw.getParameter("zip"))
                     .thenReturn("true");
 
-            when(fileUploadHelper.getFileInputStream(raw, TRANSACTION_ID))
-                    .thenReturn(requestBody);
+            when(filePartSupplier.getFilePart(request, transaction)).thenReturn(closeablePart);
+
+            when(closeablePart.getInputStream()).thenReturn(requestBody);
 
             // Create a transaction directory to use for the test.
             Path transactionDir = temporaryFolder.newFolder("test-transaction").toPath();

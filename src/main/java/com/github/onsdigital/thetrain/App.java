@@ -116,7 +116,7 @@ public class App {
     }
 
     public static void registerEndpoints(AppConfiguration cfg) {
-        Beans beans = new Beans(cfg.websitePath());
+        Beans beans = new Beans(cfg);
 
         ResponseTransformer transformer = beans.getResponseTransformer();
 
@@ -144,7 +144,7 @@ public class App {
 
     private static Route addFiles(Beans beans) {
         return new AddFileToTransaction(beans.getTransactionsService(), beans.getPublisherService(),
-                beans.getFileUploadHelper());
+                beans.getFilePartSupplier());
     }
 
     private static Route commitTransaction(Beans beans) {
