@@ -1,6 +1,5 @@
 package com.github.onsdigital.thetrain.configuration;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.nio.file.Files;
@@ -22,11 +21,12 @@ public class AppConfiguration {
     public static final String WEBSITE_ENV_KEY = "WEBSITE";
     public static final String THREAD_POOL_SIZE_ENV_KEY = "PUBLISHING_THREAD_POOL_SIZE";
     public static final String PORT_ENV_KEY = "PORT";
+    public static final String MAX_FILE_UPLOAD_SIZE_MB_ENV_KEY = "MAX_FILE_UPLOAD_SIZE_MB";
+    public static final String MAX_REQUEST_SIZE_MB_ENV_KEY = "MAX_REQUEST_SIZE_MB";
+    public static final String FILE_THRESHOLD_SIZE_MB_ENV_KEY = "FILE_THRESHOLD_SIZE_MB";
+
     public static final String ENABLE_VERIFY_PUBLISH_CONTENT = "ENABLE_VERIFY_PUBLISH_CONTENT";
     public static final String FILE_UPLOADS_TMP_DIR = "FILE_UPLOADS_TMP_DIR";
-    public static final String MAX_FILE_UPLOAD_SIZE_MB = "MAX_FILE_UPLOAD_SIZE_MB";
-    public static final String MAX_REQUEST_SIZE_MB = "MAX_REQUEST_SIZE_MB";
-    public static final String FILE_THRESHOLD_SIZE_MB = "FILE_THRESHOLD_SIZE_MB";
 
     private Path transactionStore;
     private Path websitePath;
@@ -48,9 +48,9 @@ public class AppConfiguration {
         this.fileUploadsTmpDir = createTmpFileUploadsDir();
         this.publishThreadPoolSize = getIntegerEnvVar(THREAD_POOL_SIZE_ENV_KEY);
         this.port = getIntegerEnvVar(PORT_ENV_KEY);
-        this.maxFileUploadSize = getLongEnvVar(MAX_FILE_UPLOAD_SIZE_MB);
-        this.maxRequestSize = getLongEnvVar(MAX_REQUEST_SIZE_MB);
-        this.fileThresholdSize = getIntegerEnvVar(FILE_THRESHOLD_SIZE_MB);
+        this.maxFileUploadSize = getLongEnvVar(MAX_FILE_UPLOAD_SIZE_MB_ENV_KEY);
+        this.maxRequestSize = getLongEnvVar(MAX_REQUEST_SIZE_MB_ENV_KEY);
+        this.fileThresholdSize = getIntegerEnvVar(FILE_THRESHOLD_SIZE_MB_ENV_KEY);
 
         info().data(TRANSACTION_STORE_ENV_KEY, transactionStore)
                 .data(WEBSITE_ENV_KEY, websitePath)
@@ -58,9 +58,9 @@ public class AppConfiguration {
                 .data(PORT_ENV_KEY, port)
                 .data(ENABLE_VERIFY_PUBLISH_CONTENT, enableVerifyPublish)
                 .data(FILE_UPLOADS_TMP_DIR, fileUploadsTmpDir)
-                .data(MAX_FILE_UPLOAD_SIZE_MB, maxFileUploadSize)
-                .data(MAX_REQUEST_SIZE_MB, maxRequestSize)
-                .data(FILE_THRESHOLD_SIZE_MB, fileThresholdSize + " MB")
+                .data(MAX_FILE_UPLOAD_SIZE_MB_ENV_KEY, maxFileUploadSize)
+                .data(MAX_REQUEST_SIZE_MB_ENV_KEY, maxRequestSize)
+                .data(FILE_THRESHOLD_SIZE_MB_ENV_KEY, fileThresholdSize + " MB")
                 .log("successfully load application configuration");
     }
 

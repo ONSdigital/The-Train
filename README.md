@@ -56,12 +56,17 @@ Ensure your `$zebedee_root` environment variable is set, as it will be used by `
 | -------------------- | ------------ | 
 | `WEBSITE`            | The path to the public facing website content directory. For dev local this will be `<YOUR_CONTENT_DIR>/zebedee/master` |
 | `TRANSACTION_STORE`  | The directory in which to create the publishing transaction files. For dev local this will be `<YOUR_CONTENT_DIR>/zebedee/transactions` |
+| `PUBLISHING_THREAD_POOL_SIZE`  | The size of the thread pool to create for the publishing tests |
+| `PORT`  | The HTTP port to bind to |
+| `MAX_FILE_UPLOAD_SIZE_MB`  | The maximum size allowed for uploaded files (in bytes), `-1` equals unlimited  |
+| `MAX_REQUEST_SIZE_MB`  | The maximum size allowed for a multipart/form-data request (in bytes), `-1` equals unlimited |
+| `FILE_THRESHOLD_SIZE_MB`  | The file size in MB after which the file will be temporarily stored on disk. The default size is 0 bytes. |
 
 See the [Zebedee ReadMe][1] for a guide on setting up your zebedee root path and content directory.
 
 To start the service run:
  ```
- ./run.sh
+ make debug
  ``` 
 Once the app has started up you can give a quick sanity test by running:
 ```
