@@ -1,6 +1,6 @@
 package com.github.onsdigital.thetrain.routes;
 
-import com.github.onsdigital.thetrain.helpers.FileUploadHelper;
+import com.github.onsdigital.thetrain.helpers.uploads.CloseablePartSupplier;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.service.PublisherService;
 import com.github.onsdigital.thetrain.service.TransactionsService;
@@ -35,7 +35,7 @@ public abstract class BaseRouteTest {
     protected Transaction transaction;
 
     @Mock
-    protected FileUploadHelper fileUploadHelper;
+    protected CloseablePartSupplier filePartSupplier;
 
     @Before
     public void setUp() throws Exception {

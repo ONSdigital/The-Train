@@ -6,8 +6,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static com.github.onsdigital.thetrain.configuration.ConfigurationUtils.getIntegerEnvVar;
+import static com.github.onsdigital.thetrain.configuration.ConfigurationUtils.getLongEnvVar;
+import static com.github.onsdigital.thetrain.configuration.ConfigurationUtils.getStringEnvVar;
 import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
-import static java.lang.String.format;
 
 /**
  * Object providing access to the application configuration values. AppConfiguration is a lazy loaded singleton - use
@@ -21,19 +23,22 @@ public class AppConfiguration {
     public static final String WEBSITE_ENV_KEY = "WEBSITE";
     public static final String THREAD_POOL_SIZE_ENV_KEY = "PUBLISHING_THREAD_POOL_SIZE";
     public static final String PORT_ENV_KEY = "PORT";
+    public static final String MAX_FILE_UPLOAD_SIZE_MB_ENV_KEY = "MAX_FILE_UPLOAD_SIZE_MB";
+    public static final String MAX_REQUEST_SIZE_MB_ENV_KEY = "MAX_REQUEST_SIZE_MB";
+    public static final String FILE_THRESHOLD_SIZE_MB_ENV_KEY = "FILE_THRESHOLD_SIZE_MB";
+
     public static final String ENABLE_VERIFY_PUBLISH_CONTENT = "ENABLE_VERIFY_PUBLISH_CONTENT";
-
-    private static final String THREAD_POOL_SIZE_PARSE_ERR = format("configuration value %s could not be parsed to " +
-            "Integer", THREAD_POOL_SIZE_ENV_KEY);
-
-    private static final String PORT_PARSE_ERR = format("configuration value %s could not be parsed to Integer",
-            PORT_ENV_KEY);
+    public static final String FILE_UPLOADS_TMP_DIR = "FILE_UPLOADS_TMP_DIR";
 
     private Path transactionStore;
     private Path websitePath;
+    private Path fileUploadsTmpDir;
     private int publishThreadPoolSize;
     private int port;
     private boolean enableVerifyPublish;
+    private long maxFileUploadSize;
+    private long maxRequestSize;
+    private int fileThresholdSize;
 
     /**
      * @throws ConfigurationException
@@ -41,15 +46,23 @@ public class AppConfiguration {
     private AppConfiguration() throws ConfigurationException {
         this.transactionStore = loadTransactionStoreConfig();
         this.websitePath = loadWebsitePathConfig();
-        this.publishThreadPoolSize = loadPublishPoolSizeConfig();
-        this.port = loadPortConfig();
         this.enableVerifyPublish = loadEnableVerifyPublishContentFeatureFlag();
+        this.fileUploadsTmpDir = createTmpFileUploadsDir();
+        this.publishThreadPoolSize = getIntegerEnvVar(THREAD_POOL_SIZE_ENV_KEY);
+        this.port = getIntegerEnvVar(PORT_ENV_KEY);
+        this.maxFileUploadSize = getLongEnvVar(MAX_FILE_UPLOAD_SIZE_MB_ENV_KEY);
+        this.maxRequestSize = getLongEnvVar(MAX_REQUEST_SIZE_MB_ENV_KEY);
+        this.fileThresholdSize = getIntegerEnvVar(FILE_THRESHOLD_SIZE_MB_ENV_KEY);
 
         info().data(TRANSACTION_STORE_ENV_KEY, transactionStore)
                 .data(WEBSITE_ENV_KEY, websitePath)
                 .data(THREAD_POOL_SIZE_ENV_KEY, publishThreadPoolSize)
                 .data(PORT_ENV_KEY, port)
                 .data(ENABLE_VERIFY_PUBLISH_CONTENT, enableVerifyPublish)
+                .data(FILE_UPLOADS_TMP_DIR, fileUploadsTmpDir)
+                .data(MAX_FILE_UPLOAD_SIZE_MB_ENV_KEY, maxFileUploadSize)
+                .data(MAX_REQUEST_SIZE_MB_ENV_KEY, maxRequestSize)
+                .data(FILE_THRESHOLD_SIZE_MB_ENV_KEY, fileThresholdSize + " MB")
                 .log("successfully load application configuration");
     }
 
@@ -81,8 +94,50 @@ public class AppConfiguration {
         return port;
     }
 
+    /**
+     * Is the Veify Publish feature flag enabled?
+     *
+     * @return true if the feature is enabled false otherwise.
+     */
     public boolean isVerifyPublishEnabled() {
         return enableVerifyPublish;
+    }
+
+    /**
+     * The path to the temp dir where large multipart file uploads are written.
+     *
+     * @return the {@link Path} to the dir.
+     */
+    public Path fileUploadsTmpDir() {
+        return fileUploadsTmpDir;
+    }
+
+    /**
+     * The maximum file upload size allowed.
+     *
+     * @return The maximum file upload size allowed in Bytes. A value of -1 indicates unlimited.
+     */
+    public long maxFileUploadSize() {
+        return maxFileUploadSize;
+    }
+
+    /**
+     * The maximum request size allowed.
+     *
+     * @return The maximum request size allowed in Bytes. A value of -1 indicates unlimited.
+     */
+    public long maxRequestSize() {
+        return maxRequestSize;
+    }
+
+    /**
+     * The threshold size at which file uploads will be written to temp files on disk. Uploads smaller than this will
+     * be held in memory. A threshold of 0 means all file uploads will be written to temp disk storage.
+     *
+     * @return the file threshold size in MB.
+     */
+    public int fileThresholdSize() {
+        return fileThresholdSize;
     }
 
     /**
@@ -104,7 +159,7 @@ public class AppConfiguration {
     }
 
     private static Path loadTransactionStoreConfig() throws ConfigurationException {
-        String value = System.getenv(TRANSACTION_STORE_ENV_KEY);
+        String value = getStringEnvVar(TRANSACTION_STORE_ENV_KEY);
 
         if (StringUtils.isEmpty(value)) {
             throw new ConfigurationException("transaction store path config is null/empty");
@@ -122,13 +177,13 @@ public class AppConfiguration {
         return transactionStorePath;
     }
 
-    private static boolean loadEnableVerifyPublishContentFeatureFlag() {
-        String isEnableVerifyPublish = System.getenv(ENABLE_VERIFY_PUBLISH_CONTENT);
+    private static boolean loadEnableVerifyPublishContentFeatureFlag() throws ConfigurationException {
+        String isEnableVerifyPublish = getStringEnvVar(ENABLE_VERIFY_PUBLISH_CONTENT);
         return Boolean.valueOf(isEnableVerifyPublish);
     }
 
     private static Path loadWebsitePathConfig() throws ConfigurationException {
-        String value = System.getenv(WEBSITE_ENV_KEY);
+        String value = getStringEnvVar(WEBSITE_ENV_KEY);
 
         if (StringUtils.isEmpty(value)) {
             throw new ConfigurationException("website path config is null/empty");
@@ -146,19 +201,13 @@ public class AppConfiguration {
         return websitePath;
     }
 
-    private static int loadPublishPoolSizeConfig() throws ConfigurationException {
+    private static Path createTmpFileUploadsDir() throws ConfigurationException {
         try {
-            return Integer.parseInt(System.getenv(THREAD_POOL_SIZE_ENV_KEY));
-        } catch (NumberFormatException e) {
-            throw new ConfigurationException(THREAD_POOL_SIZE_PARSE_ERR, e);
-        }
-    }
-
-    private static int loadPortConfig() throws ConfigurationException {
-        try {
-            return Integer.parseInt(System.getenv(PORT_ENV_KEY));
-        } catch (NumberFormatException e) {
-            throw new ConfigurationException(PORT_PARSE_ERR, e);
+            Path p = Files.createTempDirectory("tmp");
+            p.toFile().deleteOnExit();
+            return p;
+        } catch (Exception ex) {
+            throw new ConfigurationException("error creating tmp file uploads dir", ex);
         }
     }
 }

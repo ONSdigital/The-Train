@@ -41,6 +41,7 @@ minor performance gain. When its time to execute the actual publish the transati
 - git
 - Java 8
 - Maven
+- Your `$zebedee_root` environment variable has been set (see Zebedee read me).
 - [jq][3] _(not required but it's super useful for any JSON app)_
 
 #### Get the code
@@ -48,20 +49,24 @@ minor performance gain. When its time to execute the actual publish the transati
 git clone git@github.com:ONSdigital/The-Train.git
 ```
 
-#### Build and Run
-Ensure your `$zebedee_root` environment variable is set, as it will be used by `run.sh` as <YOUR_CONTENT_DIR> as explained below.
+### Build and Run
 
 #### Configuration
 | Env variable         | Description  |
 | -------------------- | ------------ | 
 | `WEBSITE`            | The path to the public facing website content directory. For dev local this will be `<YOUR_CONTENT_DIR>/zebedee/master` |
 | `TRANSACTION_STORE`  | The directory in which to create the publishing transaction files. For dev local this will be `<YOUR_CONTENT_DIR>/zebedee/transactions` |
+| `PUBLISHING_THREAD_POOL_SIZE`  | The size of the thread pool to create for the publishing tasks. |
+| `PORT`  | The HTTP port to bind to |
+| `MAX_FILE_UPLOAD_SIZE_MB`  | The maximum size allowed for uploaded files (in bytes), `-1` equals unlimited  |
+| `MAX_REQUEST_SIZE_MB`  | The maximum size allowed for a multipart/form-data request (in bytes), `-1` equals unlimited |
+| `FILE_THRESHOLD_SIZE_MB`  | The file size in MB after which the file will be temporarily stored on disk. The default size is 0 bytes. |
 
 See the [Zebedee ReadMe][1] for a guide on setting up your zebedee root path and content directory.
 
 To start the service run:
  ```
- ./run.sh
+ make debug
  ``` 
 Once the app has started up you can give a quick sanity test by running:
 ```
