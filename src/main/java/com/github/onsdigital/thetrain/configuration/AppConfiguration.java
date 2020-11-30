@@ -6,8 +6,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static com.github.onsdigital.thetrain.configuration.ConfigurationUtils.getIntegerEnvVar;
+import static com.github.onsdigital.thetrain.configuration.ConfigurationUtils.getLongEnvVar;
+import static com.github.onsdigital.thetrain.configuration.ConfigurationUtils.getStringEnvVar;
 import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
-import static java.lang.String.format;
 
 /**
  * Object providing access to the application configuration values. AppConfiguration is a lazy loaded singleton - use
@@ -157,7 +159,7 @@ public class AppConfiguration {
     }
 
     private static Path loadTransactionStoreConfig() throws ConfigurationException {
-        String value = System.getenv(TRANSACTION_STORE_ENV_KEY);
+        String value = getStringEnvVar(TRANSACTION_STORE_ENV_KEY);
 
         if (StringUtils.isEmpty(value)) {
             throw new ConfigurationException("transaction store path config is null/empty");
@@ -175,13 +177,13 @@ public class AppConfiguration {
         return transactionStorePath;
     }
 
-    private static boolean loadEnableVerifyPublishContentFeatureFlag() {
-        String isEnableVerifyPublish = System.getenv(ENABLE_VERIFY_PUBLISH_CONTENT);
+    private static boolean loadEnableVerifyPublishContentFeatureFlag() throws ConfigurationException {
+        String isEnableVerifyPublish = getStringEnvVar(ENABLE_VERIFY_PUBLISH_CONTENT);
         return Boolean.valueOf(isEnableVerifyPublish);
     }
 
     private static Path loadWebsitePathConfig() throws ConfigurationException {
-        String value = System.getenv(WEBSITE_ENV_KEY);
+        String value = getStringEnvVar(WEBSITE_ENV_KEY);
 
         if (StringUtils.isEmpty(value)) {
             throw new ConfigurationException("website path config is null/empty");
@@ -207,36 +209,5 @@ public class AppConfiguration {
         } catch (Exception ex) {
             throw new ConfigurationException("error creating tmp file uploads dir", ex);
         }
-    }
-
-    private static int getIntegerEnvVar(String varName) throws ConfigurationException {
-        if (StringUtils.isEmpty(varName)) {
-            throw new ConfigurationException("expected env var name but provided value was empty");
-        }
-
-        String value = System.getenv(varName);
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException ex) {
-            throw new ConfigurationException(formatParsingError(varName, value, Integer.class), ex);
-        }
-    }
-
-    private static long getLongEnvVar(String varName) throws ConfigurationException {
-        if (StringUtils.isEmpty(varName)) {
-            throw new ConfigurationException("expected env var name but provided value was empty");
-        }
-
-        String value = System.getenv(varName);
-        try {
-            return Long.parseLong(value);
-        } catch (NumberFormatException ex) {
-            throw new ConfigurationException(formatParsingError(varName, value, Long.class), ex);
-        }
-    }
-
-    private static final String formatParsingError(String name, String value, Class type) {
-        return format("environment variable %s value %s could not be parsed to %s", name, value,
-                type.getTypeName());
     }
 }
