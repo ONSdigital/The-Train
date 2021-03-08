@@ -33,24 +33,27 @@
 
 
     <dependencies>
-
         <dependency>
             <groupId>com.sparkjava</groupId>
             <artifactId>spark-core</artifactId>
             <version>2.9.3</version>
         </dependency>
-
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-http</artifactId>
-            <version>9.4.34.v20201102</version>
+            <artifactId>jetty-server</artifactId>
+            <version>9.4.36.v20210114</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty.websocket</groupId>
+            <artifactId>websocket-server</artifactId>
+            <version>9.4.36.v20210114</version>
         </dependency>
 
         <!-- http -->
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>4.4.1</version>
+            <version>4.5.13</version>
         </dependency>
         <dependency>
             <groupId>commons-fileupload</groupId>
@@ -66,11 +69,6 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.11.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpmime</artifactId>
-            <version>4.5</version>
         </dependency>
 
         <!-- Encryption -->
@@ -114,7 +112,7 @@
         <dependency>
             <groupId>com.github.ONSdigital</groupId>
             <artifactId>dp-logging</artifactId>
-            <version>v1.6.0</version>
+            <version>v1.7.1</version>
         </dependency>
 
         <!-- Test -->
@@ -218,12 +216,6 @@
                         <goals>
                             <goal>audit</goal>
                         </goals>
-                        <!-- configuration for mvn validate -->
-                        <configuration>
-                            <!-- if CVSS >= 9.0 (critical) then ERROR else WARN -->
-                            <fail>true</fail>
-                            <cvssScoreThreshold>9.0</cvssScoreThreshold>
-                        </configuration>
                     </execution>
                 </executions>
                 <!-- configuration for mvn ossindex:audit -->
