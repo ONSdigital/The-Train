@@ -41,12 +41,12 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>9.4.36.v20210114</version>
+            <version>9.4.39.v20210325</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty.websocket</groupId>
             <artifactId>websocket-server</artifactId>
-            <version>9.4.36.v20210114</version>
+            <version>9.4.39.v20210325</version>
         </dependency>
 
         <!-- http -->
