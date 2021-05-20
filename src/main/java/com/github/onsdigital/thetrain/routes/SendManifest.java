@@ -56,13 +56,19 @@ public class SendManifest extends BaseHandler {
             int copied = publisherService.copyFilesIntoTransaction(transaction, manifest);
             int copyExpected = manifest.getFilesToCopy().size();
             if (copied != copyExpected) {
-                throw new PublishException(format(COPY_RESULT_ERR, copied, copyExpected), transaction);
+                String msg = format(COPY_RESULT_ERR, copyExpected, copied);
+                transaction.setStatus(Transaction.COMMIT_FAILED);
+                transaction.addError(msg);
+                throw new PublishException(msg, transaction);
             }
 
             int deleted = publisherService.addFilesToDelete(transaction, manifest);
             int deleteExpected = manifest.getUrisToDelete().size();
             if (deleted != deleteExpected) {
-                throw new PublishException(format(DELETE_RESULT_ERR, copied, deleteExpected), transaction);
+                String msg = format(DELETE_RESULT_ERR, copyExpected, copied);
+                transaction.setStatus(Transaction.COMMIT_FAILED);
+                transaction.addError(msg);
+                throw new PublishException(msg, transaction);
             }
 
             // success

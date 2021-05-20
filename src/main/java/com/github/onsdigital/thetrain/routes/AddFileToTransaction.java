@@ -27,11 +27,16 @@ import java.nio.file.Paths;
 import java.util.Date;
 import java.util.zip.ZipInputStream;
 
+import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
+import static java.lang.String.format;
+
 import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 
 public class AddFileToTransaction extends BaseHandler {
 
     static final String ADD_FILE_ERR_MSG = "error adding file to transaction";
+    static final String ADD_FILE_UNSUCCESSFUL_ERR = "committing publish to website was unsuccessful";
+    static final String ADD_FILE_UNSUCCESSFUL_ID_EX_ERR = ADD_FILE_UNSUCCESSFUL_ERR + " for transaction:%s, with exception: %s";
 
     private TransactionsService transactionsService;
     private PublisherService publisherService;
@@ -60,6 +65,19 @@ public class AddFileToTransaction extends BaseHandler {
             } else {
                 handleNonZipRequest(request, transaction, uri, startDate);
             }
+
+        } catch (PublishException ex) {
+            transaction.setStatus(Transaction.COMMIT_FAILED);
+            String msg = format(ADD_FILE_UNSUCCESSFUL_ID_EX_ERR, transaction.id(), ex.getMessage());
+            transaction.addError(msg);
+            error().log(msg);
+            throw new PublishException(ADD_FILE_UNSUCCESSFUL_ERR, ex);
+        } catch (BadRequestException ex) {
+            transaction.setStatus(Transaction.COMMIT_FAILED);
+            String msg = format(ADD_FILE_UNSUCCESSFUL_ID_EX_ERR, transaction.id(), ex.getMessage());
+            transaction.addError(msg);
+            error().log(msg);
+            throw new BadRequestException(ADD_FILE_UNSUCCESSFUL_ERR, ex);
         } finally {
             transactionsService.tryUpdateAsync(transaction);
         }

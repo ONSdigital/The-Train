@@ -10,6 +10,7 @@ import spark.Response;
 
 import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 import static org.eclipse.jetty.http.HttpStatus.OK_200;
+import static java.lang.String.format;
 
 /**
  * {@link spark.Route} implementation for handling rollback publish transaction requests.
@@ -18,6 +19,7 @@ public class RollbackTransaction extends BaseHandler {
 
     static final String ROLLBACK_SUCCESS_MSG = "Transaction rolled back.";
     static final String ROLLBACK_UNSUCESSFUL_ERR = "rollback transaction was unsuccessful";
+    static final String ROLLBACK_UNSUCESSFUL_ID_ERR = ROLLBACK_UNSUCESSFUL_ERR + " for:%s";
 
     private TransactionsService transactionsService;
     private PublisherService publisherService;
@@ -39,6 +41,8 @@ public class RollbackTransaction extends BaseHandler {
 
         try {
             if (!publisherService.rollback(transaction)) {
+                transaction.setStatus(Transaction.ROLLBACK_FAILED);
+                transaction.addError(format(ROLLBACK_UNSUCESSFUL_ID_ERR,transaction.id()));
                 throw new PublishException(ROLLBACK_UNSUCESSFUL_ERR, transaction);
             }
 
@@ -47,6 +51,7 @@ public class RollbackTransaction extends BaseHandler {
 
             info().transactionID(transaction.id()).log("rollback transaction completed successfully");
             response.status(OK_200);
+            transaction.setStatus(Transaction.COMMIT_FAILED);
             return new Result(ROLLBACK_SUCCESS_MSG, false, transaction);
         } finally {
             info().transactionID(transaction.id()).log("rollback persisting changes to transaction");

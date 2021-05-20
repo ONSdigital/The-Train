@@ -42,6 +42,18 @@ import static spark.Spark.post;
 
 public class App {
 
+    //REMOVE ME
+    private static void pressAnyKeyToContinue()
+    {
+        System.out.println("Press Enter key to continue...");
+        try
+        {
+            System.in.read();
+        }
+        catch(Exception e)
+        {}
+    }
+
     /**
      * Start The Train.
      * A {@link LoggingException} throw when attempting to init the application is considered fatal and will result
@@ -51,6 +63,9 @@ public class App {
      * @param args
      */
     public static void main(String[] args) {
+
+        pressAnyKeyToContinue();
+
         try {
             startApp();
         } catch (LoggingException ex) {
