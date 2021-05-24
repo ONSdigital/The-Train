@@ -28,14 +28,15 @@ public class OpenTransactionTest extends BaseRouteTest {
 
     @Test(expected = PublishException.class)
     public void testHandlePublishException() throws Exception {
+
         when(transactionsService.create())
-                .thenThrow(new PublishException("Test"));
+                .thenThrow(new PublishException("Error creating transaction."));
 
         try {
             route.handle(request, response);
         } catch (PublishException e) {
             assertThat(e.getStatus(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
-            assertThat(e.getMessage(), equalTo("Test"));
+            assertThat(e.getMessage(), equalTo("Error creating transaction."));
             verify(transactionsService, times(1)).create();
             throw e;
         }

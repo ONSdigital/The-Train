@@ -7,6 +7,7 @@ import com.github.onsdigital.thetrain.service.PublisherService;
 import com.github.onsdigital.thetrain.service.TransactionsService;
 import spark.Request;
 import spark.Response;
+import org.apache.http.HttpStatus;
 
 import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
 import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
@@ -44,28 +45,32 @@ public class CommitTransaction extends BaseHandler {
 
         try {
             transaction = transactionsService.getTransaction(request);
-            boolean isSuccess=true;
             //check transaction in case an issue has been identified before attempting to commit
-            if(transaction.hasErrors() || !transaction.getStatus().equals(Transaction.STARTED)) {
-                isSuccess = false;
-            }
-            //if no previous issues, attempt to commit transaction and store success status
-            if(isSuccess) {
-                isSuccess = publisherService.commit(transaction);
-            }
-            if (!isSuccess) {
+            if (transaction.hasErrors() || (transaction.getStatus() != null && !transaction.getStatus().equals(Transaction.PUBLISHING))) {
                 transaction.setStatus(Transaction.COMMIT_FAILED);
-                transaction.addError(format(COMMIT_UNSUCCESSFUL_ID_ERR,transaction.id()));
+                transaction.addError(format(COMMIT_UNSUCCESSFUL_ID_ERR, transaction.id()));
                 error().transactionID(transaction.id()).log(COMMIT_UNSUCCESSFUL_ERR);
+                //Throwing here is not ideal, as a Publishing Exception will be wrapped in another Publish exception, however better for readability.
                 throw new PublishException(COMMIT_UNSUCCESSFUL_ERR, transaction);
+            } else {
+                //if no previous issues, attempt to commit transaction and store success status
+                publisherService.commit(transaction);
             }
 
             info().transactionID(transaction.id()).log(COMMIT_SUCCESSFUL_MSG);
             response.status(OK_200);
             transaction.setStatus(Transaction.COMMITTED);
             return new Result(RESULT_SUCCESS_MSG, false, transaction);
-
+        } catch (PublishException e) {
+            if (transaction!=null) {
+                transaction.setStatus(Transaction.COMMIT_FAILED);
+                transaction.addError(format(COMMIT_UNSUCCESSFUL_ID_ERR,transaction));
+                throw new PublishException(COMMIT_UNSUCCESSFUL_ERR, e, transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
+            } else {
+                throw new PublishException(COMMIT_UNSUCCESSFUL_ERR);
+            }
         } finally {
+            //transactionsService.update can accommodate a null transaction.
             transactionsService.update(transaction);
         }
     }

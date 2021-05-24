@@ -6,6 +6,7 @@ import com.github.onsdigital.thetrain.helpers.uploads.CloseablePart;
 import com.github.onsdigital.thetrain.json.Result;
 import com.github.onsdigital.thetrain.storage.TransactionUpdate;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpStatus;
 import org.junit.Rule;
 import org.junit.Test;
@@ -13,11 +14,7 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 import spark.Route;
 
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,10 +31,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class AddFileToTransactionTest extends BaseRouteTest {
 
@@ -112,7 +106,7 @@ public class AddFileToTransactionTest extends BaseRouteTest {
             route.handle(request, response);
         } catch (PublishException e) {
             assertThat(e.getMessage(), equalTo("error adding file to transaction"));
-            assertThat(e.getCause(), equalTo(expected));
+            assertThat(ExceptionUtils.getRootCause(e) , equalTo(expected));
 
             verify(transactionsService, times(1)).getTransaction(request);
             verify(filePartSupplier, times(1)).getFilePart(request, transaction);
@@ -126,7 +120,7 @@ public class AddFileToTransactionTest extends BaseRouteTest {
     @Test(expected = PublishException.class)
     public void testAddContentToTransactionException() throws Exception {
         InputStream stream = new ByteArrayInputStream("SOME DATE".getBytes());
-        PublishException cause = new PublishException("publisher error!");
+        PublishException cause = new PublishException("error adding file to transaction");
 
         when(request.raw()).thenReturn(raw);
 
@@ -146,7 +140,7 @@ public class AddFileToTransactionTest extends BaseRouteTest {
         } catch (PublishException e) {
             assertThat(e.getMessage(), equalTo(ADD_FILE_ERR_MSG));
             assertThat(e.getStatus(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
-            assertThat(e.getCause(), equalTo(cause));
+            assertThat(e.getCause().getMessage(), equalTo(cause.getMessage()));
 
             verify(transactionsService, times(1)).getTransaction(request);
             verify(filePartSupplier, times(1)).getFilePart(request, transaction);

@@ -30,8 +30,10 @@ public class OpenTransaction extends BaseHandler {
         try {
             transaction = transactionsService.create();
         } catch (PublishException e) {
-            transaction.setStatus(Transaction.COMMIT_FAILED);
-            transaction.addError(format(ERROR_AND_INSERT_MSG, e.getMessage()));
+            if(transaction!=null) {
+                transaction.setStatus(Transaction.COMMIT_FAILED);
+                transaction.addError(format(ERROR_AND_INSERT_MSG, e.getMessage()));
+            }
             error().log(format(ERROR_AND_INSERT_MSG, e.getMessage()));
             throw new PublishException(ERROR_MSG,e);
         }
@@ -39,9 +41,6 @@ public class OpenTransaction extends BaseHandler {
         info().transactionID(transaction.id()).log("transaction created successfully");
 
         response.status(OK_200);
-        if (transaction.getStatus().equals(null)) {
-            transaction.setStatus(Transaction.COMMITTED);
-        }
         return new Result(SUCCESS_MSG, false, transaction);
     }
 }

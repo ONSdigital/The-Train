@@ -14,11 +14,7 @@ import static com.github.onsdigital.thetrain.routes.CommitTransaction.RESULT_SUC
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertFalse;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class CommitTransactionTest extends BaseRouteTest {
 
@@ -56,7 +52,7 @@ public class CommitTransactionTest extends BaseRouteTest {
         try {
             route.handle(request, response);
         } catch (PublishException e) {
-            assertThat(e.getMessage(), equalTo(publishException.getMessage()));
+            assertThat(e.getMessage(), equalTo("committing publish to website was unsuccessful"));
             verify(transactionsService, times(1)).getTransaction(request);
             verify(transactionsService, times(1)).update(null);
             verifyZeroInteractions(publisherService);
@@ -74,7 +70,7 @@ public class CommitTransactionTest extends BaseRouteTest {
         try {
             route.handle(request, response);
         } catch (PublishException e) {
-            assertThat(e.getMessage(), equalTo(publishException.getMessage()));
+            assertThat(e.getMessage(), equalTo("committing publish to website was unsuccessful"));
             verify(transactionsService, times(1)).getTransaction(request);
             verify(transactionsService, times(1)).update(transaction);
             verify(publisherService, times(1)).commit(transaction);
