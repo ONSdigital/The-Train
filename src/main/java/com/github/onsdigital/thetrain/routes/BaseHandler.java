@@ -36,7 +36,7 @@ public abstract class BaseHandler implements Route {
         return Boolean.valueOf(request.raw().getParameter(ZIP_KEY));
     }
 
-    protected Manifest getManifest(Request request) throws BadRequestException {
+        protected Manifest getManifest(Request request) throws BadRequestException {
         Manifest manifest = null;
         try {
             manifest = gson.fromJson(request.body(), Manifest.class);

@@ -141,6 +141,7 @@ public class AddFileToTransactionTest extends BaseRouteTest {
             assertThat(e.getMessage(), equalTo(ADD_FILE_ERR_MSG));
             assertThat(e.getStatus(), equalTo(HttpStatus.SC_INTERNAL_SERVER_ERROR));
             assertThat(e.getCause().getMessage(), equalTo(cause.getMessage()));
+            assertThat(e.getTransaction(), equalTo(null));
 
             verify(transactionsService, times(1)).getTransaction(request);
             verify(filePartSupplier, times(1)).getFilePart(request, transaction);

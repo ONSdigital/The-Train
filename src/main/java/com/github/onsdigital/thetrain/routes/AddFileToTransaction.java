@@ -118,7 +118,7 @@ public class AddFileToTransaction extends BaseHandler {
         ) {
             dest.transferFrom(src, 0, Long.MAX_VALUE);
             return zipPath;
-        } catch (IOException ex) {
+            } catch (IOException ex) {
             throw new PublishException("error writing inputstream to transaction", ex, transaction);
         }
     }

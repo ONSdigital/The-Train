@@ -61,6 +61,7 @@ public class PublisherTest {
         // Then
         // The transaction should exist and be populated with values
         Path path = Publisher.getInstance().getFile(transaction, uri);
+        assertTrue(transaction.getStatus().equals(Transaction.PUBLISHING));
         assertNotNull(path);
 
         // there is a file in the backup directory that is the same as the website file
@@ -239,6 +240,9 @@ public class PublisherTest {
         Transaction transaction = Transactions.create();
         Path content = Transactions.content(transaction);
 
+        // Check that status is STARTED
+        assertTrue(transaction.getStatus().equals(Transaction.STARTED));
+
         // Files being published
         String create = "/create-" + Random.id() + ".txt";
         String update = "/update-" + Random.id() + ".txt";
@@ -249,6 +253,9 @@ public class PublisherTest {
 
         Publisher.getInstance().addFile(transaction, create, data(), websiteTestPath);
         Publisher.getInstance().addFile(transaction, update, data(), websiteTestPath);
+
+        // Check that status is
+        assertTrue(transaction.getStatus().equals(Transaction.PUBLISHING));
 
         // When
         // We commit the transaction
@@ -264,6 +271,9 @@ public class PublisherTest {
                 Hash.sha(PathUtils.toPath(update, websiteTestPath)));
         assertNotEquals(Hash.sha(originalSource),
                 Hash.sha(PathUtils.toPath(update, websiteTestPath)));
+
+        // Check status is set to COMMITTED
+        assertTrue(transaction.getStatus().equals(Transaction.COMMITTED));
 
         // Check the transaction details
         assertFalse(transaction.hasErrors());
@@ -368,6 +378,7 @@ public class PublisherTest {
 
         // Then
         // Check the transaction details
+        assertEquals(Transaction.ROLLED_BACK, transaction.getStatus());
         assertFalse(transaction.hasErrors());
         assertTrue(StringUtils.isNotBlank(transaction.startDate()));
         assertTrue(StringUtils.isNotBlank(transaction.endDate()));

@@ -37,7 +37,7 @@ public class SendManifest extends BaseHandler {
     /**
      * Construct a new send manifest Route
      */
-    public SendManifest(TransactionsService transactionsService, PublisherService publisherService,
+        public SendManifest(TransactionsService transactionsService, PublisherService publisherService,
                         Path websiteContentPath) {
         this.gson = new Gson();
         this.transactionsService = transactionsService;
