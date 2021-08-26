@@ -12,6 +12,7 @@
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <dp-logging.version>v2.0.0-beta</dp-logging.version>
     </properties>
 
     <repositories>
@@ -112,7 +113,7 @@
         <dependency>
             <groupId>com.github.ONSdigital</groupId>
             <artifactId>dp-logging</artifactId>
-            <version>v1.7.1</version>
+            <version>${dp-logging.version}</version>
         </dependency>
 
         <!-- Test -->
