@@ -65,7 +65,6 @@ public class UnionInputStreamTest {
 
     @Test
     public void shouldClose() throws Exception {
-
         // Given
         // Two mock input streams
         InputStream a = Mockito.mock(InputStream.class);

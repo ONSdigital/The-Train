@@ -41,8 +41,9 @@ public class PublisherTest {
     public void setUp() throws Exception {
         websiteTestPath = Files.createTempDirectory("website");
         Path transactionStorePath = Files.createTempDirectory("transaction-store");
+        Path archivedTransactionStorePath = Files.createTempDirectory("transaction-archive-store");
 
-        Transactions.init(transactionStorePath);
+        Transactions.init(transactionStorePath, archivedTransactionStorePath);
         transaction = Transactions.create();
     }
 

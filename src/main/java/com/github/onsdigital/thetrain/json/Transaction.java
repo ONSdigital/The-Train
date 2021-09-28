@@ -1,16 +1,11 @@
 package com.github.onsdigital.thetrain.json;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.github.davidcarboni.cryptolite.Random;
 import com.github.onsdigital.thetrain.helpers.DateConverter;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 
 /**
@@ -30,8 +25,12 @@ public class Transaction {
     // theoretical rather than a practical consideration.
     private String id = Random.id();
     private String status = STARTED;
-    private String startDate = DateConverter.toString(new Date());
-    private String endDate;
+    private final Date startDate = new Date(); // ToDo - refactor instantiation from here.
+    @JsonIgnore
+    private String startDateString = DateConverter.toString(startDate); // ToDo - refactor instantiation away from here.
+    private Date endDate;
+    @JsonIgnore
+    private String endDateString;
 
     private Set<UriInfo> uriInfos = new HashSet<>();
     private Set<UriInfo> uriDeletes = new HashSet<>();
@@ -44,6 +43,10 @@ public class Transaction {
      */
     public Map<String, List<String>> files;
 
+    public void setStatus(final String STATUS) {
+        this.status = STATUS;
+    }
+
     /**
      * @return The transaction {@link #id}.
      */
@@ -52,19 +55,32 @@ public class Transaction {
     }
 
     /**
-     * @return The transaction {@link #startDate}.
+     * @return The transaction {@link #startDateString}.
      */
     public String startDate() {
+        return startDateString;
+    }
+
+    /**
+     * @return The transaction {@link #startDateString}.
+     */
+    public Date getStartDate() {
         return startDate;
     }
 
     /**
-     * @return The transaction {@link #endDate}.
+     * @return The transaction {@link #endDateString}.
      */
-    public String endDate() {
-        return endDate;
-    }
+    public String endDate() { return endDateString; }
 
+    /**
+     * @return The transaction {@link #endDateString}.
+     */
+    public Date getEndDate() { return endDate; }
+
+    /**
+     * @return The transaction {@link #status}.
+     */
     public String getStatus() {
         return status;
     }
@@ -174,16 +190,19 @@ public class Transaction {
     }
 
     public void commit(boolean success) {
-        endDate = DateConverter.toString(new Date());
+        endDate = new Date();
+        endDateString = DateConverter.toString(endDate);
         if (success) {
             status = COMMITTED;
         } else {
+            // Todo - Add Errors Here
             status = COMMIT_FAILED;
         }
     }
 
     public void rollback(boolean success) {
-        endDate = DateConverter.toString(new Date());
+        endDate = new Date();
+        endDateString = DateConverter.toString(endDate);
         if (success) {
             status = ROLLED_BACK;
         } else {

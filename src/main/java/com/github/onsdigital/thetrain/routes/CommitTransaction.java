@@ -42,17 +42,31 @@ public class CommitTransaction extends BaseHandler {
 
         try {
             transaction = transactionsService.getTransaction(request);
+
+            if(transaction==null ) {
+                throw new PublishException(COMMIT_UNSUCCESSFUL_ERR);
+            }
             boolean isSuccess = publisherService.commit(transaction);
             if (!isSuccess) {
                 error().transactionID(transaction.id()).log(COMMIT_UNSUCCESSFUL_ERR);
                 throw new PublishException(COMMIT_UNSUCCESSFUL_ERR, transaction);
             }
-
+            // Check transaction in case an issue has been identified before attempting to commit
+            if (transaction.hasErrors()) {
+                transaction.setStatus(Transaction.COMMIT_FAILED);
+                transaction.addError(COMMIT_UNSUCCESSFUL_ERR);
+                error().transactionID(transaction.id()).log(COMMIT_UNSUCCESSFUL_ERR);
+                // throwing here is not ideal, as a Publishing Exception will be wrapped in another Publish exception, however better for readability.
+                throw new PublishException(COMMIT_UNSUCCESSFUL_ERR, transaction);
+            }
+            // No previous issues. Attempt to commit transaction and store success status
+            transaction.setStatus(Transaction.COMMITTED);
+            publisherService.commit(transaction);
             info().transactionID(transaction.id()).log(COMMIT_SUCCESSFUL_MSG);
             response.status(OK_200);
             return new Result(RESULT_SUCCESS_MSG, false, transaction);
-
         } finally {
+            // transactionsService.update can handles a null transaction.
             transactionsService.update(transaction);
         }
     }

@@ -11,6 +11,7 @@ import spark.Request;
 import java.nio.file.Path;
 import java.util.concurrent.Future;
 
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 import static java.lang.String.format;
 
 public class TransactionsServiceImpl implements TransactionsService {
@@ -69,6 +70,8 @@ public class TransactionsServiceImpl implements TransactionsService {
     public void update(Transaction transaction) throws PublishException {
         try {
             Transactions.update(transaction);
+            Transactions.marshallTransaction(transaction);
+            info().log("Transaction status:".concat(transaction.getStatus()));
         } catch (Exception e) {
             throw new PublishException(TRANS_UPDATE_ERR, e, transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
@@ -86,7 +89,9 @@ public class TransactionsServiceImpl implements TransactionsService {
     @Override
     public Future<Boolean> tryUpdateAsync(Transaction transaction) throws PublishException {
         try {
-            return Transactions.tryUpdateAsync(transaction.id());
+            final Future<Boolean> booleanFuture = Transactions.tryUpdateAsync(transaction.id());
+            Transactions.tryUpdateAsync(transaction.id());
+            return booleanFuture;
         } catch (Exception e) {
             throw new PublishException(TRANS_ASYNC_UPDATE_ERR, e, transaction,
                     HttpStatus.SC_INTERNAL_SERVER_ERROR);

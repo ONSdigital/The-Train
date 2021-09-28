@@ -27,8 +27,10 @@ public class SendManifest extends BaseHandler {
     static final String COPY_RESULT_ERR = "the number of copied files does not match expected in value of the " +
             "manifest, expected: %d, actual %d";
 
-    static final String DELETE_RESULT_ERR = "the number of delete files does not match expected in value of the " +
-            "manifest, expected: %d, actual %d";
+    static final String DELETE_RESULT_ERR = "either the number of delete files does not match expected in value of the " +
+            "manifest, expected: %d, actual %d, or an unknown issue occurred before";
+
+    static final String PREVIOUS_ERROR_IDENTIFIED = "About to send manifest, however an error was highlighted earlier in the process.";
 
     private TransactionsService transactionsService;
     private PublisherService publisherService;
@@ -52,11 +54,20 @@ public class SendManifest extends BaseHandler {
 
         try {
             transaction = transactionsService.getTransaction(request);
-
+            if (transaction.getStatus().equals(Transaction.COMMIT_FAILED)) {
+                transaction.addError(PREVIOUS_ERROR_IDENTIFIED);
+                throw new PublishException(PREVIOUS_ERROR_IDENTIFIED, transaction);
+            }
             int copied = publisherService.copyFilesIntoTransaction(transaction, manifest);
             int copyExpected = manifest.getFilesToCopy().size();
             if (copied != copyExpected) {
                 throw new PublishException(format(COPY_RESULT_ERR, copied, copyExpected), transaction);
+            }
+            if (copied != copyExpected || transaction.getStatus().equals(Transaction.COMMIT_FAILED)) {
+                String msg = format(COPY_RESULT_ERR, copyExpected, copied);
+                transaction.setStatus(Transaction.COMMIT_FAILED);
+                transaction.addError(msg);
+                throw new PublishException(msg, transaction);
             }
 
             int deleted = publisherService.addFilesToDelete(transaction, manifest);

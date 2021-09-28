@@ -12,7 +12,6 @@
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dp-logging.version>v2.0.0-beta</dp-logging.version>
     </properties>
 
     <repositories>
@@ -32,8 +31,18 @@
         </repository>
     </repositories>
 
-
     <dependencies>
+        <!-- Jitpack for external dp-java-parse-duration library -->
+        <dependency>
+            <groupId>com.github.onsdigital</groupId>
+            <artifactId>dp-java-duration-parse</artifactId>
+            <version>90d42101c49f9495b3c5c0f4c82f7796000c6573</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.onsdigital</groupId>
+            <artifactId>dp-slack-client-java</artifactId>
+            <version>0.1.0</version>
+        </dependency>
         <dependency>
             <groupId>com.sparkjava</groupId>
             <artifactId>spark-core</artifactId>
@@ -69,7 +78,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.11.0</version>
+            <version>2.11.4</version>
         </dependency>
 
         <!-- Encryption -->
@@ -113,7 +122,14 @@
         <dependency>
             <groupId>com.github.ONSdigital</groupId>
             <artifactId>dp-logging</artifactId>
-            <version>${dp-logging.version}</version>
+            <version>v1.7.1</version>
+        </dependency>
+
+        <!-- Slack-->
+        <dependency>
+            <groupId>com.github.onsdigital</groupId>
+            <artifactId>dp-slack-client-java</artifactId>
+            <version>0.1.0</version>
         </dependency>
 
         <!-- Test -->

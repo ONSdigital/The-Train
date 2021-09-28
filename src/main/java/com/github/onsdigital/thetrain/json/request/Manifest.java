@@ -1,6 +1,7 @@
 package com.github.onsdigital.thetrain.json.request;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Manifest {
@@ -20,5 +21,9 @@ public class Manifest {
 
     public List<FileCopy> getFilesToCopy() {
         return this.filesToCopy;
+    }
+
+    public void addFilesToCopy(FileCopy ... fc) {
+        filesToCopy.addAll(Arrays.asList(fc));
     }
 }

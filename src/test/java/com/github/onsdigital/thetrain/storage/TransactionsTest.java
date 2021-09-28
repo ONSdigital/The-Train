@@ -1,39 +1,52 @@
 package com.github.onsdigital.thetrain.storage;
 
 import com.github.davidcarboni.cryptolite.Random;
+import com.github.onsdigital.thetrain.TestUtils;
+import com.github.onsdigital.thetrain.configuration.ConfigurationException;
+import com.github.onsdigital.thetrain.configuration.ConfigurationUtils;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.json.UriInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.Set;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.when;
 
 /**
  * Test for {@link Transactions}.
  */
 public class TransactionsTest {
+    private String RELATIVE_PATH_TO_TRANSACTIONS = "src/test/resources";
+    private String absolutePathToTestTransactions;
+    private final static String transaction0 = "0b209df022be733e638d31ce183da1aaf2fd475d58ae63c35fd0b62c6dd9db44";
+    private final static String transaction1 = "1cf91da2d2b21b165a54459aa3cc1d9c9fd5d18140cc20d4b5bdd4ad154db48e";
+    private final static String transaction2 = "1fab7e4b75ae53d11abc3a8ca82689cfecad9a09c3f354a4260f4320cc7ee72a";
+
+    @Mock
+    Transactions transac=null;
 
     @Before
     public void setUp() throws IOException {
         Path transactionStore = Files.createTempDirectory("transaction-store");
-        Transactions.init(transactionStore);
+        Path archivedTransactionStore = Files.createTempDirectory("transaction-archive-store");
+        transac = org.mockito.Mockito.mock(Transactions.class);
+        Transactions.init(transactionStore, archivedTransactionStore);
+        Path testTransactions = Paths.get(RELATIVE_PATH_TO_TRANSACTIONS, "transactions");
+        absolutePathToTestTransactions = testTransactions.toAbsolutePath().toString();
     }
 
     /**
@@ -54,7 +67,48 @@ public class TransactionsTest {
         assertNotNull(transaction);
         assertTrue(StringUtils.isNotBlank(transaction.id()));
         assertTrue(StringUtils.isNotBlank(transaction.startDate()));
+        assertTrue(transaction.getStatus().equals(Transaction.STARTED));
         assertNotNull(Transactions.get(transaction.id()));
+    }
+
+    /**
+     * Tests that a collection is created with an ID and start date and can be read using the ID.
+     */
+    @Test
+    public void checkTransactionsInFolder() throws IOException {
+        // Given
+        // A folder of Transactions
+        ArrayList<String> transactionsInFolder = Transactions.findTransactionsInFolder(absolutePathToTestTransactions);
+        // Check there are three transactions
+        assertEquals(3,transactionsInFolder.size());
+        // Check the three transactions are
+        assertTrue(transactionsInFolder.contains(transaction0));
+        assertTrue(transactionsInFolder.contains(transaction1));
+        assertTrue(transactionsInFolder.contains(transaction2));
+        // Check the following isn't located
+        assertFalse(transactionsInFolder.contains("You can never find me!"));
+    }
+
+    /**
+     * Tests that a collection is created with an ID and start date and can be read using the ID.
+     */
+    @Test
+    public void checkEndDateOfTransactionsInFolder() throws IOException {
+        // Given
+        // A folder of Transactions
+        ArrayList<String> transactionsInFolder = Transactions.findTransactionsInFolder(absolutePathToTestTransactions);
+        // Check there are three transactions
+        assertEquals(3,transactionsInFolder.size());
+        // Check the three transactions EndDate
+        // Mock Transactions.path to get the correct path back.
+        when(transac.path(transaction0)).thenReturn(Paths.get(absolutePathToTestTransactions, transaction0));
+        assertEquals("", Transactions.get(transactionsInFolder.get(0)).endDate());
+        // Mock Transactions.path to get the correct path back.
+        when(transac.path(transaction1)).thenReturn(Paths.get(absolutePathToTestTransactions, transaction1));
+        assertEquals("", Transactions.get(transactionsInFolder.get(1)).endDate());
+        // Mock Transactions.path to get the correct path back.
+        when(transac.path(transaction2)).thenReturn(Paths.get(absolutePathToTestTransactions, transaction2));
+        assertEquals("", Transactions.get(transactionsInFolder.get(2)).endDate());
     }
 
     /**
@@ -356,4 +410,22 @@ public class TransactionsTest {
         assertNull(backup);
     }
 
+    @Test
+    public void testArchiveTransactions() throws IllegalAccessException, NoSuchFieldException, ClassNotFoundException, ConfigurationException {
+        // Given
+        // A nonexistent transaction ID (ie not created on disk)
+        Transaction transaction = new Transaction();
+
+        // Given
+        // An environment variable storing the Transaction Threshold for Transactions
+        Map<String,String> thresholdEnvVariable = new HashMap<>();
+        thresholdEnvVariable.put("ARCHIVE_TRANSACTION_THRESHOLD", "24h");
+        //Set the environment variable and check it has been set okay.
+        TestUtils.setEnvironmentalVariables(thresholdEnvVariable);
+        assertEquals(ConfigurationUtils.getStringEnvVar("ARCHIVE_TRANSACTION_THRESHOLD"),"24h");
+
+        // A path for the transactions initialise Transactions init and archive old transactions
+        Transactions.init(Paths.get("/Users/neill/Desktop/TestCollections&Transactions/Transactions"), Paths.get("/Users/neill/Desktop/TestCollections&Transactions/ArchivedTransactions"));
+        Transactions.archiveTransactions();
+    }
 }

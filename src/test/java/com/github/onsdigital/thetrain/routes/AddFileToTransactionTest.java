@@ -97,6 +97,7 @@ public class AddFileToTransactionTest extends BaseRouteTest {
 
     @Test(expected = PublishException.class)
     public void testAddFileGetFileInputStreamException() throws Exception {
+
         when(request.raw()).thenReturn(raw);
 
         when(raw.getParameter("uri")).thenReturn(testURI);

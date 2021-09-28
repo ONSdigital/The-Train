@@ -19,6 +19,12 @@ public class AppConfiguration {
 
     private static AppConfiguration INSTANCE = null;
 
+    public static final String ARCHIVING_TRANSACTIONS_THRESHOLD_ENV_VAR = "ARCHIVING_TRANSACTIONS_THRESHOLD";
+    public static final String ARCHIVING_TRANSACTIONS_PATH_ENV_VAR = "ARCHIVING_TRANSACTIONS_PATH";
+    public static final String ARCHIVED_TRANSACTIONS_SLACK_KEY_ENV_VAR = "SLACK_TOKEN";
+    public static final String ARCHIVED_TRANSACTIONS_SLACK_CHANNEL_ENV_VAR = "SLACK_CHANNEL"; // ToDo - having Channel for Warning, and Error would be useful.
+    public static final String ARCHIVED_TRANSACTIONS_SLACK_USER_NAME_ENV_VAR = "SLACK_USER_NAME";
+
     public static final String TRANSACTION_STORE_ENV_KEY = "TRANSACTION_STORE";
     public static final String WEBSITE_ENV_KEY = "WEBSITE";
     public static final String THREAD_POOL_SIZE_ENV_KEY = "PUBLISHING_THREAD_POOL_SIZE";
@@ -31,6 +37,7 @@ public class AppConfiguration {
     public static final String FILE_UPLOADS_TMP_DIR = "FILE_UPLOADS_TMP_DIR";
 
     private Path transactionStore;
+    private Path archivedTransactionStore;
     private Path websitePath;
     private Path fileUploadsTmpDir;
     private int publishThreadPoolSize;
@@ -45,6 +52,7 @@ public class AppConfiguration {
      */
     private AppConfiguration() throws ConfigurationException {
         this.transactionStore = loadTransactionStoreConfig();
+        this.archivedTransactionStore = loadArchivedTransactionStoreConfig();
         this.websitePath = loadWebsitePathConfig();
         this.enableVerifyPublish = loadEnableVerifyPublishContentFeatureFlag();
         this.fileUploadsTmpDir = createTmpFileUploadsDir();
@@ -73,6 +81,12 @@ public class AppConfiguration {
         return transactionStore;
     }
 
+    /**
+     * @return the transaction store directory.
+     */
+    public Path transactionArchivedStore() {
+        return archivedTransactionStore;
+    }
     /**
      * @return the size of the publisher thread pool
      */
@@ -173,6 +187,26 @@ public class AppConfiguration {
 
         if (!Files.isDirectory(transactionStorePath)) {
             throw new ConfigurationException("configured transaction store path is not a directory");
+        }
+        return transactionStorePath;
+    }
+
+
+    private static Path loadArchivedTransactionStoreConfig() throws ConfigurationException {
+        String value = getStringEnvVar(ARCHIVING_TRANSACTIONS_PATH_ENV_VAR);
+
+        if (StringUtils.isEmpty(value)) {
+            throw new ConfigurationException("archived transaction store path config is null/empty");
+        }
+
+        Path transactionStorePath = Paths.get(value);
+
+        if (Files.notExists(transactionStorePath)) {
+            throw new ConfigurationException("archived configured transaction store path does not exist");
+        }
+
+        if (!Files.isDirectory(transactionStorePath)) {
+            throw new ConfigurationException("archived configured transaction store path is not a directory");
         }
         return transactionStorePath;
     }

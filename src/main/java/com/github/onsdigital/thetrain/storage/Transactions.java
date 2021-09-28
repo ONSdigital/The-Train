@@ -3,23 +3,23 @@ package com.github.onsdigital.thetrain.storage;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.onsdigital.thetrain.configuration.AppConfiguration;
+import com.github.onsdigital.thetrain.configuration.ConfigurationException;
+import com.github.onsdigital.thetrain.configuration.ConfigurationUtils;
 import com.github.onsdigital.thetrain.helpers.PathUtils;
+import com.github.onsdigital.thetrain.helpers.Slack;
 import com.github.onsdigital.thetrain.json.Transaction;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.HiddenFileFilter;
+import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.concurrent.*;
 
 import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
 import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
@@ -36,21 +36,27 @@ public class Transactions {
     static final String BACKUP = "backup";
 
     private static Path transactionStore;
+    private static Path archivedTransactionStore;
     private static ObjectMapper objectMapper;
     private static Map<String, Transaction> transactionMap;
     private static Map<String, ExecutorService> transactionExecutorMap;
+    private static HashMap<String, Integer> reasonsForArchiving;
 
-    public static void init(Path transactionStorePath) {
+    public static void init(Path transactionStorePath, Path transactionArchiveStorePath) {
         transactionStore = transactionStorePath;
-
+        archivedTransactionStore = transactionArchiveStorePath;
         objectMapper = new ObjectMapper();
         objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE);
         objectMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
 
         transactionMap = new ConcurrentHashMap<>();
         transactionExecutorMap = new ConcurrentHashMap<>();
+        reasonsForArchiving = new HashMap<>();
 
-        info().log("transaction store initialisation completed");
+        info().log("transaction and transaction archive store initialisation completed");
+
+        long numberArchived = archiveTransactions();
+        info().log("archived " + Long.toString(numberArchived) + " transactions");
     }
 
     public static Map<String, Transaction> getTransactionMap() {
@@ -111,13 +117,144 @@ public class Transactions {
     }
 
     /**
+     * Moves the transaction to the Archived folder
+     *
+     * @param id The {@link Transaction} ID.
+     * @throws IOException If an error occurs in reading the transaction Json.
+     */
+    private static void moveTransactionToArchive(String id) throws IOException {
+        String source = Paths.get(transactionStore.toString(), id).toAbsolutePath().toString();
+        String dest = archivedTransactionStore.toAbsolutePath().toString();
+        FileUtils.moveToDirectory(new File(source), new File(dest), true);
+        // ToDo - Catch org.apache.commons.io.FileExistsException and rename the directory at the destination end wth additional random characters, to cover collisions, not necessarily caused by the random id, but more with restarts.
+    }
+
+    public static ArrayList<String> findTransactionsInFolder(String folder) throws IOException {
+        File directory = new File(folder);
+        if (!directory.exists() && !directory.isHidden() ) {
+            throw new IOException("The transaction folder wasn't a directory:"+folder);
+        }
+        ArrayList<String> listIDs = new ArrayList<>();
+        File[] visibleFiles = directory.listFiles((FileFilter) HiddenFileFilter.VISIBLE);
+        // Loop round all files which are visible, then if its a Directory then record the directory name/ID
+        for (File visibleFile : visibleFiles) {
+            // ToDo - check the filename with a file mask.
+            if(visibleFile.isDirectory()) listIDs.add(visibleFile.getName());
+        }
+        return listIDs;
+    }
+
+
+    private static void tallyArchivalReason(String reason) {
+        Integer tally = reasonsForArchiving.get(reason);
+        tally = (tally==null)?0:tally;
+        tally ++;
+        reasonsForArchiving.put(reason, tally);
+    }
+
+    public static long archiveTransactions() {
+        // Get all the Transaction files
+        ArrayList<String> transactionsInFolder = null;
+        try {
+            transactionsInFolder = findTransactionsInFolder(transactionStore.toAbsolutePath().toString());
+        } catch (IOException e) {
+            error().exception(e).log("IOException when findingTransactionsInFolder:"+transactionStore.toAbsolutePath().toString());
+        }
+        // Calculate the transaction threshold date and time by
+        //  adding today's date and time with the duration in the environmental variable
+        int minutes = 0;
+        try {
+            minutes = (int) // Parsing to int is not ideal, however MAXINT is equivalent to around 68 years.
+                (ConfigurationUtils.getDurationEnvVar(AppConfiguration.ARCHIVING_TRANSACTIONS_THRESHOLD_ENV_VAR).getSeconds())/60;
+        } catch (ConfigurationException e) {
+            error().exception(e).log("ConfigurationException when looking for the Environment Variable:"+ AppConfiguration.ARCHIVING_TRANSACTIONS_THRESHOLD_ENV_VAR);
+        }
+        Date transactionThreshold = DateUtils.addMinutes(new Date(), -minutes);
+        // Stores the ID of the transactions to be archived, and their associated Error's
+        HashMap<String, Integer> transactionsToBeArchived = new HashMap<>();
+        // ToDo ^ - Might be useful to use a threadsafe queue here and have another process moving the transactions
+        //  in parallel to this process.  Perhaps using Collections.synchronizedMap or ConcurrentHashMap.
+        // Loop round all transactions and check if startDate or endDate is older than
+        // the transaction threshold date/time.
+        for(String id: transactionsInFolder) {
+            Transaction transaction = null;
+            try {
+                transaction = Transactions.get(id);
+            } catch (IOException e) {
+                error().transactionID(id).exception(e).log("IOException when getting the transaction:"+id);
+                // Erroneous transactions also require archiving
+                id = (id.equals(null))?"null":id;
+                Integer size = (transaction==null)?0:transaction.errors().size();
+                // ToDo - create another folder for ErroneousTransactions, and associated Env Variable
+                transactionsToBeArchived.put(id,size);
+                continue;
+            }
+            //
+            // FIRSTLY CHECK if the status of the Transaction would indicate that it should be archived
+            //
+            if (transaction.getStatus() != null &&
+                    (
+                    Transaction.COMMITTED.equals(transaction.getStatus())
+                    || Transaction.COMMIT_FAILED.equals(transaction.getStatus())
+                    || Transaction.ROLLBACK_FAILED.equals(transaction.getStatus())
+                    || Transaction.ROLLED_BACK.equals(transaction.getStatus())
+                    )
+            )
+            {
+                // This transaction should be archived
+                transactionsToBeArchived.put(id,transaction.errors().size());
+                // Increment counter reason for archiving transaction
+                tallyArchivalReason(transaction.getStatus());
+                // Move onto next transaction
+                continue;
+            }
+            //
+            // SECONDLY CHECK if the start or end dates indicate that it should be archived.
+            //
+            Date s = transaction.getStartDate();
+            Date e = transaction.getEndDate();
+            if (
+                    s == null || // Archive erroneous transaction as there should always be a start date
+                    s.before(transactionThreshold) ||  // After threshold so archive
+                    (e!=null && e.before(transactionThreshold))  // After threshold so archive
+            ) {
+                // Transaction is older than allowable so store id, tally archival reason and move onto next transaction
+                transactionsToBeArchived.put(id, transaction.errors().size());
+                tallyArchivalReason("past threshold ("+transactionThreshold.toString()+")");
+                continue;
+                // ToDo - Extract details of Transaction for displaying in Slack Message
+            }
+            //
+            // ToDo - THIRD CHECK - The datestamp of the newest Transaction folder/file
+            //
+
+        }
+        //
+        // FINALLY - Move the transactions to Archive folder and Send a Slack Message
+        //
+        for(Map.Entry<String, Integer> entry: transactionsToBeArchived.entrySet()) {
+            String i = entry.getKey();
+            try {
+                moveTransactionToArchive(i);
+            } catch (IOException e) {
+                error().transactionID(i).exception(e).log("IOException when moving the transaction to archive, where id="+i);
+            }
+        }
+        try {
+            Slack.sendSlackArchivalReasons(reasonsForArchiving, "The-Train Initialisation Archival Complete ("+transactionsToBeArchived.size()+" archives)");
+        } catch (Exception e) {
+            error().log("error when sending Slack summary of The-Train archival summary."+e.getMessage());
+        }
+        return transactionsToBeArchived.size();
+    }
+
+    /**
      * Reads the transaction Json specified by the given id.
      *
      * @param id The {@link Transaction} ID.
      * @return The {@link Transaction} if it exists, otherwise null.
      * @throws IOException If an error occurs in reading the transaction Json.
      */
-
     public static Transaction get(String id) throws IOException {
         Transaction result = null;
 
@@ -285,7 +422,23 @@ public class Transactions {
         }
         return result;
     }
-
+    /**
+     * Marshals {@link Transaction} to a Json file.
+     *
+     * @param transaction The {@link Transaction}.
+     * @throws IOException If IO error occurs when saving/updating the file.
+     */
+    public static void marshallTransaction(Transaction transaction) throws IOException {
+        // Generate the file structure
+        Path path = path(transaction.id());
+        Path json = path.resolve(JSON);
+        try (OutputStream output = Files.newOutputStream(json)) {
+            objectMapper.writeValue(output, transaction);
+        }
+    }
+    public static Path getTransactionStorePath(){
+        return transactionStore;
+    }
     /**
      * Determines the directory for a {@link Transaction}.
      *
@@ -293,7 +446,7 @@ public class Transactions {
      * @return The {@link Path} for the specified transaction, or null if the ID is blank.
      * @throws IOException If an error occurs in determining the path.
      */
-    static Path path(String id) throws IOException {
+    public static Path path(String id) throws IOException {
         Path result = null;
         if (StringUtils.isNotBlank(id)) {
             result = transactionStore.resolve(id);

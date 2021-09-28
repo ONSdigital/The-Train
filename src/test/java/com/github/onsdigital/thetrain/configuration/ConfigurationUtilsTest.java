@@ -72,4 +72,12 @@ public class ConfigurationUtilsTest {
             throw ex;
         }
     }
+
+    @Test
+    public void testSetEnvironmentalVariables() {
+        // Given
+        // Setting
+        Map<String,String> thresholdEnvVariable = new HashMap<>();
+        thresholdEnvVariable.put("ARCHIVE_TRANSACTION_THRESHOLD", "1d");
+    }
 }

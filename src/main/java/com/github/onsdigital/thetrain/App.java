@@ -42,6 +42,7 @@ import static spark.Spark.post;
 
 public class App {
 
+
     /**
      * Start The Train.
      * A {@link LoggingException} throw when attempting to init the application is considered fatal and will result
@@ -93,7 +94,7 @@ public class App {
 
     private static void initServices(AppConfiguration config) {
         Publisher.init(config.publishThreadPoolSize());
-        Transactions.init(config.transactionStore());
+        Transactions.init(config.transactionStore(), config.transactionArchivedStore());
     }
 
     private static void registerHTTPFilters() {
