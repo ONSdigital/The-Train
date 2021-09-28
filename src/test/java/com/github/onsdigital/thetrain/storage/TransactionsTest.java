@@ -6,12 +6,20 @@ import com.github.onsdigital.thetrain.configuration.ConfigurationException;
 import com.github.onsdigital.thetrain.configuration.ConfigurationUtils;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.json.UriInfo;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.springframework.test.context.event.annotation.BeforeTestClass;
+import org.springframework.test.context.event.annotation.BeforeTestExecution;
+import org.springframework.test.context.event.annotation.BeforeTestMethod;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,30 +32,40 @@ import java.util.concurrent.Future;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.when;
 
 /**
  * Test for {@link Transactions}.
  */
 public class TransactionsTest {
-    private String RELATIVE_PATH_TO_TRANSACTIONS = "src/test/resources";
-    private String absolutePathToTestTransactions;
-    private final static String transaction0 = "0b209df022be733e638d31ce183da1aaf2fd475d58ae63c35fd0b62c6dd9db44";
-    private final static String transaction1 = "1cf91da2d2b21b165a54459aa3cc1d9c9fd5d18140cc20d4b5bdd4ad154db48e";
-    private final static String transaction2 = "1fab7e4b75ae53d11abc3a8ca82689cfecad9a09c3f354a4260f4320cc7ee72a";
+    private final String RELATIVE_PATH_TO_EXAMPLE_TRANSACTIONS = "src/test/resources/transactions";
+    private Path pathOfTransactions;
+    private Path transactionToBeProcessed;
+    private Path archivedTransactionStore;
+    private final static String transaction0 = "ceddd961cc8e482be1bd98ab368878165adfd267a4a0568515cf690cf8a1df89";
+    private final static String transaction1 = "d1a2faa9ffa59c1aadc1d33611b557e653c4bbb68963f9cd240d8af22ec875b5";
+    private final static String transaction2 = "cf1eec88bf12737202a4c2dacdd85a6148f1bd8ad0ac0bcf4975ee0289566e8f";
+    private final static String transaction3 = "ed9a71561351e18da0a4aa611c5d139fc532517931840c53737e5ade3e23fe4a";
 
     @Mock
     Transactions transac=null;
 
     @Before
     public void setUp() throws IOException {
-        Path transactionStore = Files.createTempDirectory("transaction-store");
-        Path archivedTransactionStore = Files.createTempDirectory("transaction-archive-store");
+        // Create temp folder for Transactions
+        transactionToBeProcessed = Files.createTempDirectory("to-be-processed-transaction");
+        archivedTransactionStore = Files.createTempDirectory("archived-transaction");
+        // Initialise Trnsactions
+        Transactions.init(transactionToBeProcessed, archivedTransactionStore);
+        // Create Transactions mock
         transac = org.mockito.Mockito.mock(Transactions.class);
-        Transactions.init(transactionStore, archivedTransactionStore);
-        Path testTransactions = Paths.get(RELATIVE_PATH_TO_TRANSACTIONS, "transactions");
-        absolutePathToTestTransactions = testTransactions.toAbsolutePath().toString();
     }
+
+    @BeforeTestExecution
+    public void beforeTestClass() throws IOException {
+        // Copy transactions to transaction store
+        FileUtils.copyDirectory(new File(RELATIVE_PATH_TO_EXAMPLE_TRANSACTIONS), new File(transactionToBeProcessed.toAbsolutePath().toString()), false);
+    }
+
 
     /**
      * Tests that a transaction is created with an ID and start date and can be read using the ID.
@@ -76,15 +94,18 @@ public class TransactionsTest {
      */
     @Test
     public void checkTransactionsInFolder() throws IOException {
+        beforeTestClass();
         // Given
+        // A set of Transactions
         // A folder of Transactions
-        ArrayList<String> transactionsInFolder = Transactions.findTransactionsInFolder(absolutePathToTestTransactions);
+        ArrayList<String> transactionsInFolder = Transactions.findTransactionsInFolder(transactionToBeProcessed.toAbsolutePath().toString());
         // Check there are three transactions
-        assertEquals(3,transactionsInFolder.size());
+        assertEquals(4,transactionsInFolder.size());
         // Check the three transactions are
         assertTrue(transactionsInFolder.contains(transaction0));
         assertTrue(transactionsInFolder.contains(transaction1));
         assertTrue(transactionsInFolder.contains(transaction2));
+        assertTrue(transactionsInFolder.contains(transaction3));
         // Check the following isn't located
         assertFalse(transactionsInFolder.contains("You can never find me!"));
     }
@@ -94,21 +115,25 @@ public class TransactionsTest {
      */
     @Test
     public void checkEndDateOfTransactionsInFolder() throws IOException {
+        beforeTestClass();
         // Given
         // A folder of Transactions
-        ArrayList<String> transactionsInFolder = Transactions.findTransactionsInFolder(absolutePathToTestTransactions);
+        ArrayList<String> transactionsInFolder = Transactions.findTransactionsInFolder(transactionToBeProcessed.toAbsolutePath().toString());
         // Check there are three transactions
-        assertEquals(3,transactionsInFolder.size());
+        assertEquals(4,transactionsInFolder.size());
         // Check the three transactions EndDate
         // Mock Transactions.path to get the correct path back.
-        when(transac.path(transaction0)).thenReturn(Paths.get(absolutePathToTestTransactions, transaction0));
-        assertEquals("", Transactions.get(transactionsInFolder.get(0)).endDate());
-        // Mock Transactions.path to get the correct path back.
-        when(transac.path(transaction1)).thenReturn(Paths.get(absolutePathToTestTransactions, transaction1));
-        assertEquals("", Transactions.get(transactionsInFolder.get(1)).endDate());
-        // Mock Transactions.path to get the correct path back.
-        when(transac.path(transaction2)).thenReturn(Paths.get(absolutePathToTestTransactions, transaction2));
-        assertEquals("", Transactions.get(transactionsInFolder.get(2)).endDate());
+        try (MockedStatic<Transactions> staticTransacs = Mockito.mockStatic(Transactions.class)) {
+            staticTransacs.when(() -> transac.path(transaction0)).thenReturn(Paths.get(transactionToBeProcessed.toAbsolutePath().toString(), transaction0));
+            Transactions.init(transactionToBeProcessed, archivedTransactionStore);
+            String id = transactionsInFolder.get(0);
+            Transaction t = Transactions.get(id);
+            System.out.println("endDate = " + t.endDate());
+            assertEquals("", t.endDate());
+            // ToDo - put expected result in
+        }
+            // ToDo - add in other THREE tests
+
     }
 
     /**

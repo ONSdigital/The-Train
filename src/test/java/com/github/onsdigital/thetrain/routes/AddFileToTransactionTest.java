@@ -267,7 +267,7 @@ public class AddFileToTransactionTest extends BaseRouteTest {
             // When the mock is called write the zip content to the temp dir so we can check it was written correctly.
             when(publisherService.addFiles(eq(transaction), eq("/a/b/c/timeseries"), any(ZipInputStream.class)))
                     .thenAnswer(invocationOnMock -> {
-                        ZipInputStream zipIn = invocationOnMock.getArgumentAt(2, ZipInputStream.class);
+                        ZipInputStream zipIn = invocationOnMock.getArgument(2, ZipInputStream.class);
                         writeZip(transactionDir.resolve("a/b/c/timeseries"), zipIn);
                         return true;
                     });

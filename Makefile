@@ -18,6 +18,15 @@ $(warning TRANSACTION_STORE env var not found applying default: ${TRANSACTIONS_D
 export TRANSACTION_STORE = ${TRANSACTIONS_DEFAULT}
 endif
 
+
+## The default publish transactions directory
+TRANSACTIONS_DEFAULT:=target/transactions
+
+ifndef TRANSACTION_STORE
+$(warning TRANSACTION_STORE env var not found applying default: ${TRANSACTIONS_DEFAULT})
+export TRANSACTION_STORE = ${TRANSACTIONS_DEFAULT}
+endif
+
 ## The default bind address
 PORT_DEFAULT:=8084
 
