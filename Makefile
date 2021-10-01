@@ -10,14 +10,37 @@ $(warning WEBSITE env var not found applying default: $(WEBSITE_DEFAULT))
 export WEBSITE = ${WEBSITE_DEFAULT}
 endif
 
-## The default publish transactions directory
-TRANSACTIONS_DEFAULT:=target/transactions
+## The default length of time before a transaction is archived is 1440h (60 days)
+ARCHIVING_TRANSACTIONS_THRESHOLD_DEFAULT:=1440h
 
-ifndef TRANSACTION_STORE
-$(warning TRANSACTION_STORE env var not found applying default: ${TRANSACTIONS_DEFAULT})
-export TRANSACTION_STORE = ${TRANSACTIONS_DEFAULT}
+ifndef ARCHIVING_TRANSACTIONS_THRESHOLD
+$(warning ARCHIVING_TRANSACTIONS_THRESHOLD env var not found applying default: ${ARCHIVING_TRANSACTIONS_THRESHOLD_DEFAULT})
+export ARCHIVING_TRANSACTIONS_THRESHOLD = ${ARCHIVING_TRANSACTIONS_THRESHOLD_DEFAULT}
 endif
 
+## The default path should be archived-transactions within zebedee default
+ARCHIVING_TRANSACTIONS_PATH_DEFAULT:=$zebedee_root/archived-transactions
+
+ifndef ARCHIVING_TRANSACTIONS_PATH
+$(warning ARCHIVING_TRANSACTIONS_PATH env var not found applying default: ${ARCHIVING_TRANSACTIONS_PATH_DEFAULT})
+export ARCHIVING_TRANSACTIONS_PATH = ${ARCHIVING_TRANSACTIONS_PATH_DEFAULT}
+endif
+
+## The default slack username
+SLACK_USER_NAME_DEFAULT:=Zebedee-test
+
+ifndef SLACK_USER_NAME
+$(warning SLACK_USER_NAME env var not found applying default: ${SLACK_USER_NAME_DEFAULT})
+export SLACK_USER_NAME = ${SLACK_USER_NAME_DEFAULT}
+endif
+
+## The default slack channel
+SLACK_CHANNEL_DEFAULT:=slack-client-test
+
+ifndef SLACK_CHANNEL
+$(warning SLACK_CHANNEL env var not found applying default: ${SLACK_CHANNEL_DEFAULT})
+export SLACK_CHANNEL = ${SLACK_CHANNEL_DEFAULT}
+endif
 
 ## The default publish transactions directory
 TRANSACTIONS_DEFAULT:=target/transactions

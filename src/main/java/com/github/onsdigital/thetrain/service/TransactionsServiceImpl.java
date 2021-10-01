@@ -89,9 +89,7 @@ public class TransactionsServiceImpl implements TransactionsService {
     @Override
     public Future<Boolean> tryUpdateAsync(Transaction transaction) throws PublishException {
         try {
-            final Future<Boolean> booleanFuture = Transactions.tryUpdateAsync(transaction.id());
-            Transactions.tryUpdateAsync(transaction.id());
-            return booleanFuture;
+            return Transactions.tryUpdateAsync(transaction.id());
         } catch (Exception e) {
             throw new PublishException(TRANS_ASYNC_UPDATE_ERR, e, transaction,
                     HttpStatus.SC_INTERNAL_SERVER_ERROR);

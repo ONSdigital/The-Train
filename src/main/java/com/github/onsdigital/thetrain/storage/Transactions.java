@@ -211,12 +211,12 @@ public class Transactions {
             //
             // SECONDLY CHECK if the start or end dates indicate that it should be archived.
             //
-            Date s = transaction.getStartDate();
-            Date e = transaction.getEndDate();
+            Date s = transaction.getStartDateObject();
+            Date e = transaction.getEndDateObject();
             if (
                     s == null || // Archive erroneous transaction as there should always be a start date
-                    s.before(transactionThreshold) ||  // After threshold so archive
-                    (e!=null && e.before(transactionThreshold))  // After threshold so archive
+                    s.before(transactionThreshold) ||  // Start Date threshold so archive
+                    (e!=null && e.before(transactionThreshold))  // End Date after threshold so archive
             ) {
                 // Transaction is older than allowable so store id, tally archival reason and move onto next transaction
                 transactionsToBeArchived.put(id, transaction.errors().size());
@@ -227,7 +227,6 @@ public class Transactions {
             //
             // ToDo - THIRD CHECK - The datestamp of the newest Transaction folder/file
             //
-
         }
         //
         // FINALLY - Move the transactions to Archive folder and Send a Slack Message

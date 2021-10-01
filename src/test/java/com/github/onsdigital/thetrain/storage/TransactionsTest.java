@@ -1,29 +1,21 @@
 package com.github.onsdigital.thetrain.storage;
 
 import com.github.davidcarboni.cryptolite.Random;
-import com.github.onsdigital.thetrain.TestUtils;
 import com.github.onsdigital.thetrain.configuration.ConfigurationException;
-import com.github.onsdigital.thetrain.configuration.ConfigurationUtils;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.json.UriInfo;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
-import org.springframework.test.context.event.annotation.BeforeTestClass;
 import org.springframework.test.context.event.annotation.BeforeTestExecution;
-import org.springframework.test.context.event.annotation.BeforeTestMethod;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -41,10 +33,13 @@ public class TransactionsTest {
     private Path pathOfTransactions;
     private Path transactionToBeProcessed;
     private Path archivedTransactionStore;
-    private final static String transaction0 = "ceddd961cc8e482be1bd98ab368878165adfd267a4a0568515cf690cf8a1df89";
-    private final static String transaction1 = "d1a2faa9ffa59c1aadc1d33611b557e653c4bbb68963f9cd240d8af22ec875b5";
-    private final static String transaction2 = "cf1eec88bf12737202a4c2dacdd85a6148f1bd8ad0ac0bcf4975ee0289566e8f";
-    private final static String transaction3 = "ed9a71561351e18da0a4aa611c5d139fc532517931840c53737e5ade3e23fe4a";
+    private final static String transaction0 = "ceddd961cc8e482be1bd98ab368878165adfd267a4a0568515cf690cf8a1df89";// Publishing
+    private final static String transaction1 = "d1a2faa9ffa59c1aadc1d33611b557e653c4bbb68963f9cd240d8af22ec875b5";// Committed
+    private final static String transaction2 = "cf1eec88bf12737202a4c2dacdd85a6148f1bd8ad0ac0bcf4975ee0289566e8f";// Publishing
+    private final static String transaction3 = "ed9a71561351e18da0a4aa611c5d139fc532517931840c53737e5ade3e23fe4a";// Started
+    private final static String transaction4 = "6edd4c89b135fce22e2df3468685a847fd03ef0b72fe0b4224ccf8853973ff48";// Rolled Back
+    private final static String transaction5 = "f7775e129d1458315d9908a8027bae3d9f7ce42b18db8a934129d272522e6b94";// Rolled Back
+    private final static String transaction6 = "d988813e21b519f29eff98b0bf65fb08225892bb7498f94c7d2da41e6d696a71";// Started with StartDate in year 2999.
 
     @Mock
     Transactions transac=null;
@@ -61,7 +56,7 @@ public class TransactionsTest {
     }
 
     @BeforeTestExecution
-    public void beforeTestClass() throws IOException {
+    public void copyExampleTransactions() throws IOException {
         // Copy transactions to transaction store
         FileUtils.copyDirectory(new File(RELATIVE_PATH_TO_EXAMPLE_TRANSACTIONS), new File(transactionToBeProcessed.toAbsolutePath().toString()), false);
     }
@@ -94,13 +89,13 @@ public class TransactionsTest {
      */
     @Test
     public void checkTransactionsInFolder() throws IOException {
-        beforeTestClass();
+        copyExampleTransactions();
         // Given
         // A set of Transactions
         // A folder of Transactions
         ArrayList<String> transactionsInFolder = Transactions.findTransactionsInFolder(transactionToBeProcessed.toAbsolutePath().toString());
         // Check there are three transactions
-        assertEquals(4,transactionsInFolder.size());
+        assertEquals(6,transactionsInFolder.size());
         // Check the three transactions are
         assertTrue(transactionsInFolder.contains(transaction0));
         assertTrue(transactionsInFolder.contains(transaction1));
@@ -115,25 +110,20 @@ public class TransactionsTest {
      */
     @Test
     public void checkEndDateOfTransactionsInFolder() throws IOException {
-        beforeTestClass();
+        copyExampleTransactions();
         // Given
         // A folder of Transactions
         ArrayList<String> transactionsInFolder = Transactions.findTransactionsInFolder(transactionToBeProcessed.toAbsolutePath().toString());
         // Check there are three transactions
-        assertEquals(4,transactionsInFolder.size());
+        assertEquals(6,transactionsInFolder.size());
         // Check the three transactions EndDate
-        // Mock Transactions.path to get the correct path back.
-        try (MockedStatic<Transactions> staticTransacs = Mockito.mockStatic(Transactions.class)) {
-            staticTransacs.when(() -> transac.path(transaction0)).thenReturn(Paths.get(transactionToBeProcessed.toAbsolutePath().toString(), transaction0));
-            Transactions.init(transactionToBeProcessed, archivedTransactionStore);
-            String id = transactionsInFolder.get(0);
+        //
+        for (int i=0; i<=5; i++) {
+            String id = transactionsInFolder.get(i);
             Transaction t = Transactions.get(id);
-            System.out.println("endDate = " + t.endDate());
-            assertEquals("", t.endDate());
-            // ToDo - put expected result in
+            System.out.println("endDate = " + t.startDate());
+            assertEquals(t.getStartDate(), t.startDate());
         }
-            // ToDo - add in other THREE tests
-
     }
 
     /**
@@ -259,8 +249,6 @@ public class TransactionsTest {
      */
     @Test
     public void shouldUpdateTransactionConcurrently() throws IOException, InterruptedException {
-
-
         // Given
         // A transaction and lots of URI infos and errors
         final Transaction transaction = Transactions.create();
@@ -436,21 +424,22 @@ public class TransactionsTest {
     }
 
     @Test
-    public void testArchiveTransactions() throws IllegalAccessException, NoSuchFieldException, ClassNotFoundException, ConfigurationException {
-        // Given
-        // A nonexistent transaction ID (ie not created on disk)
-        Transaction transaction = new Transaction();
+    public void testArchiveTransactions() throws IllegalAccessException, NoSuchFieldException, ClassNotFoundException, ConfigurationException, IOException {
+        // Copy the transactions to the working directory
+        copyExampleTransactions();
+        // Check which transaction folders are there
+        ArrayList<String> transactionsInFolder = Transactions.findTransactionsInFolder(transactionToBeProcessed.toAbsolutePath().toString());
+        assertEquals(7,transactionsInFolder.size());
 
-        // Given
-        // An environment variable storing the Transaction Threshold for Transactions
-        Map<String,String> thresholdEnvVariable = new HashMap<>();
-        thresholdEnvVariable.put("ARCHIVE_TRANSACTION_THRESHOLD", "24h");
-        //Set the environment variable and check it has been set okay.
-        TestUtils.setEnvironmentalVariables(thresholdEnvVariable);
-        assertEquals(ConfigurationUtils.getStringEnvVar("ARCHIVE_TRANSACTION_THRESHOLD"),"24h");
+        System.out.println("transactionToBeProcessed folder = " + transactionToBeProcessed);
+        System.out.println("archivedTransactionStore folder = " + archivedTransactionStore);
 
-        // A path for the transactions initialise Transactions init and archive old transactions
-        Transactions.init(Paths.get("/Users/neill/Desktop/TestCollections&Transactions/Transactions"), Paths.get("/Users/neill/Desktop/TestCollections&Transactions/ArchivedTransactions"));
-        Transactions.archiveTransactions();
+        // When The-Train
+        // Initialiases with one transaction having a start date of 2999-07-13
+        Transactions.init(transactionToBeProcessed, archivedTransactionStore);
+        // Check that the only transaction that is left to be processed is the one with start date in the future
+        transactionsInFolder = Transactions.findTransactionsInFolder(transactionToBeProcessed.toAbsolutePath().toString());
+        assertEquals(1,transactionsInFolder.size());
+        assertTrue(transactionsInFolder.contains(transaction6));
     }
 }

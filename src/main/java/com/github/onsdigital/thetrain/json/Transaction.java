@@ -25,12 +25,12 @@ public class Transaction {
     // theoretical rather than a practical consideration.
     private String id = Random.id();
     private String status = STARTED;
-    private final Date startDate = new Date(); // ToDo - refactor instantiation from here.
     @JsonIgnore
-    private String startDateString = DateConverter.toString(startDate); // ToDo - refactor instantiation away from here.
-    private Date endDate;
+    private final Date startDateObject = new Date(); // ToDo - refactor instantiation from here.
+    private String startDate = DateConverter.toString(startDateObject); // ToDo - refactor instantiation away from here.
+    private String endDate;
     @JsonIgnore
-    private String endDateString;
+    private Date endDateObject;
 
     private Set<UriInfo> uriInfos = new HashSet<>();
     private Set<UriInfo> uriDeletes = new HashSet<>();
@@ -55,28 +55,34 @@ public class Transaction {
     }
 
     /**
-     * @return The transaction {@link #startDateString}.
+     * @return The transaction {@link #startDate}.
      */
     public String startDate() {
-        return startDateString;
-    }
-
-    /**
-     * @return The transaction {@link #startDateString}.
-     */
-    public Date getStartDate() {
         return startDate;
     }
 
     /**
-     * @return The transaction {@link #endDateString}.
+     * @return The transaction {@link #startDate}.
      */
-    public String endDate() { return endDateString; }
+    public Date getStartDateObject() {
+        return startDateObject;
+    }
 
     /**
-     * @return The transaction {@link #endDateString}.
+     * @return The transaction {@link #startDate}.
      */
-    public Date getEndDate() { return endDate; }
+    public String getStartDate() {
+        return startDate;
+    }
+    /**
+     * @return The transaction {@link #endDate}.
+     */
+    public String endDate() { return endDate; }
+
+    /**
+     * @return The transaction {@link #endDate}.
+     */
+    public Date getEndDateObject() { return endDateObject; }
 
     /**
      * @return The transaction {@link #status}.
@@ -190,8 +196,8 @@ public class Transaction {
     }
 
     public void commit(boolean success) {
-        endDate = new Date();
-        endDateString = DateConverter.toString(endDate);
+        endDateObject = new Date();
+        endDate = DateConverter.toString(endDateObject);
         if (success) {
             status = COMMITTED;
         } else {
@@ -201,8 +207,8 @@ public class Transaction {
     }
 
     public void rollback(boolean success) {
-        endDate = new Date();
-        endDateString = DateConverter.toString(endDate);
+        endDateObject = new Date();
+        endDate = DateConverter.toString(endDateObject);
         if (success) {
             status = ROLLED_BACK;
         } else {
