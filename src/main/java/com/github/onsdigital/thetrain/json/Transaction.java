@@ -26,7 +26,7 @@ public class Transaction {
     private String id = Random.id();
     private String status = STARTED;
     @JsonIgnore
-    private final Date startDateObject = new Date(); // ToDo - refactor instantiation from here.
+    private Date startDateObject = new Date(); // ToDo - refactor instantiation from here.
     private String startDate = DateConverter.toString(startDateObject); // ToDo - refactor instantiation away from here.
     private String endDate;
     @JsonIgnore
@@ -35,6 +35,12 @@ public class Transaction {
     private Set<UriInfo> uriInfos = new HashSet<>();
     private Set<UriInfo> uriDeletes = new HashSet<>();
     private List<String> errors = new ArrayList<>();
+
+     public Transaction () {
+         if (startDate!=null && startDate.isEmpty()) {
+             this.startDateObject = DateConverter.toDate(startDate);
+         }
+     }
 
     /**
      * The actual files on disk in this transaction.
@@ -55,7 +61,7 @@ public class Transaction {
     }
 
     /**
-     * @return The transaction {@link #startDate}.
+     * @return The transaction {@link #startDateObject}.
      */
     public String startDate() {
         return startDate;
@@ -82,7 +88,12 @@ public class Transaction {
     /**
      * @return The transaction {@link #endDate}.
      */
-    public Date getEndDateObject() { return endDateObject; }
+    public Date getEndDateObject() {
+        if (endDateObject == null && endDate != null && !endDate.isEmpty()) {
+            endDateObject = DateConverter.toDate(endDate);
+        }
+        return endDateObject;
+    }
 
     /**
      * @return The transaction {@link #status}.

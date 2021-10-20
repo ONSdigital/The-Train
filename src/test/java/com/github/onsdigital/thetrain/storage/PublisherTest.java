@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 
 import static org.junit.Assert.assertEquals;
@@ -41,9 +42,8 @@ public class PublisherTest {
     public void setUp() throws Exception {
         websiteTestPath = Files.createTempDirectory("website");
         Path transactionStorePath = Files.createTempDirectory("transaction-store");
-        Path archivedTransactionStorePath = Files.createTempDirectory("transaction-archive-store");
 
-        Transactions.init(transactionStorePath, archivedTransactionStorePath);
+        Transactions.init(transactionStorePath);
         transaction = Transactions.create();
     }
 

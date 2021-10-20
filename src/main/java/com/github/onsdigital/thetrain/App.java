@@ -10,6 +10,8 @@ import com.github.onsdigital.logging.v2.serializer.LogSerialiser;
 import com.github.onsdigital.logging.v2.storage.LogStore;
 import com.github.onsdigital.logging.v2.storage.MDCLogStore;
 import com.github.onsdigital.thetrain.configuration.AppConfiguration;
+import com.github.onsdigital.thetrain.configuration.ConfigurationException;
+import com.github.onsdigital.thetrain.configuration.ConfigurationUtils;
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.exception.handler.BadRequestExceptionHandler;
@@ -30,6 +32,8 @@ import com.github.onsdigital.thetrain.storage.Transactions;
 import spark.Filter;
 import spark.ResponseTransformer;
 import spark.Route;
+
+import java.time.Duration;
 
 import static com.github.onsdigital.thetrain.logging.TrainEvent.fatal;
 import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
@@ -92,9 +96,14 @@ public class App {
                 .create());
     }
 
-    private static void initServices(AppConfiguration config) {
+    private static void initServices(AppConfiguration config) throws ConfigurationException {
         Publisher.init(config.publishThreadPoolSize());
-        Transactions.init(config.transactionStore(), config.transactionArchivedStore());
+        Transactions.init(config.transactionStore());
+
+        final Duration duration = ConfigurationUtils.getDurationEnvVar(AppConfiguration.ARCHIVING_TRANSACTIONS_THRESHOLD_ENV_VAR);
+        Long numberArchived = Transactions.archiveTransactions(config.transactionStore(), config.transactionArchivedStore(), duration);
+
+        info().log("archived " + Long.toString(numberArchived) + " transactions");
     }
 
     private static void registerHTTPFilters() {

@@ -36,7 +36,7 @@
         <dependency>
             <groupId>com.github.onsdigital</groupId>
             <artifactId>dp-java-duration-parse</artifactId>
-            <version>90d42101c49f9495b3c5c0f4c82f7796000c6573</version>
+            <version>0.1.0</version>
         </dependency>
         <dependency>
             <groupId>com.github.onsdigital</groupId>
@@ -145,12 +145,12 @@
             <version>3.8.0</version>
             <scope>test</scope>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.mockito</groupId>-->
-<!--            <artifactId>mockito-all</artifactId>-->
-<!--            <version>1.10.19</version>-->
-<!--            <scope>test</scope>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-core</artifactId>
+            <version>2.0.9</version>
+            <scope>test</scope>
+        </dependency>
 
 
     </dependencies>
@@ -185,7 +185,7 @@
 
             <!-- An assembly that includes all dependencies for deployment: -->
             <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
+                    <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.5.3</version>
                 <configuration>
                     <descriptorRefs>

@@ -3,6 +3,7 @@ package com.github.onsdigital.thetrain.routes;
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.json.Result;
+import com.github.onsdigital.thetrain.json.Transaction;
 import org.junit.Test;
 import spark.Route;
 
@@ -63,7 +64,6 @@ public class CommitTransactionTest extends BaseRouteTest {
     @Test(expected = PublishException.class)
     public void testPublisherServiceCommitError() throws Exception {
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
-//        transaction.setStatus("publishing");
         when(publisherService.commit(transaction)).thenThrow(publishException);
         try {
             route.handle(request, response);
@@ -104,6 +104,8 @@ public class CommitTransactionTest extends BaseRouteTest {
         assertThat(result.transaction, equalTo(transaction));
         assertThat(result.message, equalTo(RESULT_SUCCESS_MSG));
         assertFalse(result.error);
+
+        verify(transaction, times(1)).setStatus(Transaction.COMMITTED);
 
         verify(transactionsService, times(1)).getTransaction(request);
         verify(transactionsService, times(1)).update(transaction);

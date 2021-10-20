@@ -22,8 +22,4 @@ public class Manifest {
     public List<FileCopy> getFilesToCopy() {
         return this.filesToCopy;
     }
-
-    public void addFilesToCopy(FileCopy ... fc) {
-        filesToCopy.addAll(Arrays.asList(fc));
-    }
 }
