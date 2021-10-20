@@ -94,6 +94,8 @@ test:
 	mvn -Dossindex.skip test
 audit:
 	mvn ossindex:audit
+lint:
+	exit #no linting action defined
 ensure_dirs:
 	@if [[ $(WEBSITE) == $(WEBSITE_DEFAULT) ]]; then mkdir -p $(WEBSITE_DEFAULT); fi
 	@if [[ $(TRANSACTION_STORE) == $(TRANSACTIONS_DEFAULT) ]]; then mkdir -p $(TRANSACTIONS_DEFAULT); fi
