@@ -22,7 +22,7 @@ public class AppConfiguration {
     public static final String ARCHIVING_TRANSACTIONS_THRESHOLD_ENV_VAR = "ARCHIVING_TRANSACTIONS_THRESHOLD";
     public static final String ARCHIVING_TRANSACTIONS_PATH_ENV_VAR = "ARCHIVING_TRANSACTIONS_PATH";
     public static final String ARCHIVED_TRANSACTIONS_SLACK_KEY_ENV_VAR = "SLACK_TOKEN";
-    public static final String ARCHIVED_TRANSACTIONS_SLACK_CHANNEL_ENV_VAR = "SLACK_CHANNEL"; // ToDo - having Channel for Warning, and Error would be useful.
+    public static final String ARCHIVED_TRANSACTIONS_SLACK_CHANNEL_ENV_VAR = "SLACK_CHANNEL";
     public static final String ARCHIVED_TRANSACTIONS_SLACK_USER_NAME_ENV_VAR = "SLACK_USER_NAME";
 
     public static final String TRANSACTION_STORE_ENV_KEY = "TRANSACTION_STORE";

@@ -131,7 +131,6 @@ public class Transactions {
         File[] visibleFiles = directory.listFiles((FileFilter) HiddenFileFilter.VISIBLE);
         // Loop round all files which are visible, then if its a Directory then record the directory name/ID
         for (File visibleFile : visibleFiles) {
-            // ToDo - check the filename with a file mask.
             if (visibleFile.isDirectory()) listIDs.add(visibleFile.getName());
         }
         return listIDs;
@@ -156,12 +155,12 @@ public class Transactions {
     }
 
     private static boolean archiveBasedOnTimeThreshold(Transaction transaction, Date transactionThreshold) {
-        Date s = DateConverter.toDate(transaction.getStartDate());
-        Date e = transaction.getEndDateObject();
+        Date start = DateConverter.toDate(transaction.getStartDate());
+        Date end = transaction.getEndDateObject();
         if (
-                s == null || // Archive erroneous transaction as there should always be a start date
-                        s.before(transactionThreshold) ||  // Start Date threshold so archive
-                        (e != null && e.before   (transactionThreshold))  // End Date after threshold so archive
+                start == null || // Archive erroneous transaction as there should always be a start date
+                        start.before(transactionThreshold) ||  // Start Date threshold so archive
+                        (end != null && end.before   (transactionThreshold))  // End Date after threshold so archive
         ) return true; else return false;
     }
 
@@ -183,8 +182,6 @@ public class Transactions {
         Date transactionThreshold = DateUtils.addMinutes(new Date(), -minutes);
         // Stores the ID of the transactions to be archived, and their associated Error's
         HashMap<String, Integer> transactionsToBeArchived = new HashMap<>();
-        // ToDo ^ - Might be useful to use a threadsafe queue here and have another process moving the transactions
-        //  in parallel to this process.  Perhaps using Collections.synchronizedMap or ConcurrentHashMap.
         // Loop round all transactions and check if startDate or endDate is older than
         // the transaction threshold date/time.
         for (String id : transactionsInFolder) {
@@ -196,7 +193,6 @@ public class Transactions {
                 // Erroneous transactions also require archiving
                 id = (id.equals(null)) ? "null" : id;
                 Integer size = (transaction == null) ? 0 : transaction.errors().size();
-                // ToDo - create another folder for ErroneousTransactions, and associated Env Variable
                 transactionsToBeArchived.put(id, size);
                 continue;
             }
@@ -222,8 +218,6 @@ public class Transactions {
                 tallyArchivalReason("past threshold (" + transactionThreshold.toString() + ")");
                 continue;
             }
-            // ToDo - Extract details of Transaction for displaying in Slack Message
-            // ToDo - THIRD CHECK - The datestamp of the newest Transaction folder/file
         }
         //
         // Move the transactions to archive folder and send a Slack message
@@ -237,11 +231,7 @@ public class Transactions {
                 error().transactionID(i).exception(e).log("IOException when moving the transaction to archive, where id=" + i);
             }
         }
-        try {
-            Slack.sendSlackArchivalReasons(reasonsForArchiving, "The-Train Initialisation Archival Complete (" + transactionsToBeArchived.size() + " archives)");
-        } catch (Exception e) {
-            error().log("error when sending Slack summary of The-Train archival summary." + e.getMessage());
-        }
+        Slack.sendSlackArchivalReasons(reasonsForArchiving, "The-Train Initialisation Archival Complete (" + transactionsToBeArchived.size() + " archives)");
         return transactionsToBeArchived.size();
     }
 
@@ -267,7 +257,6 @@ public class Transactions {
                         final Path json = transactionPath.resolve(JSON);
                             try (InputStream input = Files.newInputStream(json)) {
                             result = objectMapper.readValue(input, Transaction.class);
-                            // Todo - not storing the transaction due to memory limitations during initialisation
                         }
                     }
                 } else {
@@ -447,7 +436,7 @@ public class Transactions {
      * @return The {@link Path} for the specified transaction, or null if the ID is blank.
      * @throws IOException If an error occurs in determining the path.
      */
-    public static Path path(String id) throws IOException {
+    static Path path(String id) throws IOException {
         Path result = null;
         if (StringUtils.isNotBlank(id)) {
             result = transactionStore.resolve(id);

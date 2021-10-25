@@ -68,7 +68,7 @@ public class CommitTransactionTest extends BaseRouteTest {
         try {
             route.handle(request, response);
         } catch (PublishException e) {
-            assertThat(e.getMessage(), equalTo("Boom!"));
+            assertThat(e.getMessage(), equalTo(publishException.getMessage()));
             verify(transactionsService, times(1)).getTransaction(request);
             verify(transactionsService, times(1)).update(transaction);
             verify(publisherService, times(1)).commit(transaction);

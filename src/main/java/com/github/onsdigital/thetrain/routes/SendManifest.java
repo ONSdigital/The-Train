@@ -63,7 +63,7 @@ public class SendManifest extends BaseHandler {
             if (copied != copyExpected) {
                 throw new PublishException(format(COPY_RESULT_ERR, copied, copyExpected), transaction);
             }
-            if (copied != copyExpected || transaction.getStatus().equals(Transaction.COMMIT_FAILED)) {
+            if (transaction.getStatus().equals(Transaction.COMMIT_FAILED)) {
                 String msg = format(COPY_RESULT_ERR, copyExpected, copied);
                 transaction.setStatus(Transaction.COMMIT_FAILED);
                 transaction.addError(msg);

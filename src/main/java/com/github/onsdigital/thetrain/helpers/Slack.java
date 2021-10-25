@@ -37,7 +37,6 @@ public class Slack {
     }
 
     public static void sendSlackArchivalReasons(HashMap<String, Integer> reasons, String messageText) {
-        // ToDo - Refactor elsewhere, perhaps in-between this class and Transactions
         PostMessage msg;
         if (reasons.size()>0) {
             msg = profile.newPostMessage(System.getenv(AppConfiguration.ARCHIVED_TRANSACTIONS_SLACK_CHANNEL_ENV_VAR),
@@ -47,10 +46,9 @@ public class Slack {
                     messageText);
             msg.addAttachment(new PostMessageAttachment("Summary", "No transactions archived", Colour.GOOD));
         }
-        for (String header : reasons.keySet()) {  // Inefficient looping, but cleaner.  Only few entries in map so excusable.
+        for (String header : reasons.keySet()) {
             Integer tally = reasons.get(header);
             msg.addAttachment(new PostMessageAttachment(header, Integer.toString(tally), Colour.WARNING));
-            // ToDo - Find way of setting the 'short' to true.  Using empty Constructor and addField doesn't work.
         }
         send(msg);
     }

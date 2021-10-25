@@ -26,8 +26,8 @@ public class Transaction {
     private String id = Random.id();
     private String status = STARTED;
     @JsonIgnore
-    private Date startDateObject = new Date(); // ToDo - refactor instantiation from here.
-    private String startDate = DateConverter.toString(startDateObject); // ToDo - refactor instantiation away from here.
+    private Date startDateObject = new Date();
+    private String startDate = DateConverter.toString(startDateObject);
     private String endDate;
     @JsonIgnore
     private Date endDateObject;
@@ -83,7 +83,9 @@ public class Transaction {
     /**
      * @return The transaction {@link #endDate}.
      */
-    public String endDate() { return endDate; }
+    public String endDate() {
+        return endDate;
+    }
 
     /**
      * @return The transaction {@link #endDate}.
@@ -212,7 +214,6 @@ public class Transaction {
         if (success) {
             status = COMMITTED;
         } else {
-            // Todo - Add Errors Here
             status = COMMIT_FAILED;
         }
     }
