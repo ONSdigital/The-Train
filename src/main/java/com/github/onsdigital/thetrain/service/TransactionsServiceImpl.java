@@ -71,7 +71,8 @@ public class TransactionsServiceImpl implements TransactionsService {
         try {
             Transactions.update(transaction);
             Transactions.marshallTransaction(transaction);
-            info().log("Transaction status:".concat(transaction.getStatus()));
+            info().data("status", ((transaction.getStatus()==null?"null transaction status":transaction.getStatus())))
+                    .log("transaction status updated");
         } catch (Exception e) {
             throw new PublishException(TRANS_UPDATE_ERR, e, transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }

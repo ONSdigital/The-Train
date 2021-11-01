@@ -5,8 +5,13 @@ import com.github.davidcarboni.cryptolite.Random;
 import com.github.onsdigital.thetrain.helpers.DateConverter;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Date;
+import java.util.Set;
 
 /**
  * Details of a single transaction, including any files transferred and any errors encountered.
@@ -21,25 +26,29 @@ public class Transaction {
     public static final String ROLLED_BACK = "rolled back";
     public static final String ROLLBACK_FAILED = "rollback failed";
 
-    // Whilst an ID collision is technically possible it's a
-    // theoretical rather than a practical consideration.
-    private String id = Random.id();
-    private String status = STARTED;
-    @JsonIgnore
-    private Date startDateObject = new Date();
-    private String startDate = DateConverter.toString(startDateObject);
-    private String endDate;
     @JsonIgnore
     private Date endDateObject;
+    @JsonIgnore
+    private Date startDateObject;
 
-    private Set<UriInfo> uriInfos = new HashSet<>();
-    private Set<UriInfo> uriDeletes = new HashSet<>();
-    private List<String> errors = new ArrayList<>();
+    // Whilst an ID collision is technically possible it's a
+    // theoretical rather than a practical consideration.
+    private String id;
+    private String status = STARTED;
+    private String startDate;
+    private String endDate;
+
+    private Set<UriInfo> uriInfos;
+    private Set<UriInfo> uriDeletes;
+    private List<String> errors;
 
      public Transaction () {
-         if (startDate!=null && startDate.isEmpty()) {
-             this.startDateObject = DateConverter.toDate(startDate);
-         }
+         id = Random.id();
+         startDateObject = new Date();
+         startDate = DateConverter.toString(startDateObject);
+         uriInfos = new HashSet<>();
+         uriDeletes = new HashSet<>();
+         errors = new ArrayList<>();
      }
 
     /**
@@ -185,6 +194,15 @@ public class Transaction {
                 result |= StringUtils.isNotBlank(uriInfo.error());
             }
             return result;
+        }
+    }
+
+    /**
+     * @return An unmodifiable set of the URIs in this transaction.
+     */
+    public void clearErrors() {
+        synchronized (this) {
+            errors.clear();
         }
     }
 

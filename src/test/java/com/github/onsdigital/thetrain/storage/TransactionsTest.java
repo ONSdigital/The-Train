@@ -1,9 +1,6 @@
 package com.github.onsdigital.thetrain.storage;
 
 import com.github.davidcarboni.cryptolite.Random;
-import com.github.onsdigital.thetrain.configuration.AppConfiguration;
-import com.github.onsdigital.thetrain.configuration.ConfigurationException;
-import com.github.onsdigital.thetrain.configuration.ConfigurationUtils;
 import com.github.onsdigital.thetrain.helpers.DateConverter;
 import com.github.onsdigital.thetrain.json.Transaction;
 import com.github.onsdigital.thetrain.json.UriInfo;
@@ -15,8 +12,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.springframework.test.context.event.annotation.BeforeTestExecution;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,7 +26,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.*;
 
@@ -40,7 +34,6 @@ import static org.junit.Assert.*;
  */
 public class TransactionsTest {
     private final String RELATIVE_PATH_TO_EXAMPLE_TRANSACTIONS = "src/test/resources/transactions";
-    private Path pathOfTransactions;
     private Path transactionStore;
     private Path archivedTransactionStore;
 
@@ -80,8 +73,6 @@ public class TransactionsTest {
     public void setUp() throws IOException {
         transactionStore = Files.createTempDirectory("transaction-store");
         archivedTransactionStore = Files.createTempDirectory("archived-transaction");
-
-        Duration archivingTransactionsThreshold = Duration.ZERO;
 
         copyExampleTransactions(transactionStore);
         Transactions.init(transactionStore);
@@ -144,9 +135,6 @@ public class TransactionsTest {
      */
     @Test
     public void checkEndDateOfTransactionsInFolder() throws IOException {
-        // Given
-        // A folder of Transactions
-        ArrayList<String> transactionsInFolder = Transactions.findTransactionsInFolder(transactionStore.toAbsolutePath().toString());
         // Given the transactions
         // Check transaction end dates for Transaction0
         Transaction a = Transactions.get(transaction0);
@@ -283,7 +271,7 @@ public class TransactionsTest {
      * Tests that a transaction can be created and ended.
      */
     @Test
-    public void shouldNotUpdateTransactionAsyncWhenTransactionEnded() throws IOException, ExecutionException, InterruptedException {
+    public void shouldNotUpdateTransactionAsyncWhenTransactionEnded() throws IOException {
 
         // Given
         // A transaction
@@ -571,7 +559,7 @@ public class TransactionsTest {
     }
 
     @Test
-    public void testArchiveTransactions() throws IllegalAccessException, NoSuchFieldException, ClassNotFoundException, ConfigurationException, IOException {
+    public void testArchiveTransactions() throws IOException {
         // Given a set of Transactions in a folder
         // Check to make sure they are all there first.
         ArrayList<String> transactionsInFolder = Transactions.findTransactionsInFolder(transactionStore.toAbsolutePath().toString());

@@ -43,7 +43,7 @@ public class CommitTransaction extends BaseHandler {
         try {
             transaction = transactionsService.getTransaction(request);
 
-            if(transaction==null ) {
+            if (transaction == null) {
                 throw new PublishException(COMMIT_UNSUCCESSFUL_ERR);
             }
             boolean isSuccess = publisherService.commit(transaction);
@@ -55,9 +55,11 @@ public class CommitTransaction extends BaseHandler {
             if (transaction.hasErrors()) {
                 transaction.setStatus(Transaction.COMMIT_FAILED);
                 transaction.addError(COMMIT_UNSUCCESSFUL_ERR);
-                error().transactionID(transaction.id()).log(COMMIT_UNSUCCESSFUL_ERR);
-                // throwing here is not ideal, as a Publishing Exception will be wrapped in another Publish exception, however better for readability.
-                throw new PublishException(COMMIT_UNSUCCESSFUL_ERR, transaction);
+                PublishException publishException = new PublishException(COMMIT_UNSUCCESSFUL_ERR, transaction);
+                error().transactionID(transaction.id())
+                        .exception(publishException)
+                        .log(COMMIT_UNSUCCESSFUL_ERR);
+                throw publishException;
             }
             // No previous issues. Attempt to commit transaction and store success status
             transaction.setStatus(Transaction.COMMITTED);

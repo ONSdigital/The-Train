@@ -32,6 +32,8 @@ public class SendManifest extends BaseHandler {
 
     static final String PREVIOUS_ERROR_IDENTIFIED = "About to send manifest, however an error was highlighted earlier in the process.";
 
+    static final String NULL_STATUS_ERR = "About to send manifest, however the Transaction has an empty null status.";
+
     private TransactionsService transactionsService;
     private PublisherService publisherService;
     private Path websiteContentPath;
@@ -54,6 +56,9 @@ public class SendManifest extends BaseHandler {
 
         try {
             transaction = transactionsService.getTransaction(request);
+            if (transaction.getStatus()==null) {
+                throw new PublishException(NULL_STATUS_ERR, transaction);
+            }
             if (transaction.getStatus().equals(Transaction.COMMIT_FAILED)) {
                 transaction.addError(PREVIOUS_ERROR_IDENTIFIED);
                 throw new PublishException(PREVIOUS_ERROR_IDENTIFIED, transaction);

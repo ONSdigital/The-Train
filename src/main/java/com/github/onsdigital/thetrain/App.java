@@ -103,7 +103,7 @@ public class App {
         final Duration duration = ConfigurationUtils.getDurationEnvVar(AppConfiguration.ARCHIVING_TRANSACTIONS_THRESHOLD_ENV_VAR);
         Long numberArchived = Transactions.archiveTransactions(config.transactionStore(), config.transactionArchivedStore(), duration);
 
-        info().log("archived " + Long.toString(numberArchived) + " transactions");
+        info().data("count", numberArchived). log("archiving transactions older than threshold");
     }
 
     private static void registerHTTPFilters() {

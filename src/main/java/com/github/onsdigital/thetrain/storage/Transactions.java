@@ -144,24 +144,34 @@ public class Transactions {
     }
 
     private static boolean archiveBasedOnStatus(Transaction transaction) {
-        if (transaction.getStatus() != null &&
-                (
-                        Transaction.COMMITTED.equals(transaction.getStatus())
-                                || Transaction.COMMIT_FAILED.equals(transaction.getStatus())
-                                || Transaction.ROLLBACK_FAILED.equals(transaction.getStatus())
-                                || Transaction.ROLLED_BACK.equals(transaction.getStatus())
-                )
-        ) return true; else return false;
+        if (transaction.getStatus() == null) {
+            return false;
+        }
+        switch (transaction.getStatus()) {
+            case Transaction.COMMITTED:
+            case Transaction.COMMIT_FAILED:
+            case Transaction.ROLLBACK_FAILED:
+            case Transaction.ROLLED_BACK:
+                return true;
+            default : return false;
+        }
     }
 
     private static boolean archiveBasedOnTimeThreshold(Transaction transaction, Date transactionThreshold) {
         Date start = DateConverter.toDate(transaction.getStartDate());
         Date end = transaction.getEndDateObject();
         if (
-                start == null || // Archive erroneous transaction as there should always be a start date
-                        start.before(transactionThreshold) ||  // Start Date threshold so archive
-                        (end != null && end.before   (transactionThreshold))  // End Date after threshold so archive
-        ) return true; else return false;
+            start == null // Archive erroneous transaction as there should always be a start date
+            || start.before(transactionThreshold) // Start Date threshold so archive
+            || (end != null && end.before(transactionThreshold))  // End Date after threshold so archive
+        )
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
     public static long archiveTransactions(Path transactionStore, Path archivedTransactionStore, Duration lifetimeOfTransaction) {
@@ -231,7 +241,8 @@ public class Transactions {
                 error().transactionID(i).exception(e).log("IOException when moving the transaction to archive, where id=" + i);
             }
         }
-        Slack.sendSlackArchivalReasons(reasonsForArchiving, "The-Train Initialisation Archival Complete (" + transactionsToBeArchived.size() + " archives)");
+        Slack slack = new Slack();
+        slack.sendSlackArchivalReasons(reasonsForArchiving, "The-Train Initialisation Archival Complete (" + transactionsToBeArchived.size() + " archives)");
         return transactionsToBeArchived.size();
     }
 

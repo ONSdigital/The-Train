@@ -13,14 +13,12 @@ import java.util.HashMap;
 
 import static com.github.onsdigital.thetrain.logging.TrainEvent.error;
 
-public class Slack {
-    // ToDo - only sends messages with Warning Colour
+public final class Slack {
 
-    private static Profile profile;
-    private static SlackClient slack;
+    private final Profile profile;
+    private final   SlackClient slack;
 
-    static {
-        // ToDo - if unchecked exception is raised here, what happens?
+    public Slack() {
         profile = new Profile.Builder()
                 .username(System.getenv(AppConfiguration.ARCHIVED_TRANSACTIONS_SLACK_USER_NAME_ENV_VAR))
                 .emoji(":chart_with_upwards_trend:")
@@ -29,16 +27,17 @@ public class Slack {
                 slack = new SlackClientImpl(profile);
     }
 
-    private static void send(PostMessage m){
+    public void send(PostMessage m){
         PostMessageResponse response = slack.sendMessage(m);
         if (!response.isOk()){
             error().log("error occurred when attempting to post slack message. Error:"+response.toString());
         }
     }
 
-    public static void sendSlackArchivalReasons(HashMap<String, Integer> reasons, String messageText) {
+    public void sendSlackArchivalReasons(HashMap<String, Integer> reasons, String messageText) {
         PostMessage msg;
-        if (reasons.size()>0) {
+
+        if (reasons==null || reasons.size()>0) {
             msg = profile.newPostMessage(System.getenv(AppConfiguration.ARCHIVED_TRANSACTIONS_SLACK_CHANNEL_ENV_VAR),
                 messageText);
         } else {

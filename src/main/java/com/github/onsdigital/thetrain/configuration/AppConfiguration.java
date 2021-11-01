@@ -1,5 +1,6 @@
 package com.github.onsdigital.thetrain.configuration;
 
+import java.time.*;
 import org.apache.commons.lang3.StringUtils;
 
 import java.nio.file.Files;
@@ -38,6 +39,7 @@ public class AppConfiguration {
 
     private Path transactionStore;
     private Path archivedTransactionStore;
+    private Duration archiveTransactionThreshold;
     private Path websitePath;
     private Path fileUploadsTmpDir;
     private int publishThreadPoolSize;
@@ -53,6 +55,7 @@ public class AppConfiguration {
     private AppConfiguration() throws ConfigurationException {
         this.transactionStore = loadTransactionStoreConfig();
         this.archivedTransactionStore = loadArchivedTransactionStoreConfig();
+        this.archiveTransactionThreshold = loadArchiveTransactionThresholdConfig();
         this.websitePath = loadWebsitePathConfig();
         this.enableVerifyPublish = loadEnableVerifyPublishContentFeatureFlag();
         this.fileUploadsTmpDir = createTmpFileUploadsDir();
@@ -195,7 +198,7 @@ public class AppConfiguration {
     private static Path loadArchivedTransactionStoreConfig() throws ConfigurationException {
         String value = getStringEnvVar(ARCHIVING_TRANSACTIONS_PATH_ENV_VAR);
 
-        if (StringUtils.isEmpty(value)) {
+        if (value == null || StringUtils.isEmpty(value)) {
             throw new ConfigurationException("archived transaction store path config is null/empty");
         }
 
@@ -209,6 +212,16 @@ public class AppConfiguration {
             throw new ConfigurationException("archived configured transaction store path is not a directory");
         }
         return transactionStorePath;
+    }
+
+    private Duration loadArchiveTransactionThresholdConfig() throws ConfigurationException {
+        this.archiveTransactionThreshold = ConfigurationUtils.getDurationEnvVar(AppConfiguration.ARCHIVING_TRANSACTIONS_THRESHOLD_ENV_VAR);
+
+        if (this.archiveTransactionThreshold == null) {
+            throw new ConfigurationException("duration threshold is null.  Check environment variables.");
+        }
+
+        return this.archiveTransactionThreshold;
     }
 
     private static boolean loadEnableVerifyPublishContentFeatureFlag() throws ConfigurationException {

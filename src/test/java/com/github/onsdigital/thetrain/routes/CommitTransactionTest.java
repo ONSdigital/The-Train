@@ -76,7 +76,7 @@ public class CommitTransactionTest extends BaseRouteTest {
         }
     }
 
-    @Test(expected = PublishException.class)
+        @Test(expected = PublishException.class)
     public void testPublisherServiceCommitUnsuccessful() throws Exception {
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
 
