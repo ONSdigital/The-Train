@@ -1,6 +1,7 @@
 package com.github.onsdigital.thetrain.json;
 
 import com.github.davidcarboni.cryptolite.Random;
+import com.github.onsdigital.thetrain.exception.*;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
@@ -213,4 +214,18 @@ public class TransactionTest {
         assertTrue(StringUtils.isNotBlank(ok.endDate()));
         assertTrue(StringUtils.isNotBlank(error.endDate()));
     }
+
+    @Test
+    public void checkExceptionsAreCleared()  {
+        Transaction erroneous = new Transaction();
+        erroneous.addError("First Error");
+        erroneous.addError("Second Error");
+        try {
+            throw new PublishException("The exception message", erroneous);
+        } catch (PublishException e) {
+            e.printStackTrace();
+        }
+        assertTrue(!erroneous.hasErrors());
+    }
+
 }

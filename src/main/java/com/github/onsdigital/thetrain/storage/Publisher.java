@@ -478,7 +478,8 @@ public class Publisher {
         if (result) {
             Transactions.end(transaction);
         }
-
+        //Update the transactions and marshall transaction(s)
+        Transactions.update(transaction);
         return result;
     }
 

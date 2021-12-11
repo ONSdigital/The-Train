@@ -1,7 +1,9 @@
 package com.github.onsdigital.thetrain.configuration;
 
+import com.github.onsdigital.dpjavadurationparse.ParseDuration;
 import org.apache.commons.lang3.StringUtils;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Properties;
 
@@ -29,6 +31,21 @@ public class ConfigurationUtils {
         }
 
         return getValue(System.getenv(), System.getProperties(), varName);
+    }
+
+    /**
+     * Get a {@link Duration} environment variable value.
+     *
+     * @param varName the name of the environment variable to retrieve.
+     * @return the environment variable if it exists.
+     * @throws ConfigurationException problem getting the env var/invalid integer value.
+     */
+    public static Duration getDurationEnvVar(String varName) throws ConfigurationException {
+        if (StringUtils.isEmpty(varName)) {
+            throw new ConfigurationException("Expected env var name, but value was empty");
+        }
+        String strValue = getValue(System.getenv(), System.getProperties(), varName);
+        return ParseDuration.parseDuration(strValue);
     }
 
     /**
@@ -77,7 +94,7 @@ public class ConfigurationUtils {
      * otherwise returns value from system properties. Returns null if value not present in either.
      *
      * @param sysEnv   the {@link System#getenv()} to use.
-     * @param sysProps the {@link System#props} to use.
+     * @param sysProps the {@link System} to use.
      * @param name     the name of the environement variable to find a value for.
      * @return the system environment if it is exists and is not empty, otherwise returns value from system
      * properties. Returns null if value not present in either.

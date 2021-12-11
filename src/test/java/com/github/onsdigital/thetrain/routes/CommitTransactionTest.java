@@ -3,6 +3,7 @@ package com.github.onsdigital.thetrain.routes;
 import com.github.onsdigital.thetrain.exception.BadRequestException;
 import com.github.onsdigital.thetrain.exception.PublishException;
 import com.github.onsdigital.thetrain.json.Result;
+import com.github.onsdigital.thetrain.json.Transaction;
 import org.junit.Test;
 import spark.Route;
 
@@ -14,11 +15,7 @@ import static com.github.onsdigital.thetrain.routes.CommitTransaction.RESULT_SUC
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertFalse;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class CommitTransactionTest extends BaseRouteTest {
 
@@ -67,10 +64,7 @@ public class CommitTransactionTest extends BaseRouteTest {
     @Test(expected = PublishException.class)
     public void testPublisherServiceCommitError() throws Exception {
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
-
-
         when(publisherService.commit(transaction)).thenThrow(publishException);
-
         try {
             route.handle(request, response);
         } catch (PublishException e) {
@@ -82,7 +76,7 @@ public class CommitTransactionTest extends BaseRouteTest {
         }
     }
 
-    @Test(expected = PublishException.class)
+        @Test(expected = PublishException.class)
     public void testPublisherServiceCommitUnsuccessful() throws Exception {
         when(transactionsService.getTransaction(request)).thenReturn(transaction);
 
@@ -111,8 +105,10 @@ public class CommitTransactionTest extends BaseRouteTest {
         assertThat(result.message, equalTo(RESULT_SUCCESS_MSG));
         assertFalse(result.error);
 
+        verify(transaction, times(1)).setStatus(Transaction.COMMITTED);
+
         verify(transactionsService, times(1)).getTransaction(request);
         verify(transactionsService, times(1)).update(transaction);
-        verify(publisherService, times(1)).commit(transaction);
+        verify(publisherService, times(2)).commit(transaction);
     }
 }

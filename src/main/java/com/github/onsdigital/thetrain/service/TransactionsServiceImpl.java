@@ -11,6 +11,7 @@ import spark.Request;
 import java.nio.file.Path;
 import java.util.concurrent.Future;
 
+import static com.github.onsdigital.thetrain.logging.TrainEvent.info;
 import static java.lang.String.format;
 
 public class TransactionsServiceImpl implements TransactionsService {
@@ -69,6 +70,9 @@ public class TransactionsServiceImpl implements TransactionsService {
     public void update(Transaction transaction) throws PublishException {
         try {
             Transactions.update(transaction);
+            Transactions.marshallTransaction(transaction);
+            info().data("status", ((transaction.getStatus()==null?"null transaction status":transaction.getStatus())))
+                    .log("transaction status updated");
         } catch (Exception e) {
             throw new PublishException(TRANS_UPDATE_ERR, e, transaction, HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }

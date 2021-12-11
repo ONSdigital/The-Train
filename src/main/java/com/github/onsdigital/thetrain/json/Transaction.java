@@ -1,17 +1,17 @@
 package com.github.onsdigital.thetrain.json;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.github.davidcarboni.cryptolite.Random;
 import com.github.onsdigital.thetrain.helpers.DateConverter;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Date;
 import java.util.Set;
-
 
 /**
  * Details of a single transaction, including any files transferred and any errors encountered.
@@ -26,16 +26,30 @@ public class Transaction {
     public static final String ROLLED_BACK = "rolled back";
     public static final String ROLLBACK_FAILED = "rollback failed";
 
+    @JsonIgnore
+    private Date endDateObject;
+    @JsonIgnore
+    private Date startDateObject;
+
     // Whilst an ID collision is technically possible it's a
     // theoretical rather than a practical consideration.
-    private String id = Random.id();
+    private String id;
     private String status = STARTED;
-    private String startDate = DateConverter.toString(new Date());
+    private String startDate;
     private String endDate;
 
-    private Set<UriInfo> uriInfos = new HashSet<>();
-    private Set<UriInfo> uriDeletes = new HashSet<>();
-    private List<String> errors = new ArrayList<>();
+    private Set<UriInfo> uriInfos;
+    private Set<UriInfo> uriDeletes;
+    private List<String> errors;
+
+     public Transaction () {
+         id = Random.id();
+         startDateObject = new Date();
+         startDate = DateConverter.toString(startDateObject);
+         uriInfos = new HashSet<>();
+         uriDeletes = new HashSet<>();
+         errors = new ArrayList<>();
+     }
 
     /**
      * The actual files on disk in this transaction.
@@ -43,6 +57,10 @@ public class Transaction {
      * if there is an issue, so useful to have a direct view of these.
      */
     public Map<String, List<String>> files;
+
+    public void setStatus(final String STATUS) {
+        this.status = STATUS;
+    }
 
     /**
      * @return The transaction {@link #id}.
@@ -52,12 +70,25 @@ public class Transaction {
     }
 
     /**
-     * @return The transaction {@link #startDate}.
+     * @return The transaction {@link #startDateObject}.
      */
     public String startDate() {
         return startDate;
     }
 
+    /**
+     * @return The transaction {@link #startDate}.
+     */
+    public Date getStartDateObject() {
+        return startDateObject;
+    }
+
+    /**
+     * @return The transaction {@link #startDate}.
+     */
+    public String getStartDate() {
+        return startDate;
+    }
     /**
      * @return The transaction {@link #endDate}.
      */
@@ -65,6 +96,19 @@ public class Transaction {
         return endDate;
     }
 
+    /**
+     * @return The transaction {@link #endDate}.
+     */
+    public Date getEndDateObject() {
+        if (endDateObject == null && endDate != null && !endDate.isEmpty()) {
+            endDateObject = DateConverter.toDate(endDate);
+        }
+        return endDateObject;
+    }
+
+    /**
+     * @return The transaction {@link #status}.
+     */
     public String getStatus() {
         return status;
     }
@@ -156,6 +200,15 @@ public class Transaction {
     /**
      * @return An unmodifiable set of the URIs in this transaction.
      */
+    public void clearErrors() {
+        synchronized (this) {
+            errors.clear();
+        }
+    }
+
+    /**
+     * @return An unmodifiable set of the URIs in this transaction.
+     */
     public List<String> errors() {
         synchronized (this) {
             return Collections.unmodifiableList(errors);
@@ -174,7 +227,8 @@ public class Transaction {
     }
 
     public void commit(boolean success) {
-        endDate = DateConverter.toString(new Date());
+        endDateObject = new Date();
+        endDate = DateConverter.toString(endDateObject);
         if (success) {
             status = COMMITTED;
         } else {
@@ -183,7 +237,8 @@ public class Transaction {
     }
 
     public void rollback(boolean success) {
-        endDate = DateConverter.toString(new Date());
+        endDateObject = new Date();
+        endDate = DateConverter.toString(endDateObject);
         if (success) {
             status = ROLLED_BACK;
         } else {

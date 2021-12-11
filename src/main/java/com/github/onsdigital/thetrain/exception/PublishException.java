@@ -23,6 +23,7 @@ public class PublishException extends Exception {
     public PublishException(String message, Transaction transaction) {
         super(message);
         this.transaction = transaction;
+        this.transaction.clearErrors();
         this.status = HttpStatus.SC_INTERNAL_SERVER_ERROR;
     }
 
