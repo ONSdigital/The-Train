@@ -211,6 +211,9 @@ public class Transaction {
      */
     public List<String> errors() {
         synchronized (this) {
+            if (errors ==  null) {
+                errors = new ArrayList<>(); // This should be initialised by marshaller. Needs investigation.
+            }
             return Collections.unmodifiableList(errors);
         }
     }
@@ -249,7 +252,11 @@ public class Transaction {
     @Override
     public String toString() {
         synchronized (this) {
-            return id + " (" + uriInfos.size() + " URIs)";
+            if (uriInfos != null){
+                return id + " (" + uriInfos.size() + " URIs)";
+            } else {
+                return id;
+            }
         }
     }
 

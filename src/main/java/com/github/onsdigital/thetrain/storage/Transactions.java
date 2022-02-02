@@ -190,7 +190,7 @@ public class Transactions {
                 (lifetimeOfTransaction.getSeconds()) / 60;
 
         Date transactionThreshold = DateUtils.addMinutes(new Date(), -minutes);
-        // Stores the ID of the transactions to be archived, and their associated Error's
+        // Stores the ID of the transactions to be archived, and their associated Error Counts
         HashMap<String, Integer> transactionsToBeArchived = new HashMap<>();
         // Loop round all transactions and check if startDate or endDate is older than
         // the transaction threshold date/time.
@@ -198,6 +198,9 @@ public class Transactions {
             Transaction transaction = null;
             try {
                 transaction = Transactions.get(id);
+                if (transaction==null){
+                    error().log("Failed: null Transaction returned from Transactions.get:" + id);
+                }
             } catch (IOException e) {
                 error().transactionID(id).exception(e).log("IOException when getting the transaction:" + id);
                 // Erroneous transactions also require archiving
