@@ -90,6 +90,21 @@ $(warning FILE_THRESHOLD_SIZE_MB env var not found applying default: ${FILE_THRE
 export FILE_THRESHOLD_SIZE_MB = ${FILE_THRESHOLD_SIZE_MB_DEFAULT}
 endif
 
+
+test-component:
+	# Install Go
+	# sudo apt-get install golang
+
+	# Make sure this installs latest stable
+
+	# Setup test
+	cd src/test/go && go run .
+	# Run The-Train in parallel
+	java ${JAVA_OPTS} -jar target/the-train-*.jar &
+	# Sleep for 20 seconds
+	sleep 20
+	# Checked the test files were archived, and run the endpoint tests
+	cd src/test/go && go t -race -cover ./...
 test:
 	mvn -Dossindex.skip test
 audit:
