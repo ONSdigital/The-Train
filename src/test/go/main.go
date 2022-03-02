@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/ONSdigital/dp-the-train-feature-tests/config"
+	"github.com/ONSdigital/The-Train/src/test/go/config"
 	"github.com/ONSdigital/log.go/v2/log"
 	"os"
 )
@@ -40,7 +40,9 @@ func run(ctx context.Context) error {
 		// Argument [1] is the path of the Go executable
 		// Argument [2] is the first argument when running this procedure.
 		fileInfo, err := os.Stat(os.Args[1])
-		CheckError(err)
+		if err != nil {
+			log.Fatal(ctx, "Failed: reading arguments", err)
+		}
 		if fileInfo.IsDir() {
 			// Valid path for storing
 			transacPath = os.Args[1]
@@ -49,14 +51,18 @@ func run(ctx context.Context) error {
 	} else {
 		// No Env Variables
 		con, err := config.Get()
-		CheckErrorWithMsg(err, "failed getting env variable for transaction store")
+		if err != nil {
+			log.Fatal(ctx, "failed getting env variable for transaction store", err)
+		}
 		transacPath = con.TransactionStore
 	}
 
 	// Setup Tests
 	CreateTransactionJSONs(transacPath)
 	err = CopyHistoricTransactionsToStore(transacPath)
-	CheckErrorWithMsg(err, "failed: copying older transactions to store.")
+	if err != nil {
+		log.Fatal(ctx, "failed: copying older transactions to store.", err)
+	}
 
 	// Make sure that context is cancelled when 'run' finishes its execution.
 	// Any remaining go-routine that was not terminated during svc.Close (graceful shutdown) will be terminated by ctx.Done()
@@ -66,16 +72,16 @@ func run(ctx context.Context) error {
 	return nil
 }
 
-func CheckError(err error) {
-	ctx := context.Background()
-	if err != nil {
-		log.Fatal(ctx, "failed creating transaction.json file", err)
-	}
-}
-
-
-func CheckErrorWithMsg(err error, msg string) {
-	if err != nil {
-		CheckError(fmt.Errorf("%v, %v", err, msg))
-	}
-}
+//func CheckError(err error) {
+//	ctx := context.Background()
+//	if err != nil {
+//		log.Fatal(ctx, "failed:", err)
+//	}
+//}
+//
+//
+//func CheckErrorWithMsg(err error, msg string) {
+//	if err != nil {
+//		CheckError(fmt.Errorf("%v, %v", err, msg))
+//	}
+//}

@@ -1,25 +1,33 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/ONSdigital/log.go/v2/log"
 )
  const historicTransactions = "/resources/transactions/"
 
 
- var transacPath string
+ var transacStore string
 
 
 // CopyHistoricTransactionsToStore will copy them from the resource folder to the appropriate location
 func CopyHistoricTransactionsToStore (transacPath string) error {
+	ctx := context.Background()
 	path, err := os.Getwd()
-	CheckErrorWithMsg(err, "Failed checking current path")
+	if err != nil {
+		log.Fatal(ctx, "Failed checking current path", err)
+	}
 	// Copy the historic transactions to the Transaction Store
 	err = CopyDirectory(filepath.Join(path, historicTransactions), transacPath)
-	CheckErrorWithMsg(err, "Failed: copying directories")
+	if err != nil {
+		log.Fatal(ctx, "Failed: copying directories", err)
+	}
 	fmt.Println(path)
 	return nil
 }
@@ -27,6 +35,7 @@ func CopyHistoricTransactionsToStore (transacPath string) error {
 // CreateTransactionJSONs creates Transactions with dates and times in the future for testing whether
 // The-Train archival process works correctly.
 func CreateTransactionJSONs(transacPath string){
+	ctx := context.Background()
 	futureTime := time.Now().Local().Add(time.Hour * 4)
 	//
 	// stringFT should resemble the following format:
@@ -120,24 +129,34 @@ func CreateTransactionJSONs(transacPath string){
 	for _, t := range transactions {
 		// Marshal to string
 		serialised, err := json.Marshal(t)
-		CheckError(err)
+		if err != nil {
+			log.Fatal(ctx, "Failed: marshalling", err)
+		}
 
 		// Path for transaction.json
 		jsonPath := filepath.Join(transacPath, t.Id)
 
 		// Check path exists, if not create directories as necessary
 		err = os.MkdirAll(jsonPath, 0755)
-		CheckError(err)
+		if err != nil {
+			log.Fatal(ctx, "Failed: making directory", err)
+		}
 
 		// Create the backup and content directories
 		err = os.MkdirAll(filepath.Join(jsonPath,"backup"), 0755)
-		CheckError(err)
+		if err != nil {
+			log.Fatal(ctx, "Failed: making backup directory", err)
+		}
 		err = os.MkdirAll(filepath.Join(jsonPath,"content"), 0755)
-		CheckError(err)
+		if err != nil {
+			log.Fatal(ctx, "Failed: making content directory", err)
+		}
 
 		//Write transaction.json file
 		err = os.WriteFile(filepath.Join(jsonPath, "transaction.json"), serialised, 0644)
-		CheckError(err)
+		if err != nil {
+			log.Fatal(ctx, "Failed: creating transaction.json file", err)
+		}
 	}
 }
 

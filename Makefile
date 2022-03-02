@@ -10,9 +10,6 @@ $(warning WEBSITE env var not found applying default: $(WEBSITE_DEFAULT))
 export WEBSITE = ${WEBSITE_DEFAULT}
 endif
 
-## The default length of time before a transaction is archived is 1440h (60 days)
-ARCHIVING_TRANSACTIONS_THRESHOLD_DEFAULT:=1440h
-
 ifndef ARCHIVING_TRANSACTIONS_THRESHOLD
 $(warning ARCHIVING_TRANSACTIONS_THRESHOLD env var not found applying default: ${ARCHIVING_TRANSACTIONS_THRESHOLD_DEFAULT})
 export ARCHIVING_TRANSACTIONS_THRESHOLD = ${ARCHIVING_TRANSACTIONS_THRESHOLD_DEFAULT}
@@ -90,21 +87,28 @@ $(warning FILE_THRESHOLD_SIZE_MB env var not found applying default: ${FILE_THRE
 export FILE_THRESHOLD_SIZE_MB = ${FILE_THRESHOLD_SIZE_MB_DEFAULT}
 endif
 
+PIDFILE=the-train.pid
 
 test-component:
 	# Install Go
-	# sudo apt-get install golang
-
-	# Make sure this installs latest stable
-
-	# Setup test
+	sudo apt-get install golang
+	# Stores the process ID of The-Train when it starts up
+	PIDFILE=the-train.pid
+	# Create the test transactions, before starting up The-Train
 	cd src/test/go && go run .
-	# Run The-Train in parallel
-	java ${JAVA_OPTS} -jar target/the-train-*.jar &
-	# Sleep for 20 seconds
+	# If there is a the-train.pid, delete it
+	[[ ! -f $(PIDFILE) ]] || rm $(PIDFILE)
+	# Startup The-Train in the background, and store the PID in the-train.pid
+	{ ARCHIVING_TRANSACTIONS_THRESHOLD=45s java ${JAVA_OPTS} -jar target/the-train-*.jar & } ; echo $$! > $(PIDFILE)
 	sleep 20
-	# Checked the test files were archived, and run the endpoint tests
-	cd src/test/go && go t -race -cover ./...
+	# Run tests
+	cd src/test/go && go test -run archiving-test -race -cover ./... ; go test -run endpoints_test -race -cover
+	# Tests finished so kill The-Train (THIS IS NOT WORKING.  ATTEMPTS SO FAR)
+	# cat {$$PIDFILE} | kill xargs kill -9
+	# pkill -F -run {$$PIDFILE}
+	# kill { cat {$$PIDFILE} }
+	# pid=$$(cat $(PIDFILE)) && kill $$pid
+	rm $(PIDFILE)
 test:
 	mvn -Dossindex.skip test
 audit:

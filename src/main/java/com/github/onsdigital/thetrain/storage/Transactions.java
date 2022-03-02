@@ -7,6 +7,7 @@ import com.github.onsdigital.thetrain.helpers.DateConverter;
 import com.github.onsdigital.thetrain.helpers.PathUtils;
 import com.github.onsdigital.thetrain.helpers.Slack;
 import com.github.onsdigital.thetrain.json.Transaction;
+import org.apache.commons.io.FileExistsException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.HiddenFileFilter;
 import org.apache.commons.lang.time.DateUtils;
@@ -162,7 +163,7 @@ public class Transactions {
         Date end = transaction.getEndDateObject();
         if (
             start == null // Archive erroneous transaction as there should always be a start date
-            || start.before(transactionThreshold) // Start Date threshold so archive
+            || start.before(transactionThreshold) // Start Date before threshold so archive
             || (end != null && end.before(transactionThreshold))  // End Date after threshold so archive
         )
         {
@@ -235,11 +236,18 @@ public class Transactions {
         //
         // Move the transactions to archive folder and send a Slack message
         //
+        File sourceFile;
+        File destFile;
         for (Map.Entry<String, Integer> entry : transactionsToBeArchived.entrySet()) {
             String i = entry.getKey();
+            sourceFile = new File(Paths.get(transactionStore.toString(), i).toAbsolutePath().toString());
+            destFile = new File(Paths.get(archivedTransactionStore.toAbsolutePath().toString(), i).toAbsolutePath().toString());
             try {
-                FileUtils.moveToDirectory(new File(Paths.get(transactionStore.toString(), i).toAbsolutePath().toString()),
-                        new File(archivedTransactionStore.toAbsolutePath().toString()), true);
+                if (Files.isDirectory(destFile.toPath())) {
+                    // Remove directory in Archival folder as it already exists
+                    FileUtils.deleteDirectory(destFile);
+                }
+                FileUtils.moveToDirectory(sourceFile, destFile, true);
             } catch (IOException e) {
                 error().transactionID(i).exception(e).log("IOException when moving the transaction to archive, where id=" + i);
             }

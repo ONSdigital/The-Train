@@ -7,7 +7,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-// Config represents service configuration for dp-the-train-feature-tests
+// Config represents service configuration for the-train feature tests
 type Config struct {
 	BindAddr                   string        `envconfig:"BIND_ADDR"`
 	GracefulShutdownTimeout    time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`

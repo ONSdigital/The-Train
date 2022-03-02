@@ -1,4 +1,4 @@
-module github.com/ONSdigital/dp-the-train-feature-tests
+module github.com/ONSdigital/The-Train/src/test/go
 
 go 1.17
 
