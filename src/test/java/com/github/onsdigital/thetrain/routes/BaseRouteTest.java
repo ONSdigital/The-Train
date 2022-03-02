@@ -35,6 +35,9 @@ public abstract class BaseRouteTest {
     protected Transaction transaction;
 
     @Mock
+    protected Transaction erroneousTransaction;
+
+    @Mock
     protected CloseablePartSupplier filePartSupplier;
 
     @Before
