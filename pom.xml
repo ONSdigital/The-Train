@@ -13,7 +13,7 @@
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <dp-logging.version>v2.0.0-beta.5</dp-logging.version>
-        <jetty.version>9.4.51.v20230217</jetty.version>
+        <jetty.version>10.0.14</jetty.version>
     </properties>
 
     <repositories>
