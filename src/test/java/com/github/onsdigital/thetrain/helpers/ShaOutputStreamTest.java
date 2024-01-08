@@ -31,7 +31,7 @@ public class ShaOutputStreamTest {
         String actualSha;
         long actualSize;
         try (InputStream input = new ByteArrayInputStream(bytes);
-             ShaOutputStream output = new ShaOutputStream(new NullOutputStream())) {
+             ShaOutputStream output = new ShaOutputStream(NullOutputStream.INSTANCE)) {
             int b;
             while ((b=input.read())!=-1) {
                 output.write(b);
@@ -61,7 +61,7 @@ public class ShaOutputStreamTest {
         long actualSize;
         byte[] buffer = new byte[40];
         try (InputStream input = new ByteArrayInputStream(bytes);
-             ShaOutputStream output = new ShaOutputStream(new NullOutputStream())) {
+             ShaOutputStream output = new ShaOutputStream(NullOutputStream.INSTANCE)) {
             int read;
             while ((read=input.read(buffer))>0) {
                 output.write(ArrayUtils.subarray(buffer, 0, read));
@@ -91,7 +91,7 @@ public class ShaOutputStreamTest {
         long actualSize;
         byte[] buffer = new byte[40];
         try (InputStream input = new ByteArrayInputStream(bytes);
-             ShaOutputStream output = new ShaOutputStream(new NullOutputStream())) {
+             ShaOutputStream output = new ShaOutputStream(NullOutputStream.INSTANCE)) {
             int read;
             while ((read=input.read(buffer))>0) {
                 output.write(buffer, 0, read);
