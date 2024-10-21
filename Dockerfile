@@ -1,4 +1,4 @@
-FROM openjdk:8
+FROM eclipse-temurin:8-jre
 
 # Add the build artifacts
 WORKDIR /usr/src
