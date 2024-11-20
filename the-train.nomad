@@ -66,6 +66,13 @@ job "the-train" {
         name = "the-train"
         port = "http"
         tags = ["web"]
+
+        check {
+          type     = "http"
+          path     = "/health"
+          interval = "10s"
+          timeout  = "2s"
+        }
       }
 
       resources {

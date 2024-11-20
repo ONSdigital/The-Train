@@ -134,6 +134,8 @@ public class App {
 
         registerGetHandler("/contentHash", getContentHash(beans, cfg.isVerifyPublishEnabled()), transformer);
 
+        registerGetHandler("/health", getHealthHandler(), transformer);
+
         // Catch-all for any request not handled by the above routes.
         registerGetHandler("*", getNotFoundHandler(), transformer);
     }
@@ -165,6 +167,13 @@ public class App {
 
     private static Route getContentHash(Beans beans, boolean isFeatureEnabled) {
         return new GetContentHash(beans.getTransactionsService(), beans.getContentService(), isFeatureEnabled);
+    }
+
+    private static Route getHealthHandler() {
+        return (req, resp) -> {
+            resp.status(200);
+            return new Message("I am alive!");
+        };
     }
 
     private static Route getNotFoundHandler() {
